@@ -1,74 +1,32 @@
 // ============================================================
-// ReadAble Backend - Express API Server
+// Database Connection Pool (PostgreSQL via pg)
 // ============================================================
-require('dotenv').config();
+const { Pool } = require('pg');
 
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-
-// Route imports
-const authRoutes = require('./routes/auth');
-const activitiesRoutes = require('./routes/activities');
-const progressRoutes = require('./routes/progress');
-const settingsRoutes = require('./routes/settings');
-const usersRoutes = require('./routes/users');
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-// ── Security Middleware ──────────────────────────────────────
-app.use(helmet());
-
-// CORS: allow frontend origin (set via env or wildcard in dev)
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-// Rate limiting to prevent abuse
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  message: { error: 'Too many requests. Please try again later.' },
-});
-app.use('/api/', limiter);
-
-// Parse JSON bodies
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// ── Health Check ─────────────────────────────────────────────
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'ReadAble API', timestamp: new Date().toISOString() });
+// Render.com provides DATABASE_URL as a connection string
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false } // Render uses self-signed certs
+    : false,
+  max: 10,          // max pool connections
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
-// ── API Routes ───────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/activities', activitiesRoutes);
-app.use('/api/progress', progressRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/users', usersRoutes);
-
-// ── Global Error Handler ─────────────────────────────────────
-app.use((err, req, res, next) => {
-  console.error('[Error]', err.stack);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
-  });
+// Log connection errors without crashing
+pool.on('error', (err) => {
+  console.error('[DB Pool Error]', err.message);
 });
 
-// ── 404 Handler ──────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+// Test connection on startup
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('[DB] Failed to connect:', err.message);
+  } else {
+    console.log('[DB] PostgreSQL connected successfully');
+    release();
+  }
 });
 
-// ── Start Server ─────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🚀 ReadAble API running on port ${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-});
-
-module.exports = app;
+module.exports = pool;
