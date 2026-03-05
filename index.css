@@ -1,0 +1,126 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ── CSS Variables for theme ─────────────────────────────── */
+:root {
+  --bg-primary:    #FFF8F0;
+  --bg-card:       #FFFFFF;
+  --bg-sidebar:    #FFFFFF;
+  --text-primary:  #1A1A2E;
+  --text-muted:    #6B7280;
+  --border-color:  #E5E7EB;
+  --shadow:        0 4px 20px rgba(0,0,0,0.08);
+}
+
+.dark {
+  --bg-primary:   #0F0F1A;
+  --bg-card:      #1A1A2E;
+  --bg-sidebar:   #16213E;
+  --text-primary: #F1F5F9;
+  --text-muted:   #94A3B8;
+  --border-color: #2D3748;
+  --shadow:       0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* ── Text size classes (applied to html element) ─────────── */
+html.text-small  { font-size: 14px; }
+html.text-medium { font-size: 16px; }
+html.text-large  { font-size: 19px; }
+html.text-xlarge { font-size: 22px; }
+
+/* ── High contrast mode ──────────────────────────────────── */
+.high-contrast {
+  --bg-primary:   #000000;
+  --bg-card:      #000000;
+  --text-primary: #FFFF00;
+  --border-color: #FFFF00;
+}
+
+/* ── Game Button styles ──────────────────────────────────── */
+.btn-game {
+  @apply font-display font-bold rounded-2xl px-6 py-3 transition-all duration-150 select-none;
+  box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+  transform: translateY(0);
+}
+.btn-game:active {
+  box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+  transform: translateY(3px);
+}
+
+/* ── Word card drag ──────────────────────────────────────── */
+.word-card {
+  @apply cursor-grab active:cursor-grabbing select-none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.word-card:hover {
+  transform: translateY(-3px) rotate(-1deg);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+.word-card.dragging {
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+  z-index: 100;
+  cursor: grabbing;
+}
+
+/* ── Drop zone ───────────────────────────────────────────── */
+.drop-zone {
+  @apply border-2 border-dashed rounded-2xl transition-all duration-200;
+  min-height: 3rem;
+}
+.drop-zone.active {
+  @apply border-sky bg-sky/10 scale-105;
+}
+.drop-zone.correct {
+  @apply border-mint bg-mint/10;
+}
+.drop-zone.wrong {
+  @apply border-coral bg-coral/10;
+}
+
+/* ── Progress bar ────────────────────────────────────────── */
+.xp-bar {
+  @apply h-3 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700;
+}
+.xp-bar-fill {
+  @apply h-full rounded-full transition-all duration-700 ease-out;
+  background: linear-gradient(90deg, #4D96FF, #6BCB77);
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes confettiFall {
+  0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-8px); }
+  40%       { transform: translateX(8px); }
+  60%       { transform: translateX(-5px); }
+  80%       { transform: translateX(5px); }
+}
+.shake { animation: shake 0.4s ease-in-out; }
+
+/* ── Scrollbar styling ───────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 10px; }
+.dark ::-webkit-scrollbar-thumb { background: #4A5568; }
+
+/* ── Focus accessibility ─────────────────────────────────── */
+*:focus-visible {
+  outline: 3px solid #4D96FF;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
