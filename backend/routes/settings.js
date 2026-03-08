@@ -1,6 +1,3 @@
-// ============================================================
-// Settings & Users Routes — merged with delete account
-// ============================================================
 const settingsRouter = require('express').Router();
 const usersRouter    = require('express').Router();
 const bcrypt         = require('bcryptjs');
