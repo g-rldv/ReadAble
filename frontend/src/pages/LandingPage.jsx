@@ -356,8 +356,8 @@ export default function LandingPage() {
           </p>
           <GlowCard
             isButton={false}
-            from="#ee4a4a"
-            to="#fce87a"
+            from="#ffffff"
+            to="#ffffff"
             style={{ borderRadius: '16px', display: 'inline-block', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
           >
             <Link to="/register"
@@ -371,7 +371,7 @@ export default function LandingPage() {
 
       {/* ── Footer ────────────────────────────────────────── */}
       <footer className="text-center pb-10">
-        <p className="text-sm" style={{ color: '#000000' }}>
+        <p className="text-sm" style={{ color: '#5c5c5c' }}>
           📚 ReadAble · Built with care for inclusive learning
         </p>
       </footer>
