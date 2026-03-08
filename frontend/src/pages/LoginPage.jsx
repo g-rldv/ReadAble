@@ -58,7 +58,8 @@ function Input({ label, type = 'text', value, onChange, placeholder, name, requi
 
 // ── Login Page ────────────────────────────────────────────────
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  if (user) { navigate('/dashboard', { replace: true }); return null; }
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -67,18 +68,23 @@ export function LoginPage() {
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const submit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await login(form.email, form.password);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  if (loading) return;
+  setError('');
+  setLoading(true);
+  try {
+    await login(form.email, form.password);
+    navigate('/dashboard', { replace: true });
+  } catch (err) {
+    const msg = err.response?.data?.error
+      || (err.code === 'ECONNABORTED' ? 'Connection timed out. Please try again.' : null)
+      || (err.message === 'Network Error' ? 'Cannot reach server. Check your connection.' : null)
+      || 'Sign in failed. Please try again.';
+    setError(msg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <AuthLayout title="Welcome back!" subtitle="Sign in to continue your journey">
@@ -107,7 +113,8 @@ export function LoginPage() {
 
 // ── Register Page ─────────────────────────────────────────────
 export function RegisterPage() {
-  const { register } = useAuth();
+  const { register, user } = useAuth();
+  if (user) { navigate('/dashboard', { replace: true }); return null; }
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
@@ -116,19 +123,25 @@ export function RegisterPage() {
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const submit = async (e) => {
-    e.preventDefault();
-    setError('');
-    if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
-    setLoading(true);
-    try {
-      await register(form.username, form.email, form.password);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  if (loading) return;
+  setError('');
+  if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
+  if (form.username.trim().length < 3) { setError('Username must be at least 3 characters'); return; }
+  setLoading(true);
+  try {
+    await register(form.username.trim(), form.email.trim(), form.password);
+    navigate('/dashboard', { replace: true });
+  } catch (err) {
+    const msg = err.response?.data?.error
+      || (err.code === 'ECONNABORTED' ? 'Connection timed out. Please try again.' : null)
+      || (err.message === 'Network Error' ? 'Cannot reach server. Check your connection.' : null)
+      || 'Registration failed. Please try again.';
+    setError(msg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <AuthLayout title="Join ReadAble!" subtitle="Create your free account — it takes 30 seconds">
