@@ -1,148 +1,255 @@
 // ============================================================
-// ActivitiesPage — browse and filter all activities
+// ActivitiesPage — browse activities by type and difficulty
 // ============================================================
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
-import { ArrowRight, Search } from 'lucide-react';
+import { CheckCircle, Star } from 'lucide-react';
 
-const DIFFICULTY_COLORS = {
-  easy:   { badge: 'bg-mint/15 text-green-700 border-mint/30',   dot: 'bg-mint' },
-  medium: { badge: 'bg-sunny/15 text-yellow-700 border-sunny/30', dot: 'bg-sunny' },
-  hard:   { badge: 'bg-coral/15 text-red-600 border-coral/30',   dot: 'bg-coral' },
+// ── Constants ─────────────────────────────────────────────────
+const TYPES = [
+  { key: 'all',           label: 'All Games',      icon: '🎮' },
+  { key: 'word_match',    label: 'Word Match',      icon: '🔗' },
+  { key: 'fill_blank',    label: 'Fill the Blank',  icon: '✏️'  },
+  { key: 'sentence_sort', label: 'Sentence Sort',   icon: '🔀' },
+  { key: 'picture_word',  label: 'Picture & Word',  icon: '🖼️'  },
+];
+
+const DIFFICULTIES = [
+  { key: 'all',    label: 'All Levels' },
+  { key: 'easy',   label: 'Easy'       },
+  { key: 'medium', label: 'Medium'     },
+  { key: 'hard',   label: 'Hard'       },
+];
+
+const DIFF_STYLE = {
+  easy:   { badge: 'bg-emerald-100 text-emerald-700',  bar: 'bg-emerald-400' },
+  medium: { badge: 'bg-amber-100 text-amber-700',      bar: 'bg-amber-400'   },
+  hard:   { badge: 'bg-rose-100 text-rose-600',        bar: 'bg-rose-400'    },
 };
 
-const TYPE_LABELS = {
-  word_match:    { icon: '🔗', label: 'Word Match' },
-  fill_blank:    { icon: '✏️', label: 'Fill in the Blank' },
-  sentence_sort: { icon: '🔀', label: 'Sentence Sort' },
-  picture_word:  { icon: '🖼️', label: 'Picture & Word' },
-};
+const DIFF_ORDER = { easy: 0, medium: 1, hard: 2 };
 
+// ── Activity Card ─────────────────────────────────────────────
+function ActivityCard({ activity, progress }) {
+  const prog       = progress[activity.id];
+  const isComplete = prog?.completed;
+  const score      = prog?.score ?? null;
+  const diff       = DIFF_STYLE[activity.difficulty];
+  const typeInfo   = TYPES.find(t => t.key === activity.type);
+
+  return (
+    <Link
+      to={`/game/${activity.id}`}
+      className="group flex flex-col rounded-2xl border-2 border-gray-100 dark:border-gray-700 hover:border-sky hover:shadow-md transition-all overflow-hidden"
+      style={{ background: 'var(--bg-card)' }}
+    >
+      {/* Difficulty colour bar */}
+      <div className={`h-1.5 w-full ${diff.bar}`} />
+
+      <div className="p-5 flex flex-col flex-1">
+        {/* Top row: type icon + badges */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <span className="text-2xl" role="img">{typeInfo?.icon}</span>
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold capitalize ${diff.badge}`}>
+              {activity.difficulty}
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-sky/10 text-sky">
+              +{activity.xp_reward} XP
+            </span>
+          </div>
+        </div>
+
+        {/* Title & description */}
+        <h3 className="font-display text-base text-gray-800 dark:text-gray-100 mb-1 leading-snug">
+          {activity.title}
+        </h3>
+        <p className="text-xs text-gray-400 dark:text-gray-500 flex-1 leading-relaxed">
+          {activity.description}
+        </p>
+
+        {/* Bottom: progress or play prompt */}
+        <div className="mt-4 flex items-center justify-between">
+          {isComplete ? (
+            <div className="flex items-center gap-1.5 text-emerald-500 text-sm font-bold">
+              <CheckCircle size={16} />
+              <span>Completed</span>
+              {score !== null && (
+                <span className="ml-1 text-xs text-gray-400 font-normal">{score}%</span>
+              )}
+            </div>
+          ) : score !== null ? (
+            <div className="flex items-center gap-1 text-amber-500 text-sm font-semibold">
+              <Star size={14} />
+              <span>Best: {score}%</span>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400">Not played yet</span>
+          )}
+          <span className="text-xs font-bold text-sky group-hover:translate-x-1 transition-transform">
+            Play →
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ── Type Section (used in "All" view) ─────────────────────────
+function TypeSection({ typeKey, activities, progress }) {
+  const typeInfo = TYPES.find(t => t.key === typeKey);
+  if (!activities.length) return null;
+
+  const sorted = [...activities].sort((a, b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-lg">{typeInfo?.icon}</span>
+        <h2 className="font-display text-lg text-gray-700 dark:text-gray-300">{typeInfo?.label}</h2>
+        <span className="text-xs text-gray-400 ml-1">({activities.length})</span>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {sorted.map(act => (
+          <ActivityCard key={act.id} activity={act} progress={progress} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState([]);
   const [progress,   setProgress]   = useState({});
   const [loading,    setLoading]     = useState(true);
-  const [filter, setFilter] = useState({ difficulty: 'all', type: 'all', search: '' });
+  const [activeType, setActiveType]  = useState('all');
+  const [activeDiff, setActiveDiff]  = useState('all');
 
   useEffect(() => {
     Promise.all([api.get('/activities'), api.get('/progress')])
       .then(([actRes, progRes]) => {
         setActivities(actRes.data.activities);
-        const progMap = {};
-        progRes.data.progress.forEach(p => { progMap[p.activity_id] = p; });
-        setProgress(progMap);
-      }).catch(console.error)
+        const map = {};
+        progRes.data.progress.forEach(p => { map[p.activity_id] = p; });
+        setProgress(map);
+      })
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = activities.filter(a => {
-    if (filter.difficulty !== 'all' && a.difficulty !== filter.difficulty) return false;
-    if (filter.type !== 'all' && a.type !== filter.type) return false;
-    if (filter.search && !a.title.toLowerCase().includes(filter.search.toLowerCase())) return false;
-    return true;
-  });
-
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="text-4xl animate-bounce">📚</div>
+      <div className="text-4xl animate-bounce">🎮</div>
     </div>
   );
 
+  // Apply difficulty filter
+  const diffFiltered = activeDiff === 'all'
+    ? activities
+    : activities.filter(a => a.difficulty === activeDiff);
+
+  // Apply type filter
+  const typeFiltered = activeType === 'all'
+    ? diffFiltered
+    : diffFiltered.filter(a => a.type === activeType);
+
+  // Sort: by type order, then difficulty
+  const typeOrder = { word_match: 0, fill_blank: 1, sentence_sort: 2, picture_word: 3 };
+  const sorted = [...typeFiltered].sort((a, b) => {
+    if (a.type !== b.type) return (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9);
+    return DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty];
+  });
+
+  // Group by type for "All" view
+  const grouped = {};
+  if (activeType === 'all') {
+    ['word_match', 'fill_blank', 'sentence_sort', 'picture_word'].forEach(t => {
+      grouped[t] = sorted.filter(a => a.type === t);
+    });
+  }
+
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in">
-      <h1 className="font-display text-3xl text-gray-800 dark:text-gray-200 mb-6">📚 All Activities</h1>
+    <div className="max-w-4xl mx-auto animate-fade-in space-y-6">
 
-      {/* ── Filters ──────────────────────────────────────────── */}
-      <div className="rounded-3xl p-4 mb-6 flex flex-wrap gap-3 items-center"
-        style={{ background: 'var(--bg-card)' }}>
-        {/* Search */}
-        <div className="flex items-center gap-2 flex-1 min-w-48 bg-gray-100 dark:bg-gray-700 rounded-2xl px-4 py-2">
-          <Search size={16} className="text-gray-400" />
-          <input
-            value={filter.search}
-            onChange={e => setFilter(f => ({ ...f, search: e.target.value }))}
-            placeholder="Search activities…"
-            className="bg-transparent text-sm outline-none flex-1 text-gray-700 dark:text-gray-300"
-          />
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div>
+        <h1 className="font-display text-3xl text-gray-800 dark:text-gray-100">Activities</h1>
+        <p className="text-sm text-gray-400 mt-1">{activities.length} games across 4 categories</p>
+      </div>
+
+      {/* ── Filters ────────────────────────────────────────── */}
+      <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--bg-card)' }}>
+
+        {/* Game type */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Game Type</p>
+          <div className="flex flex-wrap gap-2">
+            {TYPES.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setActiveType(t.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition-all ${
+                  activeType === t.key
+                    ? 'bg-sky text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-sky/15 hover:text-sky'
+                }`}
+              >
+                <span>{t.icon}</span>
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
+
         {/* Difficulty */}
-        <div className="flex gap-2">
-          {['all', 'easy', 'medium', 'hard'].map(d => (
-            <button key={d} onClick={() => setFilter(f => ({ ...f, difficulty: d }))}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors ${
-                filter.difficulty === d
-                  ? 'bg-sky text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-sky/10'
-              }`}>{d}</button>
-          ))}
-        </div>
-        {/* Type */}
-        <div className="flex gap-2">
-          {['all', 'word_match', 'fill_blank', 'sentence_sort', 'picture_word'].map(t => (
-            <button key={t} onClick={() => setFilter(f => ({ ...f, type: t }))}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                filter.type === t
-                  ? 'bg-coral text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-coral/10'
-              }`}>
-              {t === 'all' ? 'All Types' : TYPE_LABELS[t]?.icon || t}
-            </button>
-          ))}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Difficulty</p>
+          <div className="flex gap-2">
+            {DIFFICULTIES.map(d => (
+              <button
+                key={d.key}
+                onClick={() => setActiveDiff(d.key)}
+                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all ${
+                  activeDiff === d.key
+                    ? d.key === 'easy'   ? 'bg-emerald-400 text-white shadow-sm'
+                    : d.key === 'medium' ? 'bg-amber-400 text-white shadow-sm'
+                    : d.key === 'hard'   ? 'bg-rose-400 text-white shadow-sm'
+                    :                     'bg-sky text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ── Grid ─────────────────────────────────────────────── */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        {filtered.map(act => {
-          const prog = progress[act.id];
-          const isComplete = prog?.completed;
-          const score = prog?.score || 0;
-          const typeInfo = TYPE_LABELS[act.type] || { icon: '📖', label: act.type };
-          return (
-            <Link key={act.id} to={`/game/${act.id}`}
-              className="rounded-3xl p-5 border-2 border-gray-100 dark:border-gray-700 hover:border-sky hover:shadow-lg transition-all group"
-              style={{ background: 'var(--bg-card)' }}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="text-4xl">{typeInfo.icon}</div>
-                <div className="flex items-center gap-2">
-                  {isComplete && (
-                    <span className="px-2 py-0.5 bg-mint/15 text-green-700 text-xs font-bold rounded-full border border-mint/30">
-                      ✓ Done
-                    </span>
-                  )}
-                  <span className={`px-2 py-0.5 text-xs font-bold rounded-full border capitalize ${DIFFICULTY_COLORS[act.difficulty]?.badge}`}>
-                    {act.difficulty}
-                  </span>
-                </div>
-              </div>
-              <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-1">{act.title}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{act.description}</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 text-xs text-gray-400">
-                  <span>{typeInfo.icon} {typeInfo.label}</span>
-                  <span className="text-sky font-bold">+{act.xp_reward} XP</span>
-                </div>
-                {prog && (
-                  <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    score >= 80 ? 'bg-mint/15 text-green-700' :
-                    score >= 50 ? 'bg-sunny/15 text-yellow-700' :
-                    'bg-gray-100 text-gray-500'
-                  }`}>{score}%</div>
-                )}
-                <ArrowRight size={16} className="text-gray-300 group-hover:text-sky transition-colors" />
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {filtered.length === 0 && (
+      {/* ── Results ────────────────────────────────────────── */}
+      {sorted.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <div className="text-5xl mb-3">🔍</div>
-          <p className="font-semibold">No activities match your filters</p>
+          <div className="text-5xl mb-3">🎯</div>
+          <p className="font-display text-lg">No activities found</p>
+          <p className="text-sm mt-1">Try a different filter</p>
+        </div>
+      ) : activeType === 'all' ? (
+        // Grouped view
+        <div className="space-y-8">
+          {['word_match', 'fill_blank', 'sentence_sort', 'picture_word'].map(t => (
+            <TypeSection key={t} typeKey={t} activities={grouped[t] || []} progress={progress} />
+          ))}
+        </div>
+      ) : (
+        // Flat grid for single type
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {sorted.map(act => (
+            <ActivityCard key={act.id} activity={act} progress={progress} />
+          ))}
         </div>
       )}
+
     </div>
   );
 }
