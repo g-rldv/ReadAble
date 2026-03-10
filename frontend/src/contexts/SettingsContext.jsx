@@ -1,50 +1,54 @@
 // ============================================================
 // Settings Context — theme, text size, TTS, background music
+// Cross-device: marks settings as dirty when changed locally.
 // ============================================================
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import api from '../utils/api';
-import { startMusic, stopMusic, changeMusicTheme, isMusicPlaying } from '../utils/bgMusic';
+import { startMusic, stopMusic, setMusicVolume, isMusicPlaying } from '../utils/bgMusic';
 
 const SettingsContext = createContext(null);
 
-// Themes that require Tailwind's dark: variants (dark palette)
-const DARK_PALETTE_THEMES = new Set(['dark', 'gradient', 'ocean', 'sunset', 'midnight', 'forest']);
+// Themes that need Tailwind's dark: variants
+const DARK_THEMES = new Set(['dark','gradient','ocean','sunset','midnight','forest']);
 
 const DEFAULTS = {
-  text_size:       'medium',
-  theme:           'light',
-  tts_enabled:     true,
-  tts_voice:       '',
-  tts_rate:        0.9,
-  tts_pitch:       1.0,
+  text_size:        'medium',
+  theme:            'light',
+  tts_enabled:      true,
+  tts_voice:        '',
+  tts_rate:         0.9,
+  tts_pitch:        1.0,
   bg_music_enabled: false,
-  bg_music_theme:  'calm',
-  bg_music_volume: 0.7,
+  bg_music_theme:   'calm',
+  bg_music_volume:  0.7,
 };
 
-export function SettingsProvider({ children }) {
-  const { user, token } = useAuth();
-  const [settings, setSettings] = useState(() => {
-    try {
-      const stored = localStorage.getItem('readable_settings');
-      return stored ? { ...DEFAULTS, ...JSON.parse(stored) } : DEFAULTS;
-    } catch { return DEFAULTS; }
-  });
-  const [voices, setVoices] = useState([]);
+function readLocal() {
+  try {
+    const s = localStorage.getItem('readable_settings');
+    return s ? { ...DEFAULTS, ...JSON.parse(s) } : { ...DEFAULTS };
+  } catch { return { ...DEFAULTS }; }
+}
 
-  // Track whether we've already attached the one-time click-to-start handler
+export function SettingsProvider({ children }) {
+  const { token } = useAuth();
+  const [settings, setSettings] = useState(readLocal);
+  const [voices,   setVoices]   = useState([]);
   const musicClickRef = useRef(false);
 
-  // ── Load settings from server when logged in ──────────────
+  // ── Load from server when logged in ─────────────────────────
   useEffect(() => {
     if (!token) return;
     api.get('/settings').then(res => {
-      if (res.data?.settings) applySettings({ ...DEFAULTS, ...res.data.settings });
+      if (res.data?.settings) {
+        // Merge server into defaults (handles missing columns gracefully)
+        applySettings({ ...DEFAULTS, ...res.data.settings });
+      }
     }).catch(() => {});
-  }, [token]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Browser TTS voices ────────────────────────────────────
+  // ── Browser TTS voices ───────────────────────────────────────
   useEffect(() => {
     const load = () => setVoices(window.speechSynthesis?.getVoices() || []);
     load();
@@ -52,47 +56,50 @@ export function SettingsProvider({ children }) {
     return () => window.speechSynthesis?.removeEventListener('voiceschanged', load);
   }, []);
 
-  // ── Apply settings to DOM + state ─────────────────────────
+  // ── Apply settings → DOM + state ────────────────────────────
   const applySettings = useCallback((s) => {
     setSettings(s);
     try { localStorage.setItem('readable_settings', JSON.stringify(s)); } catch {}
 
     const html = document.documentElement;
 
-    // 1. Set data-theme attribute (drives CSS variable blocks)
+    // data-theme drives CSS variable blocks
     html.setAttribute('data-theme', s.theme || 'light');
 
-    // 2. .dark class enables Tailwind dark: variants for dark-palette themes
+    // .dark activates Tailwind dark: variants for dark-palette themes
     html.classList.remove('dark', 'high-contrast');
-    if (DARK_PALETTE_THEMES.has(s.theme)) html.classList.add('dark');
-    if (s.theme === 'high-contrast')      html.classList.add('dark', 'high-contrast');
+    if (DARK_THEMES.has(s.theme))   html.classList.add('dark');
+    if (s.theme === 'high-contrast') html.classList.add('dark', 'high-contrast');
 
-    // 3. Text size
-    html.classList.remove('text-small', 'text-medium', 'text-large', 'text-xlarge');
+    // Text size
+    html.classList.remove('text-small','text-medium','text-large','text-xlarge');
     html.classList.add(`text-${s.text_size || 'medium'}`);
   }, []);
 
+  // ── Update a setting (saves to server if logged in) ──────────
   const updateSettings = useCallback(async (updates) => {
     const next = { ...settings, ...updates };
     applySettings(next);
+    // Mark as dirty so AuthContext can sync on next login
+    try { localStorage.setItem('readable_settings_dirty', 'true'); } catch {}
     if (token) {
-      try { await api.put('/settings', next); } catch {}
+      try {
+        await api.put('/settings', next);
+        localStorage.removeItem('readable_settings_dirty');
+      } catch {}
     }
   }, [settings, token, applySettings]);
 
-  // ── Background music lifecycle ────────────────────────────
+  // ── Background music lifecycle ───────────────────────────────
   useEffect(() => {
     if (!settings.bg_music_enabled) {
       stopMusic();
       musicClickRef.current = false;
       return;
     }
-
-    // Try to start immediately (works if AudioContext is already running)
     const started = startMusic(settings.bg_music_theme);
-
     if (!started && !musicClickRef.current) {
-      // Browser autoplay policy blocked — wait for first user click
+      // Browser autoplay blocked — start on first user interaction
       musicClickRef.current = true;
       const handler = () => {
         if (settings.bg_music_enabled && !isMusicPlaying()) {
@@ -102,11 +109,16 @@ export function SettingsProvider({ children }) {
       };
       document.addEventListener('click', handler, { once: true });
     }
-
-    return () => { /* music keeps playing across re-renders */ };
   }, [settings.bg_music_enabled, settings.bg_music_theme]);
 
-  // ── Text-to-speech ────────────────────────────────────────
+  // ── Volume control ───────────────────────────────────────────
+  useEffect(() => {
+    if (settings.bg_music_enabled) {
+      setMusicVolume(settings.bg_music_volume ?? 0.7);
+    }
+  }, [settings.bg_music_volume, settings.bg_music_enabled]);
+
+  // ── Text-to-speech ───────────────────────────────────────────
   const speak = useCallback((text) => {
     if (!settings.tts_enabled || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
