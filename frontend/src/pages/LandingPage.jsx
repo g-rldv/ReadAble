@@ -425,16 +425,6 @@ export default function LandingPage() {
             Interactive word games and reading activities designed for all learners.
             Track progress, earn rewards, and grow your reading skills every day!
           </p>
-          <div className="flex flex-wrap gap-4">
-            <button onClick={() => setShowRegister(true)}
-              className="btn-game bg-coral text-white hover:bg-coral-dark flex items-center gap-2">
-              Start for Free <ArrowRight size={18} />
-            </button>
-            <button onClick={() => setShowLogin(true)}
-              className="btn-game bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-600">
-              I have an account
-            </button>
-          </div>
           <div className="flex flex-wrap gap-3 mt-8">
             {FEATURE_PILLS.map(({ Icon, label }) => (
               <span key={label}
