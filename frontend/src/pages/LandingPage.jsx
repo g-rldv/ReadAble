@@ -1,160 +1,51 @@
-import React, { useState, useRef } from 'react';
+// ============================================================
+// LandingPage — Hero page with trial game and sign-up prompt
+// No emoji characters — all icons use Lucide React SVGs
+// ============================================================
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { ArrowRight } from 'lucide-react';
+import {
+  BookOpen, Zap, ArrowRight, Volume2,
+  Gamepad2, BarChart2, Trophy, Heart,
+  TrendingUp, Palette, Check, Star, CheckCircle,
+} from 'lucide-react';
 
+// ── Feature pills (no emoji, uses Lucide icons) ───────────────
+const FEATURE_PILLS = [
+  { Icon: Gamepad2,  label: 'Fun Games'         },
+  { Icon: Volume2,   label: 'Read-Aloud'        },
+  { Icon: BarChart2, label: 'Progress Tracking' },
+  { Icon: Trophy,    label: 'Achievements'      },
+  { Icon: Heart,     label: 'Accessible'        },
+];
+
+// ── Feature cards (no emoji) ──────────────────────────────────
+const FEATURES = [
+  { Icon: Gamepad2,   color: 'from-coral/20 to-coral/5',   title: 'Fun Word Games',     desc: 'Match words, fill blanks, sort sentences — learning feels like play!'    },
+  { Icon: Volume2,    color: 'from-sky/20 to-sky/5',       title: 'Read Aloud',         desc: 'Every activity can be read to you using natural-sounding voices.'         },
+  { Icon: TrendingUp, color: 'from-mint/20 to-mint/5',     title: 'Track Progress',     desc: 'Level up, earn badges, and watch your skills grow over time.'             },
+  { Icon: Palette,    color: 'from-grape/20 to-grape/5',   title: 'Customisable',       desc: 'Adjust text size, switch themes, and make it work for you.'               },
+  { Icon: Heart,      color: 'from-sunny/20 to-sunny/5',   title: 'Accessible Design', desc: 'Built with everyone in mind — simple, clear, and easy to use.'            },
+  { Icon: Trophy,     color: 'from-coral/20 to-sunny/10',  title: 'Earn Rewards',       desc: 'Collect badges and climb the leaderboard as you learn!'                  },
+];
+
+// ── Mini trial game data (emoji OK here — it's game content) ──
 const TRIAL_ITEMS = [
   { emoji: '🌞', answer: 'Sun',     options: ['Moon', 'Sun', 'Star', 'Cloud'] },
-  { emoji: '🐶', answer: 'Dog',     options: ['Cat', 'Bird', 'Dog', 'Fish'] },
+  { emoji: '🐶', answer: 'Dog',     options: ['Cat', 'Bird', 'Dog', 'Fish']   },
   { emoji: '🌈', answer: 'Rainbow', options: ['Rainbow', 'Sunset', 'Storm', 'Sky'] },
 ];
 
-const FEATURES = [
-  { icon: '🎮', title: 'Fun Word Games',     desc: 'Match words, fill blanks, sort sentences.', from: '#4D96FF', to: '#6BCB77' },
-  { icon: '🔊', title: 'Read Aloud',         desc: 'Every activity can be read out loud.',       from: '#6BCB77', to: '#FFD93D' },
-  { icon: '📈', title: 'Track Progress',     desc: 'Level up and earn badges as you learn.',     from: '#FF9A3C', to: '#FF6B6B' },
-  { icon: '♿', title: 'Built for Everyone', desc: 'Simple, clear, and easy to use for all.',    from: '#9B59B6', to: '#4D96FF' },
-];
-
-// Each answer button gets its own gradient color pair
-const ANSWER_COLORS = [
-  { from: '#4D96FF', to: '#6BCB77' },
-  { from: '#FF6B6B', to: '#FFD93D' },
-  { from: '#9B59B6', to: '#4D96FF' },
-  { from: '#FF9A3C', to: '#FF6B6B' },
-];
-
-// ── Reusable mouse-tracking gradient card/button ─────────────
-function GlowCard({ children, from, to, onClick, isButton = false, style = {}, disabled = false }) {
-  const ref     = useRef(null);
-  const [pos, setPos]         = useState({ x: 50, y: 50 });
-  const [hovered, setHovered] = useState(false);
-
-  const handleMouseMove = (e) => {
-    const rect = ref.current.getBoundingClientRect();
-    setPos({
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top)  / rect.height) * 100,
-    });
-  };
-
-  const Tag = isButton ? 'button' : 'div';
-
-  return (
-    <Tag
-      ref={ref}
-      onClick={onClick}
-      disabled={disabled}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: 'relative',
-        overflow: 'hidden',
-        cursor: isButton ? 'pointer' : 'default',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease',
-        transform: hovered && !disabled ? 'translateY(-3px)' : 'translateY(0)',
-        background: hovered && !disabled
-          ? `linear-gradient(135deg, ${from}20, ${to}20)`
-          : 'white',
-        border: hovered && !disabled
-          ? `2px solid ${from}80`
-          : '2px solid #E5E7EB',
-        boxShadow: hovered && !disabled
-          ? `0 6px 24px ${from}35`
-          : '0 1px 4px rgba(0,0,0,0.05)',
-        ...style,
-      }}
-    >
-      {/* Bright radial spotlight following cursor */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        opacity: hovered && !disabled ? 1 : 0,
-        transition: 'opacity 0.2s ease',
-        background: `radial-gradient(circle at ${pos.x}% ${pos.y}%, ${from}80 0%, ${to}50 40%, transparent 70%)`,
-        pointerEvents: 'none',
-        mixBlendMode: 'multiply',
-      }} />
-
-      {/* Content */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {children}
-      </div>
-    </Tag>
-  );
-}
-
-// ── Feature card ─────────────────────────────────────────────
-function FeatureCard({ icon, title, desc, from, to }) {
-  const ref     = useRef(null);
-  const [pos, setPos]         = useState({ x: 50, y: 50 });
-  const [hovered, setHovered] = useState(false);
-
-  const handleMouseMove = (e) => {
-    const rect = ref.current.getBoundingClientRect();
-    setPos({
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top)  / rect.height) * 100,
-    });
-  };
-
-  return (
-    <div
-      ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        borderRadius: '16px', padding: '20px',
-        position: 'relative', overflow: 'hidden',
-        cursor: 'default',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease',
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
-        background: hovered ? `linear-gradient(135deg, ${from}18, ${to}18)` : 'white',
-        border: hovered ? `2px solid ${from}60` : '2px solid #EEF0F8',
-        boxShadow: hovered ? `0 8px 32px ${from}40` : '0 2px 12px rgba(0,0,0,0.04)',
-      }}
-    >
-      <div style={{
-        position: 'absolute', inset: 0,
-        opacity: hovered ? 1 : 0,
-        transition: 'opacity 0.25s ease',
-        background: `radial-gradient(circle at ${pos.x}% ${pos.y}%, ${from}70 0%, ${to}40 35%, transparent 65%)`,
-        pointerEvents: 'none',
-        mixBlendMode: 'multiply',
-      }} />
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <div style={{
-          width: '44px', height: '44px', borderRadius: '12px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.3rem', marginBottom: '12px',
-          background: hovered ? `linear-gradient(135deg, ${from}, ${to})` : `linear-gradient(135deg, ${from}25, ${to}25)`,
-          transition: 'background 0.25s ease',
-        }}>
-          {icon}
-        </div>
-        <h3 style={{
-          fontWeight: 800, fontSize: '0.9rem', marginBottom: '4px',
-          color: hovered ? from : '#1A1A2E',
-          transition: 'color 0.2s ease',
-        }}>{title}</h3>
-        <p style={{ fontSize: '0.78rem', lineHeight: 1.6, color: '#6B7280' }}>{desc}</p>
-      </div>
-    </div>
-  );
-}
-
-// ── Main Page ─────────────────────────────────────────────────
 export default function LandingPage() {
-  const { user } = useAuth();
-  const { speak } = useSettings();
-  const navigate  = useNavigate();
-  const [trialStep, setTrialStep]       = useState(0);
-  const [trialScore, setTrialScore]     = useState(0);
-  const [selected, setSelected]         = useState(null);
-  const [trialDone, setTrialDone]       = useState(false);
+  const { user }   = useAuth();
+  const { speak }  = useSettings();
+  const navigate   = useNavigate();
+  const [trialStep,  setTrialStep]  = useState(0);
+  const [trialScore, setTrialScore] = useState(0);
+  const [selected,   setSelected]   = useState(null);
+  const [trialDone,  setTrialDone]  = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
 
   if (user) { navigate('/dashboard'); return null; }
@@ -177,157 +68,139 @@ export default function LandingPage() {
   };
 
   return (
-    <div style={{ background: '#F7F9FF', minHeight: '100vh', fontFamily: 'Nunito, sans-serif' }}>
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* ── Navbar ────────────────────────────────────────── */}
-      <nav style={{ background: 'white', borderBottom: '2px solid #EEF0F8' }}>
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span style={{ fontSize: '1.8rem' }}>📚</span>
-            <span className="font-display text-xl" style={{ color: '#4D96FF' }}>ReadAble</span>
+      {/* ── Nav ─────────────────────────────────────────── */}
+      <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
+            <BookOpen size={16} className="text-white" />
           </div>
-            <GlowCard
-              isButton={false}
-              from="#4D96FF"
-              to="#6BCB77"
-              style={{ borderRadius: '12px', padding: '8px 20px', display: 'inline-block' }}
-            >
-              <Link to="/login"
-                style={{ color: '#4D96FF', fontWeight: 800, fontSize: '0.875rem', display: 'block' }}>
-                Sign In
-              </Link>
-            </GlowCard>
+          <span className="font-display text-2xl text-sky">ReadAble</span>
+        </div>
+        <div className="flex gap-3">
+          <Link to="/login"
+            className="px-5 py-2 rounded-2xl font-bold text-sky border-2 border-sky hover:bg-sky/10 transition-colors text-sm">
+            Sign In
+          </Link>
+          <Link to="/register"
+            className="px-5 py-2 rounded-2xl font-bold text-white bg-sky hover:bg-sky-dark transition-colors text-sm shadow-md">
+            Join Free
+          </Link>
         </div>
       </nav>
 
-      {/* ── Hero ──────────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-6 pt-16 pb-12">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-
-          {/* Left */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-6"
-              style={{ background: '#FFF8E7', color: '#D97706', border: '2px solid #FDE68A' }}>
-              ✨ Made for every learner
-            </div>
-            <h1 className="font-display mb-5"
-              style={{ fontSize: 'clamp(2.2rem, 5vw, 3.2rem)', color: '#1A1A2E', lineHeight: 1.25 }}>
-              Reading made<br />
-              <span style={{ color: '#4D96FF' }}>fun &amp; easy! 🌟</span>
-            </h1>
-            <p className="mb-6 font-medium"
-              style={{ color: '#4B5563', fontSize: '1.1rem', lineHeight: 1.8, maxWidth: '400px' }}>
-              Interactive word games and reading activities designed for all learners —
-              especially those who need a little extra support.
-            </p>
-            <p className="text-sm font-semibold" style={{ color: '#9CA3AF' }}>
-              Try the game on the right — no sign-up needed! →
-            </p>
+      {/* ── Hero ────────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-6 pt-12 pb-8 grid lg:grid-cols-2 gap-12 items-center">
+        <div className="animate-slide-up">
+          <div className="inline-flex items-center gap-2 bg-sunny/20 text-yellow-700 dark:text-yellow-300 px-4 py-1.5 rounded-full text-sm font-bold mb-5">
+            <Zap size={14} className="fill-current" /> Made for everyone
           </div>
+          <h1 className="font-display text-5xl lg:text-6xl text-gray-900 dark:text-white leading-tight mb-5">
+            Reading made<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-coral to-sky">
+              fun & easy
+            </span>
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-md font-medium">
+            Interactive word games and reading activities designed for all learners.
+            Track progress, earn rewards, and grow your reading skills every day!
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <Link to="/register"
+              className="btn-game bg-coral text-white hover:bg-coral-dark flex items-center gap-2">
+              Start for Free <ArrowRight size={18} />
+            </Link>
+            <Link to="/login"
+              className="btn-game bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-600">
+              I have an account
+            </Link>
+          </div>
+          {/* Feature pills — Lucide icons */}
+          <div className="flex flex-wrap gap-3 mt-8">
+            {FEATURE_PILLS.map(({ Icon, label }) => (
+              <span key={label}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-gray-800 shadow-sm
+                           text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                <Icon size={13} className="text-sky flex-shrink-0" />
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
 
-          {/* Right — trial game card */}
-          <div className="rounded-3xl p-7"
-            style={{ background: 'white', border: '2px solid #E8EFFF', boxShadow: '0 8px 40px rgba(77,150,255,0.10)' }}>
-
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="font-display text-xl" style={{ color: '#1A1A2E' }}>🎮 Try a Quick Game!</h3>
-                <p className="text-xs font-bold mt-0.5" style={{ color: '#9CA3AF' }}>No sign-up needed</p>
-              </div>
-              <div className="flex gap-1.5 items-center">
-                {TRIAL_ITEMS.map((_, i) => (
-                  <div key={i} className="h-2.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: i === trialStep ? '22px' : '10px',
-                      background: i < trialStep ? '#6BCB77' : i === trialStep ? '#4D96FF' : '#E5E7EB',
-                    }} />
-                ))}
-              </div>
+        {/* ── Trial Game Card ────────────────────────────── */}
+        <div className="animate-pop">
+          <div className="rounded-3xl p-6 shadow-xl border-2 border-sky/20" style={{ background: 'var(--bg-card)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-xl text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                <Gamepad2 size={20} className="text-sky" /> Try a Quick Game!
+              </h3>
+              <span className="text-sm font-bold text-sky bg-sky/10 px-3 py-1 rounded-full">
+                No sign-up needed
+              </span>
             </div>
 
             {!trialDone ? (
               <>
-                {/* Emoji */}
-                <div className="flex items-center justify-center mb-5">
-                  <div className="w-28 h-28 rounded-3xl flex items-center justify-center text-6xl animate-float"
-                    style={{ background: 'linear-gradient(135deg, #EEF4FF, #EDFAEF)', border: '2px solid #DCE8FF' }}>
-                    {current.emoji}
-                  </div>
+                {/* Progress dots */}
+                <div className="flex gap-2 mb-6">
+                  {TRIAL_ITEMS.map((_, i) => (
+                    <div key={i} className={`flex-1 h-2 rounded-full transition-all duration-300 ${
+                      i < trialStep ? 'bg-mint' : i === trialStep ? 'bg-sky' : 'bg-gray-200 dark:bg-gray-700'
+                    }`} />
+                  ))}
                 </div>
-                <p className="text-center text-sm font-bold mb-4" style={{ color: '#6B7280' }}>
-                  👆 What is this? Tap the right answer!
+                <p className="text-center text-sm font-semibold text-gray-500 mb-3">
+                  What is this? Tap the right answer!
                 </p>
-
-                {/* Answer buttons with glow effect */}
+                {/* Game emoji (content, not decoration) */}
+                <div className="text-center text-7xl mb-6 animate-float" role="img">
+                  {current.emoji}
+                </div>
+                {/* Answer buttons */}
                 <div className="grid grid-cols-2 gap-3">
-                  {current.options.map((opt, idx) => {
+                  {current.options.map(opt => {
                     const isSelected = selected === opt;
                     const isCorrect  = opt === current.answer;
-                    const colors     = ANSWER_COLORS[idx];
-
-                    // After answering — override styles for feedback
+                    let style = 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-sky/10 hover:text-sky';
                     if (showFeedback && isSelected) {
-                      const bg = isCorrect ? '#6BCB77' : '#FF6B6B';
-                      return (
-                        <button key={opt}
-                          className="py-3.5 rounded-2xl font-bold text-base"
-                          style={{
-                            background: bg, color: 'white',
-                            border: `2px solid ${bg}`,
-                            boxShadow: isCorrect
-                              ? '0 4px 16px rgba(107,203,119,0.5)'
-                              : '0 4px 16px rgba(255,107,107,0.5)',
-                            transform: isCorrect ? 'scale(1.04)' : 'scale(1)',
-                            transition: 'all 0.2s ease',
-                          }}>
-                          {isCorrect ? '✓ ' : '✗ '}{opt}
-                        </button>
-                      );
+                      style = isCorrect ? 'bg-mint text-white scale-105' : 'bg-coral text-white shake';
                     }
                     if (showFeedback && !isSelected && isCorrect) {
-                      return (
-                        <button key={opt}
-                          className="py-3.5 rounded-2xl font-bold text-base"
-                          style={{ background: '#EDFAEF', color: '#16A34A', border: '2px solid #6BCB77' }}>
-                          ✓ {opt}
-                        </button>
-                      );
+                      style = 'bg-mint/50 text-mint-dark';
                     }
-
-                    // Normal idle state — use GlowCard
                     return (
-                      <GlowCard
-                        key={opt}
-                        isButton
-                        from={colors.from}
-                        to={colors.to}
-                        onClick={() => handlePick(opt)}
-                        disabled={selected !== null}
-                        style={{ borderRadius: '16px', padding: '14px 8px', fontWeight: 800, fontSize: '1rem', color: '#374151', width: '100%' }}
-                      >
+                      <button key={opt} onClick={() => handlePick(opt)}
+                        className={`py-3 rounded-2xl font-bold text-sm transition-all duration-200 border-2 border-transparent ${style}`}>
                         {opt}
-                      </GlowCard>
+                      </button>
                     );
                   })}
                 </div>
               </>
             ) : (
-              <div className="text-center py-4">
-                <div className="text-5xl mb-3 animate-bounce">
-                  {trialScore === 3 ? '🏆' : trialScore >= 2 ? '⭐' : '👍'}
-                </div>
-                <h4 className="font-display text-2xl mb-2" style={{ color: '#1A1A2E' }}>
-                  {trialScore === 3 ? 'Perfect Score!' : `${trialScore} / 3 Correct!`}
-                </h4>
-                <p className="text-sm mb-5 font-medium" style={{ color: '#6B7280' }}>
+              /* Trial complete — no emoji, use Lucide */
+              <div className="text-center py-6">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 bg-amber-100 dark:bg-amber-900/30">
                   {trialScore === 3
-                    ? 'Amazing! Create an account to unlock all activities!'
-                    : 'Great try! Sign up to track how much you improve!'}
+                    ? <Trophy    size={36} className="text-amber-500" />
+                    : trialScore >= 2
+                    ? <Star      size={36} className="text-yellow-500 fill-yellow-500" />
+                    : <CheckCircle size={36} className="text-emerald-500" />
+                  }
+                </div>
+                <h4 className="font-display text-2xl mb-2">
+                  {trialScore === 3 ? 'Perfect Score!' : `${trialScore}/3 Correct!`}
+                </h4>
+                <p className="text-gray-600 dark:text-gray-400 mb-5 text-sm">
+                  {trialScore === 3
+                    ? 'Amazing! Create an account to unlock all activities and track your progress!'
+                    : 'Good try! Sign up to access more games and see how you improve!'}
                 </p>
                 <Link to="/register"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #4D96FF, #6BCB77)', boxShadow: '0 4px 14px rgba(77,150,255,0.3)' }}>
-                  Create Free Account <ArrowRight size={16} />
+                  className="btn-game bg-coral text-white inline-flex items-center gap-2 mx-auto">
+                  Save My Progress <ArrowRight size={18} />
                 </Link>
               </div>
             )}
@@ -335,47 +208,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Features ──────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-6 pb-16">
-        <h2 className="font-display text-center mb-8"
-          style={{ fontSize: '1.6rem', color: '#1A1A2E' }}>
-          Why learners love ReadAble 💛
+      {/* ── Features ────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-6 py-16">
+        <h2 className="font-display text-4xl text-center mb-12 text-gray-800 dark:text-gray-200">
+          Why learners love ReadAble
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {FEATURES.map(f => <FeatureCard key={f.title} {...f} />)}
+        <div className="grid md:grid-cols-3 gap-6">
+          {FEATURES.map(({ Icon, color, title, desc }) => (
+            <div key={title}
+              className={`rounded-3xl p-6 bg-gradient-to-br ${color} border border-gray-100 dark:border-gray-700`}>
+              <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-gray-800/70 flex items-center justify-center mb-3 shadow-sm">
+                <Icon size={22} className="text-sky" />
+              </div>
+              <h3 className="font-display text-xl mb-2 text-gray-800 dark:text-gray-200">{title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── Bottom CTA ────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-6 pb-16">
-        <div className="rounded-3xl px-10 py-10 text-center"
-          style={{ background: 'linear-gradient(135deg, #4D96FF 0%, #6BCB77 100%)' }}>
-          <h2 className="font-display text-2xl text-white mb-2">Ready to start reading?</h2>
-          <p className="text-sm font-medium mb-6" style={{ color: 'rgba(255,255,255,0.85)' }}>
-            Join learners who are improving every day.
-          </p>
-          <GlowCard
-            isButton={false}
-            from="#ffffff"
-            to="#ffffff"
-            style={{ borderRadius: '16px', display: 'inline-block', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
-          >
-            <Link to="/register"
-              className="inline-flex items-center gap-2 px-8 py-3.5 font-display text-base"
-              style={{ color: '#17a0aa', display: 'flex' }}>
-              Create Free Account <ArrowRight size={17} />
-            </Link>
-          </GlowCard>
+      {/* ── CTA ─────────────────────────────────────────── */}
+      <section className="max-w-2xl mx-auto px-6 pb-20 text-center">
+        <div className="rounded-3xl p-10 bg-gradient-to-br from-sky to-mint text-white">
+          <h2 className="font-display text-4xl mb-3">Ready to start reading?</h2>
+          <p className="mb-6 opacity-90">Join thousands of learners improving every day!</p>
+          <Link to="/register"
+            className="inline-flex items-center gap-2 bg-white text-sky font-display text-lg px-8 py-3 rounded-2xl shadow-lg hover:scale-105 transition-transform">
+            Create Free Account <ArrowRight size={20} />
+          </Link>
         </div>
       </section>
-
-      {/* ── Footer ────────────────────────────────────────── */}
-      <footer className="text-center pb-10">
-        <p className="text-sm" style={{ color: '#5c5c5c' }}>
-          📚 ReadAble · Built with care for inclusive learning
-        </p>
-      </footer>
-
     </div>
   );
 }
