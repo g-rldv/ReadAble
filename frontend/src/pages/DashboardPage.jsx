@@ -5,12 +5,15 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { ArrowRight, Flame, BookOpen, CheckCircle, TrendingUp, Clock } from 'lucide-react';
+import {
+  ArrowRight, Flame, BookOpen, CheckCircle,
+  TrendingUp, Clock,
+} from 'lucide-react';
 
 const DIFF_STYLE = {
   easy:   { pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400', bar: 'bg-emerald-500' },
-  medium: { pill: 'bg-amber-100   text-amber-700   dark:bg-amber-900/40   dark:text-amber-400',   bar: 'bg-amber-400'   },
-  hard:   { pill: 'bg-rose-100    text-rose-600    dark:bg-rose-900/40    dark:text-rose-400',     bar: 'bg-rose-500'    },
+  medium: { pill: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',         bar: 'bg-amber-400'   },
+  hard:   { pill: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',             bar: 'bg-rose-500'    },
 };
 
 const TYPE_LABEL = {
@@ -27,6 +30,15 @@ function greeting() {
   return 'Good evening';
 }
 
+// Returns the client's local day boundaries as ISO strings
+// so the server can filter using the user's actual timezone
+function getTodayBounds() {
+  const now  = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate());          // local midnight
+  const to   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);      // next local midnight
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
 export default function DashboardPage() {
   const { user }                    = useAuth();
   const [activities, setActivities] = useState([]);
@@ -35,7 +47,7 @@ export default function DashboardPage() {
   const [loading,    setLoading]    = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // ── Initial load: activities + progress (stable, only needed once) ──
+  // Activities + progress: load once on mount
   useEffect(() => {
     Promise.all([
       api.get('/activities'),
@@ -47,35 +59,37 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // ── Stats: refetch whenever the user's XP changes (i.e. after every game) ──
-  // This runs on mount AND every time refreshUser() is called after a game
+  // Stats: refetch whenever xp, streak, or the user identity changes
+  // This covers: initial load, after a game, and after login/logout
   const fetchStats = useCallback(() => {
+    if (!user) return;
+    const { from, to } = getTodayBounds();
     setStatsLoading(true);
-    api.get('/progress/stats')
+    api.get(`/progress/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
       .then(r => setStats(r.data))
       .catch(console.error)
       .finally(() => setStatsLoading(false));
-  }, []);
+  }, [user]);   // user identity change (login/logout) triggers refetch
 
   useEffect(() => {
     fetchStats();
-  }, [fetchStats, user?.xp, user?.streak]); // re-run when XP/streak changes
+  }, [fetchStats, user?.xp, user?.streak]);
 
   const completedIds = new Set(progress.filter(p => p.completed).map(p => p.activity_id));
   const recommended  = activities.filter(a => !completedIds.has(a.id)).slice(0, 3);
   const currentXP    = (user?.xp || 0) % 50;
   const xpPct        = Math.min(100, Math.round((currentXP / 50) * 100));
 
+  // Safe numeric parsing
+  const todayPlayed    = parseInt(stats?.stats?.today_played    ?? 0, 10);
+  const todayCompleted = parseInt(stats?.stats?.today_completed ?? 0, 10);
+  const todayAvg       = Math.round(parseFloat(stats?.stats?.today_avg_score ?? 0));
+
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-8 h-8 border-4 border-sky border-t-transparent rounded-full animate-spin" />
     </div>
   );
-
-  // Today stats with fallback to 0
-  const todayPlayed    = parseInt(stats?.stats?.today_played    ?? 0);
-  const todayCompleted = parseInt(stats?.stats?.today_completed ?? 0);
-  const todayAvg       = Math.round(parseFloat(stats?.stats?.today_avg_score ?? 0));
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 animate-fade-in">
@@ -116,30 +130,10 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            {
-              icon:  <BookOpen    size={20} className="text-sky"         />,
-              label: 'Played',
-              value: todayPlayed,
-              bg:    'bg-sky/10 dark:bg-sky/5',
-            },
-            {
-              icon:  <CheckCircle size={20} className="text-emerald-500" />,
-              label: 'Completed',
-              value: todayCompleted,
-              bg:    'bg-emerald-50 dark:bg-emerald-900/20',
-            },
-            {
-              icon:  <TrendingUp  size={20} className="text-indigo-500"  />,
-              label: 'Avg Score',
-              value: `${todayAvg}%`,
-              bg:    'bg-indigo-50 dark:bg-indigo-900/20',
-            },
-            {
-              icon:  <Flame       size={20} className="text-orange-400"  />,
-              label: 'Day Streak',
-              value: `${user?.streak || 0}d`,
-              bg:    'bg-orange-50 dark:bg-orange-900/20',
-            },
+            { icon: <BookOpen    size={20} className="text-sky"         />, label: 'Played',    value: todayPlayed,    bg: 'bg-sky/10 dark:bg-sky/5'               },
+            { icon: <CheckCircle size={20} className="text-emerald-500" />, label: 'Completed', value: todayCompleted, bg: 'bg-emerald-50 dark:bg-emerald-900/20'  },
+            { icon: <TrendingUp  size={20} className="text-indigo-500"  />, label: 'Avg Score', value: `${todayAvg}%`, bg: 'bg-indigo-50 dark:bg-indigo-900/20'   },
+            { icon: <Flame       size={20} className="text-orange-400"  />, label: 'Day Streak', value: `${user?.streak || 0}d`, bg: 'bg-orange-50 dark:bg-orange-900/20' },
           ].map(({ icon, label, value, bg }) => (
             <div key={label}
               className="rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-opacity"
@@ -162,11 +156,10 @@ export default function DashboardPage() {
             See all <ArrowRight size={13} />
           </Link>
         </div>
-
         {recommended.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <CheckCircle size={36} className="mx-auto mb-3 text-emerald-400 opacity-70" />
-            <p className="font-semibold text-sm">You've completed all activities!</p>
+            <p className="font-semibold text-sm">You have completed all activities!</p>
           </div>
         ) : (
           <div className="space-y-2">
