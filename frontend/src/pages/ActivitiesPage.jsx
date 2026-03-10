@@ -1,36 +1,36 @@
 // ============================================================
-// ActivitiesPage — browse activities by type and difficulty
+// ActivitiesPage — browse activities with 3D pick-up card hover
 // ============================================================
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { CheckCircle } from 'lucide-react';
 
-// ── Difficulty colour system ──────────────────────────────────
+// ── Difficulty styles ─────────────────────────────────────────
 const DIFF = {
   easy: {
-    bar:         'bg-emerald-500',
-    border:      'border-emerald-400/50 dark:border-emerald-600/50',
-    cardBg:      'dark:bg-emerald-950/20',
-    pill:        'bg-emerald-500 text-white',
-    activePill:  'bg-emerald-600 text-white shadow-sm',
-    label:       'Easy',
+    bar:        'bg-emerald-500',
+    border:     '#34d399',
+    pill:       'bg-emerald-500 text-white',
+    activePill: 'bg-emerald-600 text-white',
+    glow:       'rgba(52,211,153,0.35)',
+    label:      'Easy',
   },
   medium: {
-    bar:         'bg-amber-400',
-    border:      'border-amber-400/50 dark:border-amber-600/50',
-    cardBg:      'dark:bg-amber-950/20',
-    pill:        'bg-amber-400 text-white',
-    activePill:  'bg-amber-500 text-white shadow-sm',
-    label:       'Medium',
+    bar:        'bg-amber-400',
+    border:     '#fbbf24',
+    pill:       'bg-amber-400 text-white',
+    activePill: 'bg-amber-500 text-white',
+    glow:       'rgba(251,191,36,0.35)',
+    label:      'Medium',
   },
   hard: {
-    bar:         'bg-rose-500',
-    border:      'border-rose-400/50 dark:border-rose-600/50',
-    cardBg:      'dark:bg-rose-950/20',
-    pill:        'bg-rose-500 text-white',
-    activePill:  'bg-rose-600 text-white shadow-sm',
-    label:       'Hard',
+    bar:        'bg-rose-500',
+    border:     '#f43f5e',
+    pill:       'bg-rose-500 text-white',
+    activePill: 'bg-rose-600 text-white',
+    glow:       'rgba(244,63,94,0.35)',
+    label:      'Hard',
   },
 };
 
@@ -41,55 +41,77 @@ const TYPES = [
   { key: 'sentence_sort', label: 'Sentence Sort'  },
   { key: 'picture_word',  label: 'Picture & Word' },
 ];
-
 const DIFFICULTIES = [
   { key: 'all',    label: 'All'    },
   { key: 'easy',   label: 'Easy'   },
   { key: 'medium', label: 'Medium' },
   { key: 'hard',   label: 'Hard'   },
 ];
+const DIFF_ORDER = { easy:0, medium:1, hard:2 };
+const TYPE_ORDER = { word_match:0, fill_blank:1, sentence_sort:2, picture_word:3 };
 
-const DIFF_ORDER = { easy: 0, medium: 1, hard: 2 };
-const TYPE_ORDER = { word_match: 0, fill_blank: 1, sentence_sort: 2, picture_word: 3 };
-
-// ── Activity Card ─────────────────────────────────────────────
-// Float animation via CSS transform + transition on hover
-const CARD_HOVER_STYLE = {
-  transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
-};
-
+// ── 3D Pick-up Activity Card ──────────────────────────────────
 function ActivityCard({ activity, progress }) {
   const [hovered, setHovered] = useState(false);
+  const [tilt,    setTilt]    = useState({ x: 0, y: 0 });
+  const cardRef = useRef(null);
+
   const prog      = progress[activity.id];
   const completed = prog?.completed;
   const score     = prog?.score ?? null;
   const d         = DIFF[activity.difficulty] || DIFF.easy;
 
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const dx = (e.clientX - (rect.left + rect.width  / 2)) / (rect.width  / 2); // -1..1
+    const dy = (e.clientY - (rect.top  + rect.height / 2)) / (rect.height / 2); // -1..1
+    setTilt({ x: dy * 10, y: -dx * 10 });   // slight 3D tilt toward cursor
+  };
+
+  const handleEnter = () => setHovered(true);
+  const handleLeave = () => { setHovered(false); setTilt({ x: 0, y: 0 }); };
+
+  const transform = hovered
+    ? `perspective(600px) translateY(-18px) scale(1.06) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`
+    : 'perspective(600px) translateY(0) scale(1) rotateX(0deg) rotateY(0deg)';
+
+  const shadow = hovered
+    ? `0 28px 48px -8px rgba(0,0,0,0.30), 0 10px 20px -4px ${d.glow}, 0 0 0 2px ${d.border}`
+    : `0 2px 6px rgba(0,0,0,0.07), 0 0 0 1px ${d.border}40`;
+
+  const transition = hovered
+    ? 'transform 0.12s ease-out, box-shadow 0.12s ease-out'
+    : 'transform 0.38s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.38s ease';
+
   return (
     <Link
+      ref={cardRef}
       to={`/game/${activity.id}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      onMouseMove={handleMouseMove}
       style={{
-        ...CARD_HOVER_STYLE,
-        transform:  hovered ? 'translateY(-6px) scale(1.01)' : 'translateY(0) scale(1)',
-        boxShadow:  hovered
-          ? '0 16px 32px -8px rgba(0,0,0,0.18), 0 4px 8px -2px rgba(0,0,0,0.10)'
-          : '0 1px 3px rgba(0,0,0,0.06)',
-        background: 'var(--bg-card)',
+        transform,
+        boxShadow: shadow,
+        transition,
+        background:   'var(--bg-card)',
+        transformStyle: 'preserve-3d',
+        willChange: 'transform',
       }}
-      className={`group flex flex-col rounded-2xl border-2 ${d.border} ${d.cardBg} overflow-hidden`}
+      className="flex flex-col rounded-2xl overflow-hidden cursor-pointer"
     >
-      {/* Thick difficulty colour strip */}
-      <div className={`h-2 w-full flex-shrink-0 ${d.bar}`} />
+      {/* Difficulty colour strip — appears to extrude when lifted */}
+      <div className={`h-1.5 w-full flex-shrink-0 ${d.bar}`}
+        style={{ transform: hovered ? 'translateZ(4px)' : 'translateZ(0)', transition }} />
 
       <div className="p-4 flex flex-col gap-2 flex-1">
-        {/* Pills row */}
+        {/* Pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full capitalize ${d.pill}`}>
             {d.label}
           </span>
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky/15 text-sky dark:bg-sky/20">
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky/15 text-sky dark:bg-sky/25">
             +{activity.xp_reward} XP
           </span>
           {completed && <CheckCircle size={13} className="text-emerald-500 ml-auto flex-shrink-0" />}
@@ -114,9 +136,9 @@ function ActivityCard({ activity, progress }) {
           ) : (
             <span className="text-xs text-gray-300 dark:text-gray-600">Not played</span>
           )}
-          <span
-            className="text-xs font-semibold text-sky"
-            style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.2s' }}>
+          {/* Play arrow — slides in from right on hover */}
+          <span className="text-xs font-bold text-sky"
+            style={{ opacity: hovered ? 1 : 0, transform: hovered ? 'translateX(0)' : 'translateX(4px)', transition: 'opacity 0.2s, transform 0.2s' }}>
             Play →
           </span>
         </div>
@@ -125,39 +147,38 @@ function ActivityCard({ activity, progress }) {
   );
 }
 
-// ── Type section (All view) ───────────────────────────────────
+// ── Type section (used in "All" view) ─────────────────────────
 function TypeSection({ typeKey, activities, progress }) {
   const label = TYPES.find(t => t.key === typeKey)?.label;
   if (!activities.length) return null;
-  const sorted = [...activities].sort((a, b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty]);
+  const sorted = [...activities].sort((a,b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty]);
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
         <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</h2>
         <span className="text-xs text-gray-300 dark:text-gray-600">({activities.length})</span>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* perspective wrapper enables child 3D transforms */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" style={{ perspective: '1200px' }}>
         {sorted.map(act => <ActivityCard key={act.id} activity={act} progress={progress} />)}
       </div>
     </section>
   );
 }
 
-// ── Filter pill ───────────────────────────────────────────────
 function FilterPill({ active, onClick, children, activeClass }) {
   return (
     <button onClick={onClick}
-      className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
-        active
+      className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap
+        ${active
           ? activeClass || 'bg-sky text-white shadow-sm'
           : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-      }`}>
+        }`}>
       {children}
     </button>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState([]);
   const [progress,   setProgress]   = useState({});
@@ -188,7 +209,7 @@ export default function ActivitiesPage() {
     .filter(a => activeType === 'all' || a.type === activeType);
 
   const sorted = [...filtered].sort((a, b) => {
-    if (a.type !== b.type) return (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9);
+    if (a.type !== b.type) return (TYPE_ORDER[a.type]??9) - (TYPE_ORDER[b.type]??9);
     return DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty];
   });
 
@@ -202,15 +223,14 @@ export default function ActivitiesPage() {
   return (
     <div className="max-w-4xl mx-auto animate-fade-in space-y-5">
 
-      {/* ── Header ─────────────────────────────────────── */}
+      {/* Header */}
       <div>
         <h1 className="font-display text-3xl text-gray-800 dark:text-gray-100">Activities</h1>
         <p className="text-sm text-gray-400 mt-0.5">{completedCount} of {activities.length} completed</p>
       </div>
 
-      {/* ── Filter Bar ─────────────────────────────────── */}
-      <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--bg-card)' }}>
-        {/* Row 1: Game type */}
+      {/* Filter bar */}
+      <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
         <div className="flex flex-wrap gap-2">
           {TYPES.map(t => (
             <FilterPill key={t.key} active={activeType === t.key}
@@ -220,16 +240,11 @@ export default function ActivitiesPage() {
             </FilterPill>
           ))}
         </div>
-
-        <div className="border-t border-gray-100 dark:border-gray-700" />
-
-        {/* Row 2: Difficulty */}
+        <div className="border-t" style={{ borderColor: 'var(--border-color)' }} />
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-gray-400 uppercase tracking-wide mr-1">Level</span>
           <FilterPill active={activeDiff === 'all'} onClick={() => setActiveDiff('all')}
-            activeClass="bg-gray-600 text-white shadow-sm">
-            All
-          </FilterPill>
+            activeClass="bg-gray-600 text-white shadow-sm">All</FilterPill>
           {DIFFICULTIES.filter(d => d.key !== 'all').map(d => (
             <FilterPill key={d.key} active={activeDiff === d.key}
               onClick={() => setActiveDiff(d.key)}
@@ -249,7 +264,7 @@ export default function ActivitiesPage() {
         </div>
       </div>
 
-      {/* ── Results ─────────────────────────────────────── */}
+      {/* Results */}
       {sorted.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <p className="font-semibold text-base">No activities found</p>
@@ -262,7 +277,7 @@ export default function ActivitiesPage() {
           ))}
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" style={{ perspective: '1200px' }}>
           {sorted.map(act => <ActivityCard key={act.id} activity={act} progress={progress} />)}
         </div>
       )}
