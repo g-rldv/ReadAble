@@ -151,7 +151,7 @@ function DeleteAccountModal({ onClose, onDeleted }) {
               </button>
               <button onClick={() => setStep(2)}
                 className="flex-1 py-2.5 rounded-2xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition-colors">
-                I'm Sure
+                Delete
               </button>
             </div>
           </>
