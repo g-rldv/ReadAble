@@ -134,7 +134,7 @@ function ActivityCard({ activity, progress }) {
               score >= 80 ? 'text-emerald-500' : score >= 50 ? 'text-amber-500' : 'text-gray-400'
             }`}>{score}%</span>
           ) : (
-            <span className="text-xs text-white dark:text-white">Not played</span>
+            <span className="text-xs text-neutral-900 dark:text-neutral-100">Not played</span>
           )}
           {/* Play arrow — slides in from right on hover */}
           <span className="text-xs font-bold text-sky"
