@@ -9,31 +9,28 @@ import { CheckCircle } from 'lucide-react';
 // ── Difficulty colour system ──────────────────────────────────
 const DIFF = {
   easy: {
-    bar:        'bg-emerald-500',
-    border:     'border-emerald-400/50 dark:border-emerald-600/50',
-    cardBg:     'dark:bg-emerald-950/20',
-    pill:       'bg-emerald-500 text-white',
-    pillInactive:'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
-    activePill: 'bg-emerald-600 text-white shadow-sm',
-    label:      'Easy',
+    bar:         'bg-emerald-500',
+    border:      'border-emerald-400/50 dark:border-emerald-600/50',
+    cardBg:      'dark:bg-emerald-950/20',
+    pill:        'bg-emerald-500 text-white',
+    activePill:  'bg-emerald-600 text-white shadow-sm',
+    label:       'Easy',
   },
   medium: {
-    bar:        'bg-amber-400',
-    border:     'border-amber-400/50 dark:border-amber-600/50',
-    cardBg:     'dark:bg-amber-950/20',
-    pill:       'bg-amber-400 text-white',
-    pillInactive:'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
-    activePill: 'bg-amber-500 text-white shadow-sm',
-    label:      'Medium',
+    bar:         'bg-amber-400',
+    border:      'border-amber-400/50 dark:border-amber-600/50',
+    cardBg:      'dark:bg-amber-950/20',
+    pill:        'bg-amber-400 text-white',
+    activePill:  'bg-amber-500 text-white shadow-sm',
+    label:       'Medium',
   },
   hard: {
-    bar:        'bg-rose-500',
-    border:     'border-rose-400/50 dark:border-rose-600/50',
-    cardBg:     'dark:bg-rose-950/20',
-    pill:       'bg-rose-500 text-white',
-    pillInactive:'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
-    activePill: 'bg-rose-600 text-white shadow-sm',
-    label:      'Hard',
+    bar:         'bg-rose-500',
+    border:      'border-rose-400/50 dark:border-rose-600/50',
+    cardBg:      'dark:bg-rose-950/20',
+    pill:        'bg-rose-500 text-white',
+    activePill:  'bg-rose-600 text-white shadow-sm',
+    label:       'Hard',
   },
 };
 
@@ -56,7 +53,13 @@ const DIFF_ORDER = { easy: 0, medium: 1, hard: 2 };
 const TYPE_ORDER = { word_match: 0, fill_blank: 1, sentence_sort: 2, picture_word: 3 };
 
 // ── Activity Card ─────────────────────────────────────────────
+// Float animation via CSS transform + transition on hover
+const CARD_HOVER_STYLE = {
+  transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+};
+
 function ActivityCard({ activity, progress }) {
+  const [hovered, setHovered] = useState(false);
   const prog      = progress[activity.id];
   const completed = prog?.completed;
   const score     = prog?.score ?? null;
@@ -65,9 +68,17 @@ function ActivityCard({ activity, progress }) {
   return (
     <Link
       to={`/game/${activity.id}`}
-      className={`group flex flex-col rounded-2xl border-2 ${d.border} ${d.cardBg}
-                  hover:shadow-md hover:brightness-105 transition-all duration-200 overflow-hidden`}
-      style={{ background: 'var(--bg-card)' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        ...CARD_HOVER_STYLE,
+        transform:  hovered ? 'translateY(-6px) scale(1.01)' : 'translateY(0) scale(1)',
+        boxShadow:  hovered
+          ? '0 16px 32px -8px rgba(0,0,0,0.18), 0 4px 8px -2px rgba(0,0,0,0.10)'
+          : '0 1px 3px rgba(0,0,0,0.06)',
+        background: 'var(--bg-card)',
+      }}
+      className={`group flex flex-col rounded-2xl border-2 ${d.border} ${d.cardBg} overflow-hidden`}
     >
       {/* Thick difficulty colour strip */}
       <div className={`h-2 w-full flex-shrink-0 ${d.bar}`} />
@@ -78,8 +89,7 @@ function ActivityCard({ activity, progress }) {
           <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full capitalize ${d.pill}`}>
             {d.label}
           </span>
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full
-                           bg-sky/15 text-sky dark:bg-sky/20 dark:text-sky">
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky/15 text-sky dark:bg-sky/20">
             +{activity.xp_reward} XP
           </span>
           {completed && <CheckCircle size={13} className="text-emerald-500 ml-auto flex-shrink-0" />}
@@ -99,13 +109,14 @@ function ActivityCard({ activity, progress }) {
         <div className="flex items-center justify-between pt-1">
           {score !== null ? (
             <span className={`text-xs font-semibold ${
-              score >= 80 ? 'text-emerald-500' :
-              score >= 50 ? 'text-amber-500'   : 'text-gray-400'
+              score >= 80 ? 'text-emerald-500' : score >= 50 ? 'text-amber-500' : 'text-gray-400'
             }`}>{score}%</span>
           ) : (
             <span className="text-xs text-gray-300 dark:text-gray-600">Not played</span>
           )}
-          <span className="text-xs font-semibold text-sky opacity-0 group-hover:opacity-100 transition-opacity">
+          <span
+            className="text-xs font-semibold text-sky"
+            style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.2s' }}>
             Play →
           </span>
         </div>
@@ -199,7 +210,6 @@ export default function ActivitiesPage() {
 
       {/* ── Filter Bar ─────────────────────────────────── */}
       <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--bg-card)' }}>
-
         {/* Row 1: Game type */}
         <div className="flex flex-wrap gap-2">
           {TYPES.map(t => (
@@ -213,16 +223,13 @@ export default function ActivitiesPage() {
 
         <div className="border-t border-gray-100 dark:border-gray-700" />
 
-        {/* Row 2: Difficulty — using each difficulty's own colour when active */}
+        {/* Row 2: Difficulty */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-gray-400 uppercase tracking-wide mr-1">Level</span>
-
-          <FilterPill active={activeDiff === 'all'}
-            onClick={() => setActiveDiff('all')}
+          <FilterPill active={activeDiff === 'all'} onClick={() => setActiveDiff('all')}
             activeClass="bg-gray-600 text-white shadow-sm">
             All
           </FilterPill>
-
           {DIFFICULTIES.filter(d => d.key !== 'all').map(d => (
             <FilterPill key={d.key} active={activeDiff === d.key}
               onClick={() => setActiveDiff(d.key)}
@@ -233,7 +240,6 @@ export default function ActivitiesPage() {
               </span>
             </FilterPill>
           ))}
-
           {(activeType !== 'all' || activeDiff !== 'all') && (
             <button onClick={() => { setActiveType('all'); setActiveDiff('all'); }}
               className="ml-auto text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
