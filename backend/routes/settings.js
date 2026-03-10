@@ -20,6 +20,7 @@ settingsRouter.get('/', requireAuth, async (req, res) => {
     }
     res.json({ settings: result.rows[0] });
   } catch (err) {
+    console.error('[Settings/Get]', err.message);
     res.status(500).json({ error: 'Failed to fetch settings' });
   }
 });
@@ -27,20 +28,38 @@ settingsRouter.get('/', requireAuth, async (req, res) => {
 // ── PUT /api/settings ─────────────────────────────────────────
 settingsRouter.put('/', requireAuth, async (req, res) => {
   try {
-    const { text_size, theme, tts_enabled, tts_voice, tts_rate, tts_pitch } = req.body;
+    const {
+      text_size, theme,
+      tts_enabled, tts_voice, tts_rate, tts_pitch,
+      bg_music_enabled, bg_music_theme, bg_music_volume,
+    } = req.body;
+
     const result = await pool.query(
-      `INSERT INTO settings (user_id, text_size, theme, tts_enabled, tts_voice, tts_rate, tts_pitch, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
+      `INSERT INTO settings (
+         user_id, text_size, theme,
+         tts_enabled, tts_voice, tts_rate, tts_pitch,
+         bg_music_enabled, bg_music_theme, bg_music_volume,
+         updated_at
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, NOW())
        ON CONFLICT (user_id) DO UPDATE SET
-         text_size   = EXCLUDED.text_size,
-         theme       = EXCLUDED.theme,
-         tts_enabled = EXCLUDED.tts_enabled,
-         tts_voice   = EXCLUDED.tts_voice,
-         tts_rate    = EXCLUDED.tts_rate,
-         tts_pitch   = EXCLUDED.tts_pitch,
-         updated_at  = NOW()
+         text_size        = EXCLUDED.text_size,
+         theme            = EXCLUDED.theme,
+         tts_enabled      = EXCLUDED.tts_enabled,
+         tts_voice        = EXCLUDED.tts_voice,
+         tts_rate         = EXCLUDED.tts_rate,
+         tts_pitch        = EXCLUDED.tts_pitch,
+         bg_music_enabled = EXCLUDED.bg_music_enabled,
+         bg_music_theme   = EXCLUDED.bg_music_theme,
+         bg_music_volume  = EXCLUDED.bg_music_volume,
+         updated_at       = NOW()
        RETURNING *`,
-      [req.user.id, text_size, theme, tts_enabled, tts_voice, tts_rate, tts_pitch]
+      [
+        req.user.id, text_size || 'medium', theme || 'light',
+        tts_enabled !== undefined ? tts_enabled : true,
+        tts_voice || '', tts_rate || 0.9, tts_pitch || 1.0,
+        bg_music_enabled !== undefined ? bg_music_enabled : false,
+        bg_music_theme || 'calm', bg_music_volume || 0.7,
+      ]
     );
     res.json({ settings: result.rows[0] });
   } catch (err) {
@@ -53,7 +72,7 @@ settingsRouter.put('/', requireAuth, async (req, res) => {
 usersRouter.get('/leaderboard', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT username, level, xp, avatar, achievements FROM users ORDER BY xp DESC LIMIT 10`
+      `SELECT username, level, xp, avatar, achievements FROM users ORDER BY xp DESC LIMIT 25`
     );
     res.json({ leaderboard: result.rows });
   } catch (err) {
@@ -61,15 +80,41 @@ usersRouter.get('/leaderboard', async (req, res) => {
   }
 });
 
+// ── GET /api/users/:username/stats — public profile for leaderboard modal ──
+usersRouter.get('/:username/stats', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const userResult = await pool.query(
+      `SELECT id, username, level, xp, streak, achievements, avatar, created_at
+       FROM users WHERE username = $1`,
+      [username]
+    );
+    if (!userResult.rows[0])
+      return res.status(404).json({ error: 'User not found' });
+
+    const user = userResult.rows[0];
+    const statsResult = await pool.query(
+      `SELECT
+         COUNT(*)                                        AS total_activities,
+         COUNT(*) FILTER (WHERE completed = TRUE)       AS completed_count,
+         COALESCE(AVG(score), 0)                        AS avg_score
+       FROM user_progress WHERE user_id = $1`,
+      [user.id]
+    );
+    res.json({ user, stats: statsResult.rows[0] });
+  } catch (err) {
+    console.error('[Users/Stats]', err.message);
+    res.status(500).json({ error: 'Failed to fetch user stats' });
+  }
+});
+
 // ── PUT /api/users/avatar ─────────────────────────────────────
-// Accepts an emoji string OR a base64 data URL from an uploaded image.
-// Avatar column is TEXT so any length is fine; 2 MB guard below for safety.
 usersRouter.put('/avatar', requireAuth, async (req, res) => {
   try {
     const { avatar } = req.body;
     if (!avatar) return res.status(400).json({ error: 'Avatar is required' });
     if (avatar.length > 2_800_000)
-      return res.status(400).json({ error: 'Image is too large. Please use a photo under 2 MB.' });
+      return res.status(400).json({ error: 'Image too large. Use a photo under 2 MB.' });
     await pool.query('UPDATE users SET avatar=$1 WHERE id=$2', [avatar, req.user.id]);
     res.json({ avatar });
   } catch (err) {
@@ -84,10 +129,8 @@ usersRouter.put('/username', requireAuth, async (req, res) => {
     const raw = req.body?.username;
     if (!raw) return res.status(400).json({ error: 'Username is required' });
     const username = raw.trim();
-    if (username.length < 3)
-      return res.status(400).json({ error: 'Username must be at least 3 characters' });
-    if (username.length > 30)
-      return res.status(400).json({ error: 'Username must be 30 characters or less' });
+    if (username.length < 3)  return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    if (username.length > 30) return res.status(400).json({ error: 'Username must be 30 characters or less' });
 
     const conflict = await pool.query(
       'SELECT id FROM users WHERE username=$1 AND id != $2',
