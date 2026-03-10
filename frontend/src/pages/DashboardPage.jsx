@@ -1,16 +1,16 @@
 // ============================================================
 // DashboardPage — home screen after login
 // ============================================================
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import { ArrowRight, Flame, BookOpen, CheckCircle, TrendingUp, Clock } from 'lucide-react';
 
 const DIFF_STYLE = {
-  easy:   { pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400', bar: 'bg-emerald-400' },
-  medium: { pill: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',         bar: 'bg-amber-400'   },
-  hard:   { pill: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',             bar: 'bg-rose-400'    },
+  easy:   { pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400', bar: 'bg-emerald-500' },
+  medium: { pill: 'bg-amber-100   text-amber-700   dark:bg-amber-900/40   dark:text-amber-400',   bar: 'bg-amber-400'   },
+  hard:   { pill: 'bg-rose-100    text-rose-600    dark:bg-rose-900/40    dark:text-rose-400',     bar: 'bg-rose-500'    },
 };
 
 const TYPE_LABEL = {
@@ -28,24 +28,38 @@ function greeting() {
 }
 
 export default function DashboardPage() {
-  const { user }                     = useAuth();
-  const [activities, setActivities]  = useState([]);
-  const [stats,      setStats]       = useState(null);
-  const [progress,   setProgress]    = useState([]);
-  const [loading,    setLoading]     = useState(true);
+  const { user }                    = useAuth();
+  const [activities, setActivities] = useState([]);
+  const [stats,      setStats]      = useState(null);
+  const [progress,   setProgress]   = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
 
+  // ── Initial load: activities + progress (stable, only needed once) ──
   useEffect(() => {
     Promise.all([
       api.get('/activities'),
-      api.get('/progress/stats'),
       api.get('/progress'),
-    ]).then(([actRes, statsRes, progRes]) => {
+    ]).then(([actRes, progRes]) => {
       setActivities(actRes.data.activities);
-      setStats(statsRes.data);
       setProgress(progRes.data.progress);
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // ── Stats: refetch whenever the user's XP changes (i.e. after every game) ──
+  // This runs on mount AND every time refreshUser() is called after a game
+  const fetchStats = useCallback(() => {
+    setStatsLoading(true);
+    api.get('/progress/stats')
+      .then(r => setStats(r.data))
+      .catch(console.error)
+      .finally(() => setStatsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats, user?.xp, user?.streak]); // re-run when XP/streak changes
 
   const completedIds = new Set(progress.filter(p => p.completed).map(p => p.activity_id));
   const recommended  = activities.filter(a => !completedIds.has(a.id)).slice(0, 3);
@@ -58,10 +72,15 @@ export default function DashboardPage() {
     </div>
   );
 
+  // Today stats with fallback to 0
+  const todayPlayed    = parseInt(stats?.stats?.today_played    ?? 0);
+  const todayCompleted = parseInt(stats?.stats?.today_completed ?? 0);
+  const todayAvg       = Math.round(parseFloat(stats?.stats?.today_avg_score ?? 0));
+
   return (
     <div className="max-w-4xl mx-auto space-y-5 animate-fade-in">
 
-      {/* ── Welcome Banner ────────────────────────────── */}
+      {/* ── Welcome Banner ──────────────────────────────── */}
       <div className="rounded-2xl p-6 bg-gradient-to-r from-sky to-indigo-500 text-white shadow-lg">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
@@ -86,42 +105,45 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Today's Stats ─────────────────────────────── */}
+      {/* ── Today's Stats ───────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Clock size={14} className="text-gray-400" />
           <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Today</span>
+          {statsLoading && (
+            <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin ml-1" />
+          )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             {
-              icon: <BookOpen    size={20} className="text-sky"          />,
+              icon:  <BookOpen    size={20} className="text-sky"         />,
               label: 'Played',
-              value: stats?.stats?.today_played    ?? 0,
-              bg: 'bg-sky/10 dark:bg-sky/5',
+              value: todayPlayed,
+              bg:    'bg-sky/10 dark:bg-sky/5',
             },
             {
-              icon: <CheckCircle size={20} className="text-emerald-500"  />,
+              icon:  <CheckCircle size={20} className="text-emerald-500" />,
               label: 'Completed',
-              value: stats?.stats?.today_completed ?? 0,
-              bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+              value: todayCompleted,
+              bg:    'bg-emerald-50 dark:bg-emerald-900/20',
             },
             {
-              icon: <TrendingUp  size={20} className="text-indigo-500"   />,
+              icon:  <TrendingUp  size={20} className="text-indigo-500"  />,
               label: 'Avg Score',
-              value: `${Math.round(stats?.stats?.today_avg_score || 0)}%`,
-              bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+              value: `${todayAvg}%`,
+              bg:    'bg-indigo-50 dark:bg-indigo-900/20',
             },
             {
-              icon: <Flame       size={20} className="text-orange-400"   />,
+              icon:  <Flame       size={20} className="text-orange-400"  />,
               label: 'Day Streak',
               value: `${user?.streak || 0}d`,
-              bg: 'bg-orange-50 dark:bg-orange-900/20',
+              bg:    'bg-orange-50 dark:bg-orange-900/20',
             },
           ].map(({ icon, label, value, bg }) => (
             <div key={label}
-              className="rounded-2xl p-4 border border-gray-200 dark:border-gray-700"
-              style={{ background: 'var(--bg-card)' }}>
+              className="rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-opacity"
+              style={{ background: 'var(--bg-card)', opacity: statsLoading ? 0.6 : 1 }}>
               <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center mb-2`}>{icon}</div>
               <div className="font-display text-2xl text-gray-800 dark:text-gray-100">{value}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold">{label}</div>
@@ -130,7 +152,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Up Next ───────────────────────────────────── */}
+      {/* ── Up Next ─────────────────────────────────────── */}
       <div className="rounded-2xl p-5 border border-gray-200 dark:border-gray-700"
         style={{ background: 'var(--bg-card)' }}>
         <div className="flex items-center justify-between mb-4">
@@ -156,7 +178,6 @@ export default function DashboardPage() {
                              border border-gray-200 dark:border-gray-700
                              hover:border-sky/60 hover:shadow-sm transition-all group
                              overflow-hidden relative">
-                  {/* difficulty left stripe */}
                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${ds.bar}`} />
                   <div className="pl-2 flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -180,7 +201,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* ── Recent Activity ───────────────────────────── */}
+      {/* ── Recent Activity ─────────────────────────────── */}
       {progress.length > 0 && (
         <div className="rounded-2xl p-5 border border-gray-200 dark:border-gray-700"
           style={{ background: 'var(--bg-card)' }}>
@@ -197,9 +218,11 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <div className={`font-bold text-xs px-2.5 py-1 rounded-full flex-shrink-0 ${
-                  p.score >= 80 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                  p.score >= 50 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                  'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                  p.score >= 80
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : p.score >= 50
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
                 }`}>{p.score}%</div>
               </div>
             ))}
