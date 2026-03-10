@@ -80,8 +80,8 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       );
     } else {
       await client.query(
-        `INSERT INTO user_progress (user_id, activity_id, score, attempts, completed, feedback)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
+        `INSERT INTO user_progress (user_id, activity_id, score, attempts, completed, feedback, last_played)
+         VALUES ($1,$2,$3,$4,$5,$6, NOW())`,
         [userId, activityId, score, 1, score >= 80, feedback]
       );
     }
