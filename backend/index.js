@@ -53,6 +53,18 @@ async function setupDatabase() {
       END $$;
     `);
 
+    // Add last_activity_date for streak tracking (idempotent)
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='users' AND column_name='last_activity_date'
+        ) THEN
+          ALTER TABLE users ADD COLUMN last_activity_date DATE;
+        END IF;
+      END $$;
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS activities (
         id            SERIAL PRIMARY KEY,
