@@ -538,18 +538,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────── */}
-      <section className="max-w-2xl mx-auto px-6 pb-20 text-center">
-        <div className="rounded-3xl p-10 bg-gradient-to-br from-sky to-mint text-white">
-          <h2 className="font-display text-4xl mb-3">Ready to start reading?</h2>
-          <p className="mb-6 opacity-90">Join thousands of learners improving every day!</p>
-          <button onClick={() => setShowRegister(true)}
-            className="inline-flex items-center gap-2 bg-white text-sky font-display text-lg px-8 py-3 rounded-2xl shadow-lg hover:scale-105 transition-transform">
-            Create Free Account <ArrowRight size={20} />
-          </button>
-        </div>
-      </section>
-
       {/* ── Modals ──────────────────────────────────────── */}
       {showLogin    && <SignInModal    onClose={() => setShowLogin(false)}    onSwitchToRegister={() => { setShowLogin(false); setShowRegister(true); }} />}
       {showRegister && <RegisterModal onClose={() => setShowRegister(false)} onSwitchToLogin={() => { setShowRegister(false); setShowLogin(true); }} />}
