@@ -23,40 +23,62 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/progress/stats — all-time + today counts
-// Uses explicit date arithmetic to avoid timezone edge cases:
-// last_played >= start of today (UTC midnight) AND < start of tomorrow
+// GET /api/progress/stats
+// Accepts optional ?from=<ISO>&to=<ISO> query params for "today" window.
+// The frontend passes the client's local midnight boundaries so the stats
+// are always anchored to the user's actual calendar day, not the server's UTC day.
+// Falls back to UTC date_trunc if params are missing.
 router.get('/stats', requireAuth, async (req, res) => {
   try {
+    // Parse client-supplied boundaries (ISO strings from the browser)
+    const rawFrom = req.query.from;
+    const rawTo   = req.query.to;
+
+    let todayFrom, todayTo;
+    if (rawFrom && rawTo) {
+      // Validate they look like ISO timestamps; if not fall back
+      const f = new Date(rawFrom);
+      const t = new Date(rawTo);
+      if (!isNaN(f.getTime()) && !isNaN(t.getTime()) && t > f) {
+        todayFrom = f.toISOString();
+        todayTo   = t.toISOString();
+      }
+    }
+    // Fallback: server UTC day
+    if (!todayFrom) {
+      const now = new Date();
+      const y = now.getUTCFullYear(), m = now.getUTCMonth(), d = now.getUTCDate();
+      todayFrom = new Date(Date.UTC(y, m, d)).toISOString();
+      todayTo   = new Date(Date.UTC(y, m, d + 1)).toISOString();
+    }
+
     const stats = await pool.query(
       `SELECT
-         COUNT(*)                                                          AS total_activities,
-         COUNT(*)     FILTER (WHERE completed = TRUE)                     AS completed_count,
-         COALESCE(AVG(score), 0)                                          AS avg_score,
+         COUNT(*)                                            AS total_activities,
+         COUNT(*) FILTER (WHERE completed = TRUE)           AS completed_count,
+         COALESCE(AVG(score), 0)                            AS avg_score,
 
-         -- "today" = last_played is within the current calendar day UTC
-         -- We use date_trunc to get a clean midnight boundary — no ::date cast ambiguity
-         COUNT(*)     FILTER (
-           WHERE last_played >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
-             AND last_played <  date_trunc('day', NOW() AT TIME ZONE 'UTC') + INTERVAL '1 day'
-         )                                                                AS today_played,
+         COUNT(*) FILTER (
+           WHERE last_played >= $2::timestamptz
+             AND last_played <  $3::timestamptz
+         )                                                  AS today_played,
 
-         COUNT(*)     FILTER (
+         COUNT(*) FILTER (
            WHERE completed = TRUE
-             AND last_played >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
-             AND last_played <  date_trunc('day', NOW() AT TIME ZONE 'UTC') + INTERVAL '1 day'
-         )                                                                AS today_completed,
+             AND last_played >= $2::timestamptz
+             AND last_played <  $3::timestamptz
+         )                                                  AS today_completed,
 
          COALESCE(
            AVG(score) FILTER (
-             WHERE last_played >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
-               AND last_played <  date_trunc('day', NOW() AT TIME ZONE 'UTC') + INTERVAL '1 day'
+             WHERE last_played >= $2::timestamptz
+               AND last_played <  $3::timestamptz
            ), 0
-         )                                                                AS today_avg_score
+         )                                                  AS today_avg_score
 
        FROM user_progress
        WHERE user_id = $1`,
-      [req.user.id]
+      [req.user.id, todayFrom, todayTo]
     );
 
     const user = await pool.query(
