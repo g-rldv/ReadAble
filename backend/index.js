@@ -65,6 +65,20 @@ async function setupDatabase() {
       END $$;
     `);
 
+    // Add background music settings columns (idempotent)
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='settings' AND column_name='bg_music_enabled'
+        ) THEN
+          ALTER TABLE settings ADD COLUMN bg_music_enabled BOOLEAN DEFAULT FALSE;
+          ALTER TABLE settings ADD COLUMN bg_music_theme   VARCHAR(20) DEFAULT 'calm';
+          ALTER TABLE settings ADD COLUMN bg_music_volume  FLOAT DEFAULT 0.7;
+        END IF;
+      END $$;
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS activities (
         id            SERIAL PRIMARY KEY,
