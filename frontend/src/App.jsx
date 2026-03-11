@@ -1,74 +1,105 @@
 // ============================================================
-// App.jsx — Root component with routing and context providers
+// App.jsx — root router + providers + error boundary
 // ============================================================
-import React, { useEffect } from 'react';
+import React, { Component, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 
-// Pages
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import ActivitiesPage from './pages/ActivitiesPage';
-import GamePage from './pages/GamePage';
-import ProfilePage from './pages/ProfilePage';
-import SettingsPage from './pages/SettingsPage';
-import LeaderboardPage from './pages/LeaderboardPage';
+// Eager-load tiny pages; lazy-load heavier ones
+import LandingPage    from './pages/LandingPage';
+import LoginPage, { RegisterPage } from './pages/LoginPage';
+import AppLayout      from './components/layout/AppLayout';
 
-// Layout
-import AppLayout from './components/layout/AppLayout';
+const DashboardPage  = React.lazy(() => import('./pages/DashboardPage'));
+const ActivitiesPage = React.lazy(() => import('./pages/ActivitiesPage'));
+const GamePage       = React.lazy(() => import('./pages/GamePage'));
+const ProfilePage    = React.lazy(() => import('./pages/ProfilePage'));
+const SettingsPage   = React.lazy(() => import('./pages/SettingsPage'));
+const LeaderboardPage= React.lazy(() => import('./pages/LeaderboardPage'));
 
-// Protected route wrapper
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/login" replace />;
-  return children;
-}
-
-function LoadingScreen() {
+// ── Loading spinner (no emoji — renders instantly) ───────────
+function Spinner({ message = 'Loading…' }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-cream dark:bg-gray-900">
-      <div className="text-6xl animate-bounce">📚</div>
-      <p className="font-display text-2xl text-sky mt-4">Loading ReadAble…</p>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4"
+      style={{ background: 'var(--bg-primary, #FFF8F0)' }}>
+      <div className="w-10 h-10 rounded-full border-4 border-sky border-t-transparent animate-spin" />
+      <p className="font-display text-lg text-sky">{message}</p>
     </div>
   );
 }
 
+// ── Error boundary — catches any render error, shows message not white screen ─
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  componentDidCatch(e) { console.error('[ErrorBoundary]', e); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-8"
+          style={{ background: 'var(--bg-primary)' }}>
+          <div className="w-16 h-16 rounded-2xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+            <span className="text-2xl font-bold text-rose-500">!</span>
+          </div>
+          <h2 className="font-display text-2xl text-gray-800 dark:text-gray-100">Something went wrong</h2>
+          <p className="text-sm text-gray-500 text-center max-w-sm">
+            {this.state.error?.message || 'An unexpected error occurred.'}
+          </p>
+          <button
+            onClick={() => { this.setState({ error: null }); window.location.href = '/'; }}
+            className="px-6 py-2.5 rounded-2xl bg-sky text-white font-bold text-sm hover:opacity-90 transition-opacity">
+            Go Home
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ── Route guard ───────────────────────────────────────────────
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Spinner message="Loading ReadAble…" />;
+  if (!user)   return <Navigate to="/login" replace />;
+  return children;
+}
+
 function AppRoutes() {
   const { loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  if (loading) return <Spinner message="Loading ReadAble…" />;
+
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/"          element={<LandingPage />} />
-      <Route path="/login"     element={<LoginPage />} />
-      <Route path="/register"  element={<RegisterPage />} />
+    <Suspense fallback={<Spinner />}>
+      <Routes>
+        <Route path="/"         element={<LandingPage />} />
+        <Route path="/login"    element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-      {/* Protected app routes inside AppLayout */}
-      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-        <Route path="/dashboard"   element={<DashboardPage />} />
-        <Route path="/activities"  element={<ActivitiesPage />} />
-        <Route path="/game/:id"    element={<GamePage />} />
-        <Route path="/profile"     element={<ProfilePage />} />
-        <Route path="/settings"    element={<SettingsPage />} />
-        <Route path="/leaderboard" element={<LeaderboardPage />} />
-      </Route>
+        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route path="/dashboard"   element={<DashboardPage />} />
+          <Route path="/activities"  element={<ActivitiesPage />} />
+          <Route path="/game/:id"    element={<GamePage />} />
+          <Route path="/profile"     element={<ProfilePage />} />
+          <Route path="/settings"    element={<SettingsPage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
+        </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <SettingsProvider>
-        <AppRoutes />
-      </SettingsProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <SettingsProvider>
+          <AppRoutes />
+        </SettingsProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
