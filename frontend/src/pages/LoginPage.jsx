@@ -156,10 +156,10 @@ export function LoginPage() {
       await login(form.email, form.password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const raw = err.response?.data?.error || err.message || '';
-      if (/invalid|password|credentials/i.test(raw))  setError('Incorrect email or password. Please try again.');
-      else if (/not found|no account/i.test(raw))     setError('No account found with that email.');
-      else                                             setError('Something went wrong. Please try again.');
+      const msg = err.message || '';
+      if (/invalid|password|credentials/i.test(msg)) setError('Incorrect email or password. Please try again.');
+      else if (/not found|no account/i.test(msg))   setError('No account found with that email.');
+      else                                           setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -238,10 +238,10 @@ export function RegisterPage() {
       await register(form.username.trim(), form.email.trim(), form.password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const raw = err.response?.data?.error || err.message || '';
-      if (/username.*taken|already.*use/i.test(raw)) setErrors({ username: 'That username is already taken.' });
-      else if (/email.*taken/i.test(raw))            setErrors({ email: 'An account with that email already exists.' });
-      else                                           setErrors({ general: 'Something went wrong. Please try again.' });
+      const msg = err.message || '';
+      if (/username.*taken|already.*use/i.test(msg)) setErrors({ username: 'That username is already taken.' });
+      else if (/email.*taken/i.test(msg))           setErrors({ email: 'An account with that email already exists.' });
+      else                                          setErrors({ general: 'Something went wrong. Please try again.' });
     } finally {
       setLoading(false);
     }
