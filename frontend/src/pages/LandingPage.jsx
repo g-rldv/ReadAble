@@ -1,7 +1,7 @@
 // ============================================================
 // LandingPage — hero, inline auth modals, win effects, quick settings
 // ============================================================
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -351,7 +351,11 @@ export default function LandingPage() {
   const [showRegister, setShowRegister] = useState(false);
   const [showSettings, setShowSettings]= useState(false);
 
-  if (user) { navigate('/dashboard'); return null; }
+  useEffect(() => {
+    if (user) navigate('/dashboard', { replace: true });
+  }, [user, navigate]);
+
+  if (user) return null;
 
   const current = TRIAL_ITEMS[trialStep];
   const isPerfect = trialDone && trialScore === TRIAL_ITEMS.length;
@@ -425,6 +429,16 @@ export default function LandingPage() {
             Interactive word games and reading activities designed for all learners.
             Track progress, earn rewards, and grow your reading skills every day!
           </p>
+          <div className="flex flex-wrap gap-4">
+            <button onClick={() => setShowRegister(true)}
+              className="btn-game bg-coral text-white hover:bg-coral-dark flex items-center gap-2">
+              Start for Free <ArrowRight size={18} />
+            </button>
+            <button onClick={() => setShowLogin(true)}
+              className="btn-game bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-600">
+              I have an account
+            </button>
+          </div>
           <div className="flex flex-wrap gap-3 mt-8">
             {FEATURE_PILLS.map(({ Icon, label }) => (
               <span key={label}
@@ -525,6 +539,18 @@ export default function LandingPage() {
               <p className="text-gray-600 dark:text-gray-400 text-sm">{desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── CTA ─────────────────────────────────────────── */}
+      <section className="max-w-2xl mx-auto px-6 pb-20 text-center">
+        <div className="rounded-3xl p-10 bg-gradient-to-br from-sky to-mint text-white">
+          <h2 className="font-display text-4xl mb-3">Ready to start reading?</h2>
+          <p className="mb-6 opacity-90">Join thousands of learners improving every day!</p>
+          <button onClick={() => setShowRegister(true)}
+            className="inline-flex items-center gap-2 bg-white text-sky font-display text-lg px-8 py-3 rounded-2xl shadow-lg hover:scale-105 transition-transform">
+            Create Free Account <ArrowRight size={20} />
+          </button>
         </div>
       </section>
 
