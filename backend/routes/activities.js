@@ -227,31 +227,45 @@ async function checkAchievements(client, userId, user) {
   try {
     const unlocked = user.achievements || [];
 
-    const checks = [
-      { key: 'first_star',   cond: () => true,              title: 'First Star',       icon: '⭐' },
-      { key: 'xp_100',       cond: () => user.xp >= 100,    title: 'Century Club',     icon: '💯' },
-      { key: 'xp_500',       cond: () => user.xp >= 500,    title: 'XP Legend',        icon: '🌟' },
-      { key: 'xp_1000',      cond: () => user.xp >= 1000,   title: 'XP Master',        icon: '🏅' },
-      { key: 'level_5',      cond: () => user.level >= 5,   title: 'Word Wizard',      icon: '🧙' },
-      { key: 'level_10',     cond: () => user.level >= 10,  title: 'Reading Champion', icon: '🏆' },
-      { key: 'level_20',     cond: () => user.level >= 20,  title: 'Scholar',          icon: '🎓' },
-      { key: 'five_streak',  cond: () => user.streak >= 5,  title: 'On Fire',          icon: '🔥' },
-      { key: 'ten_streak',   cond: () => user.streak >= 10, title: 'Unstoppable',      icon: '⚡' },
-    ];
-
-    // Count completed activities for activity_count achievements
+    // Count completed activities
     const countRes = await client.query(
       'SELECT COUNT(*) AS cnt FROM user_progress WHERE user_id=$1 AND completed=TRUE',
       [userId]
     );
     const completedCount = parseInt(countRes.rows[0]?.cnt || 0);
 
-    checks.push(
-      { key: 'complete_5',  cond: () => completedCount >= 5,  title: 'Getting Started',   icon: '✅' },
-      { key: 'complete_10', cond: () => completedCount >= 10, title: 'On a Roll',          icon: '🎯' },
-      { key: 'complete_25', cond: () => completedCount >= 25, title: 'Dedicated Learner',  icon: '📚' },
-      { key: 'completionist',cond:() => completedCount >= 48, title: 'Completionist',      icon: '🌈' },
+    // Count perfect scores (score = 100)
+    const perfectRes = await client.query(
+      'SELECT COUNT(*) AS cnt FROM user_progress WHERE user_id=$1 AND score=100',
+      [userId]
     );
+    const perfectCount = parseInt(perfectRes.rows[0]?.cnt || 0);
+
+    const checks = [
+      // ── First activity ─────────────────────────────────────
+      { key: 'first_star',   cond: () => true,                    title: 'First Star',       icon: '⭐' },
+      // ── XP milestones ──────────────────────────────────────
+      { key: 'xp_100',       cond: () => user.xp >= 100,          title: 'Century Club',     icon: '💯' },
+      { key: 'xp_500',       cond: () => user.xp >= 500,          title: 'XP Legend',        icon: '🌟' },
+      { key: 'xp_1000',      cond: () => user.xp >= 1000,         title: 'XP Master',        icon: '🏅' },
+      // ── Level milestones ───────────────────────────────────
+      { key: 'level_3',      cond: () => user.level >= 3,         title: 'Rising Reader',    icon: '📖' },
+      { key: 'level_5',      cond: () => user.level >= 5,         title: 'Word Wizard',      icon: '🧙' },
+      { key: 'level_10',     cond: () => user.level >= 10,        title: 'Reading Champion', icon: '🏆' },
+      { key: 'level_20',     cond: () => user.level >= 20,        title: 'Scholar',          icon: '🎓' },
+      // ── Streak milestones ──────────────────────────────────
+      { key: 'streak_3',     cond: () => user.streak >= 3,        title: 'Consistent!',      icon: '📅' },
+      { key: 'five_streak',  cond: () => user.streak >= 5,        title: 'On Fire!',         icon: '🔥' },
+      { key: 'streak_7',     cond: () => user.streak >= 7,        title: 'Weekly Warrior',   icon: '⚡' },
+      { key: 'ten_streak',   cond: () => user.streak >= 10,       title: 'Unstoppable',      icon: '💪' },
+      // ── Activity completion milestones ─────────────────────
+      { key: 'complete_5',   cond: () => completedCount >= 5,     title: 'Getting Started',  icon: '✅' },
+      { key: 'complete_10',  cond: () => completedCount >= 10,    title: 'On a Roll',        icon: '🎯' },
+      { key: 'complete_25',  cond: () => completedCount >= 25,    title: 'Dedicated Learner',icon: '📚' },
+      { key: 'completionist',cond: () => completedCount >= 48,    title: 'Completionist',    icon: '🌈' },
+      // ── Perfect score milestone ────────────────────────────
+      { key: 'perfect_3',    cond: () => perfectCount >= 3,       title: 'Perfectionist',    icon: '💎' },
+    ];
 
     for (const { key, cond, title, icon } of checks) {
       if (!unlocked.includes(key) && cond()) {
