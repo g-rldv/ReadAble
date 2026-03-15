@@ -12,7 +12,7 @@ import WordMatchGame    from '../components/games/WordMatchGame';
 import FillBlankGame    from '../components/games/FillBlankGame';
 import SentenceSortGame from '../components/games/SentenceSortGame';
 import PictureWordGame  from '../components/games/PictureWordGame';
-import { ArrowLeft, Volume2, RotateCcw, Home, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Volume2, RotateCcw, Home, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
 
 const GAME_COMPONENTS = {
   word_match:    WordMatchGame,
@@ -27,72 +27,79 @@ const DIFF_STYLE = {
   hard:   'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
 };
 
-// ── Answer summary table shown after submitting ───────────────
+// ── Collapsible answer summary shown after submitting ────────
 function AnswerSummary({ details, type }) {
+  const [open, setOpen] = React.useState(false);
   if (!details?.length) return null;
 
-  // Sentence sort shows position label + truncated sentence
-  if (type === 'sentence_sort') {
-    return (
-      <div className="w-full mt-4 text-left">
-        <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Answer breakdown</p>
-        <div className="space-y-1.5">
-          {details.map((d, i) => (
-            <div key={i}
-              className={`flex items-start gap-2 p-2.5 rounded-xl text-xs
-                ${d.ok
-                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
-                  : 'bg-rose-50   dark:bg-rose-900/20   border border-rose-200   dark:border-rose-800'}`}>
-              {d.ok
-                ? <CheckCircle size={13} className="text-emerald-500 flex-shrink-0 mt-0.5"/>
-                : <XCircle    size={13} className="text-rose-500   flex-shrink-0 mt-0.5"/>}
-              <div className="min-w-0">
-                <span className="font-bold text-gray-600 dark:text-gray-400 mr-1">{d.label}:</span>
-                {d.ok ? (
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-300 break-words">{d.correct}</span>
-                ) : (
-                  <>
-                    <span className="line-through text-rose-400 break-words mr-1">{d.given || '—'}</span>
-                    <span className="font-semibold text-emerald-700 dark:text-emerald-300 break-words">→ {d.correct}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const wrongCount = details.filter(d => !d.ok).length;
 
-  // Word match, fill-blank, picture-word: two-column grid
-  return (
-    <div className="w-full mt-4 text-left">
-      <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Answer breakdown</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-        {details.map((d, i) => (
-          <div key={i}
-            className={`flex items-start gap-2 p-2.5 rounded-xl text-xs
-              ${d.ok
-                ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
-                : 'bg-rose-50   dark:bg-rose-900/20   border border-rose-200   dark:border-rose-800'}`}>
-            {d.ok
-              ? <CheckCircle size={13} className="text-emerald-500 flex-shrink-0 mt-0.5"/>
-              : <XCircle    size={13} className="text-rose-500   flex-shrink-0 mt-0.5"/>}
-            <div className="min-w-0">
-              {/* label: the left-word / sentence snippet / emoji */}
-              <span className="font-bold text-gray-600 dark:text-gray-400">{d.label} </span>
-              {d.ok ? (
-                <span className="font-semibold text-emerald-700 dark:text-emerald-300">{d.correct}</span>
-              ) : (
-                <span>
-                  <span className="line-through text-rose-400">{d.given || '—'}</span>
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-300"> → {d.correct}</span>
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
+  const ItemRow = ({ d, i }) => (
+    <div key={i}
+      className={`flex items-start gap-2 p-2.5 rounded-xl text-xs
+        ${d.ok
+          ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
+          : 'bg-rose-50   dark:bg-rose-900/20   border border-rose-200   dark:border-rose-800'}`}>
+      {d.ok
+        ? <CheckCircle size={13} className="text-emerald-500 flex-shrink-0 mt-0.5"/>
+        : <XCircle    size={13} className="text-rose-500   flex-shrink-0 mt-0.5"/>}
+      <div className="min-w-0">
+        <span className="font-bold text-gray-600 dark:text-gray-400 mr-1">{d.label}:</span>
+        {d.ok ? (
+          <span className="font-semibold text-emerald-700 dark:text-emerald-300 break-words">{d.correct}</span>
+        ) : (
+          <>
+            <span className="line-through text-rose-400 break-words mr-1">{d.given || '—'}</span>
+            <span className="font-semibold text-emerald-700 dark:text-emerald-300 break-words">→ {d.correct}</span>
+          </>
+        )}
       </div>
+    </div>
+  );
+
+  return (
+    <div className="w-full mt-4 text-left border rounded-2xl overflow-hidden"
+      style={{ borderColor:'var(--border-color)' }}>
+      {/* Toggle header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left
+                   hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        style={{ background:'var(--bg-primary)' }}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Answer Breakdown</span>
+          {wrongCount > 0 && (
+            <span className="text-[10px] bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400
+                             px-2 py-0.5 rounded-full font-bold">
+              {wrongCount} wrong
+            </span>
+          )}
+          {wrongCount === 0 && (
+            <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400
+                             px-2 py-0.5 rounded-full font-bold">
+              All correct!
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          size={16}
+          className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}/>
+      </button>
+
+      {/* Expandable content */}
+      {open && (
+        <div className="px-4 pb-4 pt-2" style={{ background:'var(--bg-card)' }}>
+          {type === 'sentence_sort' ? (
+            <div className="space-y-1.5">
+              {details.map((d, i) => <ItemRow key={i} d={d} i={i}/>)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {details.map((d, i) => <ItemRow key={i} d={d} i={i}/>)}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
