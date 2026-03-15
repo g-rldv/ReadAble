@@ -41,8 +41,8 @@ function SidebarAvatar({ avatar, username }) {
 
 function LogoutModal({ onConfirm, onCancel }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.55)' }}
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay"
+      style={{ background:"rgba(0,0,0,0.55)" }}
       onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="w-full max-w-xs rounded-2xl shadow-2xl p-6 animate-pop"
         style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
