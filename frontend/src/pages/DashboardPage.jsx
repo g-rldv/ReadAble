@@ -1,11 +1,12 @@
 // ============================================================
 // DashboardPage — home screen after login, fully responsive
+// Stats cards show TODAY's activity only
 // ============================================================
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { ArrowRight, Flame, BookOpen, CheckCircle, TrendingUp, Clock } from 'lucide-react';
+import { ArrowRight, Flame, BookOpen, CheckCircle, TrendingUp, Sun } from 'lucide-react';
 
 const DIFF_STYLE = {
   easy:   { pill:'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400', bar:'bg-emerald-500' },
@@ -16,11 +17,21 @@ const TYPE_LABEL = {
   word_match:'Word Match', fill_blank:'Fill the Blank',
   sentence_sort:'Sentence Sort', picture_word:'Picture & Word',
 };
+
 function greeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
   if (h < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+// Returns today's midnight boundaries in the user's LOCAL timezone as ISO strings
+// so the backend filters using the user's actual calendar day, not server UTC day.
+function getTodayBounds() {
+  const now  = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const to   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return { from: from.toISOString(), to: to.toISOString() };
 }
 
 export default function DashboardPage() {
@@ -39,11 +50,12 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Stats — reload when XP or streak changes
+  // Today's stats — reload when XP or streak changes (i.e. after completing a game)
   const fetchStats = useCallback(() => {
     if (!user) return;
     setStatsLoading(true);
-    api.get('/progress/stats')
+    const { from, to } = getTodayBounds();
+    api.get(`/progress/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
       .then(r => setStats(r.data))
       .catch(() => {})
       .finally(() => setStatsLoading(false));
@@ -56,9 +68,10 @@ export default function DashboardPage() {
   const currentXP    = (user?.xp || 0) % 50;
   const xpPct        = Math.min(100, Math.round((currentXP / 50) * 100));
 
-  const allPlayed    = parseInt(stats?.stats?.total_activities ?? 0, 10);
-  const allCompleted = parseInt(stats?.stats?.completed_count  ?? 0, 10);
-  const allAvg       = Math.round(parseFloat(stats?.stats?.avg_score ?? 0));
+  // Today's stats fields (from the time-bounded query)
+  const todayPlayed    = parseInt(stats?.stats?.today_played    ?? 0, 10);
+  const todayCompleted = parseInt(stats?.stats?.today_completed ?? 0, 10);
+  const todayAvg       = Math.round(parseFloat(stats?.stats?.today_avg_score ?? 0));
 
   if (loading) return (
     <div className="flex items-center justify-center h-48">
@@ -79,7 +92,7 @@ export default function DashboardPage() {
           </div>
           <div className="text-right flex-shrink-0">
             <div className="font-display text-2xl sm:text-3xl">Level {user?.level || 1}</div>
-            <div className="text-xs sm:text-sm text-white/70">{user?.xp || 0} XP</div>
+            <div className="text-xs sm:text-sm text-white/70">{user?.xp || 0} total XP</div>
           </div>
         </div>
         <div className="mt-4">
@@ -94,22 +107,25 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Stats grid ─────────────────────────────────── */}
+      {/* ── Today's Stats ───────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-2.5">
-          <Clock size={13} className="text-gray-400"/>
-          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Stats</span>
-          {statsLoading && <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin ml-1"/>}
+          <Sun size={13} className="text-amber-400"/>
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Today</span>
+          {statsLoading && (
+            <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin ml-1"/>
+          )}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           {[
-            { icon:<BookOpen    size={18} className="text-sky"/>,          label:'Played',     val:allPlayed,         bg:'bg-sky/10' },
-            { icon:<CheckCircle size={18} className="text-emerald-500"/>,  label:'Completed',  val:allCompleted,      bg:'bg-emerald-50 dark:bg-emerald-900/20' },
-            { icon:<TrendingUp  size={18} className="text-indigo-500"/>,   label:'Avg Score',  val:`${allAvg}%`,      bg:'bg-indigo-50 dark:bg-indigo-900/20' },
-            { icon:<Flame       size={18} className="text-orange-400"/>,   label:'Streak',     val:`${user?.streak||0}d`, bg:'bg-orange-50 dark:bg-orange-900/20' },
+            { icon:<BookOpen    size={18} className="text-sky"/>,         label:'Played',    val: todayPlayed,         bg:'bg-sky/10'                                   },
+            { icon:<CheckCircle size={18} className="text-emerald-500"/>, label:'Completed', val: todayCompleted,      bg:'bg-emerald-50 dark:bg-emerald-900/20'         },
+            { icon:<TrendingUp  size={18} className="text-indigo-500"/>,  label:'Avg Score', val: `${todayAvg}%`,      bg:'bg-indigo-50 dark:bg-indigo-900/20'           },
+            { icon:<Flame       size={18} className="text-orange-400"/>,  label:'Streak',    val: `${user?.streak||0}d`, bg:'bg-orange-50 dark:bg-orange-900/20'         },
           ].map(({ icon, label, val, bg }) => (
-            <div key={label} className="rounded-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700"
-              style={{ background:'var(--bg-card)', opacity:statsLoading ? 0.6 : 1 }}>
+            <div key={label}
+              className="rounded-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700"
+              style={{ background:'var(--bg-card)', opacity: statsLoading && label !== 'Streak' ? 0.6 : 1 }}>
               <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center mb-2`}>{icon}</div>
               <div className="font-display text-xl sm:text-2xl text-gray-800 dark:text-gray-100">{val}</div>
               <div className="text-xs text-gray-500 font-semibold mt-0.5">{label}</div>
@@ -174,7 +190,9 @@ export default function DashboardPage() {
           <div className="space-y-0">
             {progress.slice(0, 5).map((p, i) => (
               <div key={p.id}
-                className={`flex items-center gap-3 py-2.5 ${i < Math.min(progress.length,5)-1 ? 'border-b border-gray-100 dark:border-gray-700' : ''}`}>
+                className={`flex items-center gap-3 py-2.5 ${
+                  i < Math.min(progress.length, 5) - 1 ? 'border-b border-gray-100 dark:border-gray-700' : ''
+                }`}>
                 <div className="w-8 h-8 rounded-xl bg-sky/10 flex items-center justify-center flex-shrink-0">
                   <BookOpen size={14} className="text-sky"/>
                 </div>
