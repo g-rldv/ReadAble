@@ -179,7 +179,7 @@ function AllAchievementsModal({ unlocked, onClose }) {
                   <GroupIcon size={13} className="text-gray-400" />
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{groupLabels[g]}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {items.map(ach => {
                     const earned = unlocked.has(ach.key);
                     const GroupIconEl = GROUP_ICONS[ach.group] || Star;
@@ -292,15 +292,15 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
-      <h1 className="font-display text-3xl text-gray-800 dark:text-gray-100">My Profile</h1>
+      <h1 className="font-display text-2xl sm:text-3xl text-gray-800 dark:text-gray-100">My Profile</h1>
 
       {/* ── Profile card ─────────────────────────────────── */}
-      <div className="rounded-2xl p-5 border"
+      <div className="rounded-2xl p-4 sm:p-5 border"
         style={{ background:'var(--bg-card)', borderColor:'var(--border-color)' }}>
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <div className="relative flex-shrink-0">
-            <AvatarDisplay avatar={user?.avatar} username={user?.username} size={72} />
+            <AvatarDisplay avatar={user?.avatar} username={user?.username} size={64} />
             <button onClick={() => setShowAvatarModal(true)}
               className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-sky text-white
                          flex items-center justify-center shadow-md hover:opacity-90 transition-opacity">
@@ -382,7 +382,7 @@ export default function ProfilePage() {
             <History size={11} /> All Time
           </span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {[
             { Icon:BookOpen,    cls:'text-sky',          label:'Played',     val: statsLoading ? '…' : allPlayed,       bg:'bg-sky/10'                              },
             { Icon:CheckCircle, cls:'text-emerald-500',  label:'Completed',  val: statsLoading ? '…' : allCompleted,    bg:'bg-emerald-50 dark:bg-emerald-900/20'   },
@@ -403,7 +403,7 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Achievements ──────────────────────────────────── */}
-      <div className="rounded-2xl p-5 border"
+      <div className="rounded-2xl p-4 sm:p-5 border"
         style={{ background:'var(--bg-card)', borderColor:'var(--border-color)' }}>
 
         {/* Section header — See All button at top right */}
@@ -422,7 +422,7 @@ export default function ProfilePage() {
         </div>
 
         {/* 8-item preview grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {previewAch.map(ach => {
             const earned   = unlocked.has(ach.key);
             const AchIcon  = GROUP_ICONS[ach.group] || Star;
