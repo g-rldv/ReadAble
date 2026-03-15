@@ -45,8 +45,8 @@
 
 [data-theme="gradient"] {
   --bg-primary:   #1a1a2e;
-  --bg-card:      rgba(255,255,255,0.10);
-  --bg-sidebar:   rgba(255,255,255,0.08);
+  --bg-card:      rgba(30,20,60,0.72);
+  --bg-sidebar:   rgba(20,14,48,0.85);
   --text-primary: #F8FAFC;
   --text-muted:   #CBD5E1;
   --border-color: rgba(255,255,255,0.15);
@@ -222,10 +222,14 @@ html.text-xlarge { font-size: 21px; }
   border-radius: 4px;
 }
 
-/* ── Smooth theme transition ─────────────────────────────── */
-div[style*="var(--bg-"],
-aside[style*="var(--bg-"] {
-  transition: background-color 0.35s ease, background 0.35s ease;
+/* ── Smooth theme transition (layout shell only, NOT cards/modals) ─
+   Only the page background and sidebar get the transition.
+   Cards and modals must NOT have it — a transition from the browser
+   default of transparent→color causes every modal to flash invisible
+   on first render (mount-from-transparent bug). ──────────────────── */
+div[style*="var(--bg-primary)"],
+aside[style*="var(--bg-sidebar)"] {
+  transition: background-color 0.4s ease, background 0.4s ease;
 }
 
 /* ── Animations ──────────────────────────────────────────── */
