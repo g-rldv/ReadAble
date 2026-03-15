@@ -56,18 +56,13 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
   const allAvg       = data ? Math.round(parseFloat(data.stats?.avg_score ?? 0)) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background:'rgba(0,0,0,0.6)' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
+      <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
 
-        {/* Drag handle (mobile) */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600"/>
-        </div>
-
-        <div className="flex items-center justify-between px-5 pt-3 sm:pt-5 pb-3">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div className="flex items-center gap-2">
             <span className="font-display text-lg text-gray-800 dark:text-gray-100">Player Profile</span>
             {isMe && (
