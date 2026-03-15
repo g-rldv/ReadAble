@@ -1,6 +1,6 @@
 // ============================================================
-// GamePage — loads activity, renders correct game component
-// Fully responsive for mobile and desktop
+// GamePage — loads activity, renders correct game, shows
+// detailed answer summary after submission
 // ============================================================
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -12,7 +12,7 @@ import WordMatchGame    from '../components/games/WordMatchGame';
 import FillBlankGame    from '../components/games/FillBlankGame';
 import SentenceSortGame from '../components/games/SentenceSortGame';
 import PictureWordGame  from '../components/games/PictureWordGame';
-import { ArrowLeft, Volume2, RotateCcw, Home } from 'lucide-react';
+import { ArrowLeft, Volume2, RotateCcw, Home, CheckCircle, XCircle } from 'lucide-react';
 
 const GAME_COMPONENTS = {
   word_match:    WordMatchGame,
@@ -27,9 +27,79 @@ const DIFF_STYLE = {
   hard:   'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
 };
 
+// ── Answer summary table shown after submitting ───────────────
+function AnswerSummary({ details, type }) {
+  if (!details?.length) return null;
+
+  // Sentence sort shows position label + truncated sentence
+  if (type === 'sentence_sort') {
+    return (
+      <div className="w-full mt-4 text-left">
+        <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Answer breakdown</p>
+        <div className="space-y-1.5">
+          {details.map((d, i) => (
+            <div key={i}
+              className={`flex items-start gap-2 p-2.5 rounded-xl text-xs
+                ${d.ok
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-rose-50   dark:bg-rose-900/20   border border-rose-200   dark:border-rose-800'}`}>
+              {d.ok
+                ? <CheckCircle size={13} className="text-emerald-500 flex-shrink-0 mt-0.5"/>
+                : <XCircle    size={13} className="text-rose-500   flex-shrink-0 mt-0.5"/>}
+              <div className="min-w-0">
+                <span className="font-bold text-gray-600 dark:text-gray-400 mr-1">{d.label}:</span>
+                {d.ok ? (
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-300 break-words">{d.correct}</span>
+                ) : (
+                  <>
+                    <span className="line-through text-rose-400 break-words mr-1">{d.given || '—'}</span>
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-300 break-words">→ {d.correct}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Word match, fill-blank, picture-word: two-column grid
+  return (
+    <div className="w-full mt-4 text-left">
+      <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Answer breakdown</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        {details.map((d, i) => (
+          <div key={i}
+            className={`flex items-start gap-2 p-2.5 rounded-xl text-xs
+              ${d.ok
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
+                : 'bg-rose-50   dark:bg-rose-900/20   border border-rose-200   dark:border-rose-800'}`}>
+            {d.ok
+              ? <CheckCircle size={13} className="text-emerald-500 flex-shrink-0 mt-0.5"/>
+              : <XCircle    size={13} className="text-rose-500   flex-shrink-0 mt-0.5"/>}
+            <div className="min-w-0">
+              {/* label: the left-word / sentence snippet / emoji */}
+              <span className="font-bold text-gray-600 dark:text-gray-400">{d.label} </span>
+              {d.ok ? (
+                <span className="font-semibold text-emerald-700 dark:text-emerald-300">{d.correct}</span>
+              ) : (
+                <span>
+                  <span className="line-through text-rose-400">{d.given || '—'}</span>
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-300"> → {d.correct}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function GamePage() {
-  const { id }       = useParams();
-  const navigate     = useNavigate();
+  const { id }          = useParams();
+  const navigate        = useNavigate();
   const { refreshUser } = useAuth();
   const { speak, settings } = useSettings();
 
@@ -48,9 +118,8 @@ export default function GamePage() {
       .then(res => {
         setActivity(res.data.activity);
         setUserProg(res.data.userProgress);
-        if (settings.tts_enabled) {
+        if (settings.tts_enabled)
           setTimeout(() => speak(res.data.activity.content?.instruction || res.data.activity.title), 600);
-        }
       })
       .catch(() => navigate('/activities'))
       .finally(() => setLoading(false));
@@ -135,51 +204,56 @@ export default function GamePage() {
       {/* ── Result ──────────────────────────────────────── */}
       {result && (
         <div ref={resultRef}
-          className="rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-center shadow-xl border-2 animate-pop"
+          className="rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl border-2 animate-pop"
           style={{ background:'var(--bg-card)',
             borderColor: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#FFD93D' : '#FF6B6B' }}>
 
-          <div className="text-5xl sm:text-6xl mb-3 animate-bounce">
-            {result.isCorrect ? '🏆' : result.score >= 60 ? '⭐' : '💪'}
+          {/* Score header */}
+          <div className="text-center mb-4">
+            <div className="text-5xl mb-2 animate-bounce">
+              {result.isCorrect ? '🏆' : result.score >= 60 ? '⭐' : '💪'}
+            </div>
+            <div className="font-display text-5xl mb-1" style={{
+              color: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#F0C000' : '#FF6B6B'
+            }}>{result.score}%</div>
+            <p className="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-200 leading-snug">
+              {result.feedback}
+            </p>
           </div>
 
-          <div className="font-display text-4xl sm:text-5xl mb-1" style={{
-            color: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#F0C000' : '#FF6B6B'
-          }}>{result.score}%</div>
-
-          <p className="text-base sm:text-lg font-bold text-gray-700 dark:text-gray-200 mb-4 leading-snug">
-            {result.feedback}
-          </p>
-
+          {/* XP + Achievements */}
           {result.xpAwarded > 0 && (
-            <div className="inline-flex items-center gap-2 bg-sky/15 text-sky px-4 py-1.5 rounded-full font-bold mb-4 text-sm">
-              ✨ +{result.xpAwarded} XP earned!
+            <div className="flex justify-center mb-3">
+              <span className="inline-flex items-center gap-2 bg-sky/15 text-sky px-4 py-1.5 rounded-full font-bold text-sm">
+                ✨ +{result.xpAwarded} XP earned!
+              </span>
             </div>
           )}
-
           {result.newAchievements?.length > 0 && (
-            <div className="mb-4 space-y-2">
+            <div className="mb-3 space-y-1.5">
               {result.newAchievements.map(ach => (
                 <div key={ach.key}
                   className="flex items-center justify-center gap-2 bg-amber-50 dark:bg-amber-900/20
                              border border-amber-200 dark:border-amber-800 px-4 py-2 rounded-2xl">
-                  <span className="text-xl">{ach.icon}</span>
-                  <span className="font-bold text-sm text-amber-700 dark:text-amber-300">
-                    {ach.title} unlocked!
-                  </span>
+                  <span className="text-lg">{ach.icon}</span>
+                  <span className="font-bold text-sm text-amber-700 dark:text-amber-300">{ach.title} unlocked!</span>
                 </div>
               ))}
             </div>
           )}
 
-          <div className="flex gap-3 justify-center flex-wrap">
+          {/* ── Per-answer summary ──────────────────────── */}
+          <AnswerSummary details={result.details} type={activity?.type}/>
+
+          {/* Action buttons */}
+          <div className="flex gap-3 justify-center flex-wrap mt-5">
             <button onClick={handleReset}
               className="btn-game bg-sky text-white flex items-center gap-2 text-sm">
-              <RotateCcw size={16}/> Try Again
+              <RotateCcw size={15}/> Try Again
             </button>
             <Link to="/activities"
               className="btn-game bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2 text-sm">
-              <Home size={16}/> More Games
+              <Home size={15}/> More Games
             </Link>
           </div>
         </div>
