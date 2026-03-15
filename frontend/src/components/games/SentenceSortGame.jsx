@@ -112,7 +112,7 @@ export default function SentenceSortGame({ activity, onSubmit, submitting }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
-        <p className="font-bold text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{content.instruction}</p>
+        <p className="font-bold text-gray-700 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">{content.instruction}</p>
         <button onClick={() => speak(content.instruction)} className="p-2 rounded-xl text-sky hover:bg-sky/10 flex-shrink-0">
           <Volume2 size={18} />
         </button>
@@ -134,20 +134,20 @@ export default function SentenceSortGame({ activity, onSubmit, submitting }) {
             onTouchStart={e => onTouchStart(e, idx)}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-grab active:cursor-grabbing
+            className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-grab active:cursor-grabbing
                         transition-all select-none touch-none
               ${overIdx === idx  ? 'border-sky bg-sky/10 scale-[1.01]' : ''}
               ${dragIdx === idx  ? 'opacity-40 scale-[0.98]' : ''}
               ${overIdx !== idx && dragIdx !== idx ? 'border-gray-200 dark:border-gray-600 hover:border-sky/40 hover:shadow-md' : ''}`}
             style={{ background: 'var(--bg-card)' }}>
             {/* Step number */}
-            <div className="w-7 h-7 rounded-full bg-sky/15 text-sky flex items-center justify-center font-bold text-sm flex-shrink-0">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-sky/15 text-sky flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">
               {idx + 1}
             </div>
             {/* Grip handle */}
             <GripVertical size={18} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />
             {/* Text */}
-            <p className="flex-1 font-semibold text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
+            <p className="flex-1 font-semibold text-gray-800 dark:text-gray-200 text-xs sm:text-sm leading-relaxed min-w-0">
               {sentence}
             </p>
             {/* TTS */}
@@ -158,13 +158,13 @@ export default function SentenceSortGame({ activity, onSubmit, submitting }) {
             {/* Up/Down arrow buttons — primary mobile control */}
             <div className="flex flex-col gap-0.5 flex-shrink-0">
               <button onClick={() => moveUp(idx)} disabled={idx === 0}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700
-                           hover:bg-sky/20 disabled:opacity-30 text-xs transition-colors font-bold">
+                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700
+                           hover:bg-sky/20 disabled:opacity-30 text-[10px] transition-colors font-bold">
                 ▲
               </button>
               <button onClick={() => moveDown(idx)} disabled={idx === items.length - 1}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700
-                           hover:bg-sky/20 disabled:opacity-30 text-xs transition-colors font-bold">
+                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700
+                           hover:bg-sky/20 disabled:opacity-30 text-[10px] transition-colors font-bold">
                 ▼
               </button>
             </div>
@@ -173,7 +173,7 @@ export default function SentenceSortGame({ activity, onSubmit, submitting }) {
       </div>
 
       <button onClick={() => onSubmit({ order: items })} disabled={submitting}
-        className="btn-game w-full bg-coral text-white disabled:opacity-40 text-base">
+        className="btn-game w-full bg-coral text-white disabled:opacity-40 text-sm sm:text-base">
         {submitting ? 'Checking…' : 'Check My Order!'}
       </button>
     </div>
