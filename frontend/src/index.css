@@ -268,6 +268,20 @@ aside[style*="var(--bg-sidebar)"] {
 @keyframes xpFloat  { 0%{transform:translateX(-50%) translateY(0);opacity:1} 100%{transform:translateX(-50%) translateY(-70px);opacity:0} }
 @keyframes noteFloat{ 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-60px) scale(0.6)} }
 
+/* ── Modal overlay backdrop ─────────────────────────────────
+   On mobile: dark dim helps indicate a modal is open.
+   On desktop (lg / 1024px+): subtle dim only — the modal card
+   is visually distinct enough on its own; full blackout looks
+   heavy on large screens. The inline style is overridden here. */
+.modal-overlay {
+  /* Fallback for browsers that don't load the media query first */
+}
+@media (min-width: 1024px) {
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.18) !important;
+  }
+}
+
 /* ── Mobile-specific tweaks ──────────────────────────────── */
 @media (max-width: 640px) {
   /* Larger tap areas for filter pills */
