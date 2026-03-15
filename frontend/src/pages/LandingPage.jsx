@@ -139,8 +139,8 @@ function SignInModal({ onClose, onSwitchToRegister }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
+      style={{ background: "rgba(0,0,0,0.6)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
@@ -259,8 +259,8 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
+      style={{ background: "rgba(0,0,0,0.6)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
@@ -429,6 +429,16 @@ export default function LandingPage() {
             Interactive word games and reading activities designed for all learners.
             Track progress, earn rewards, and grow your reading skills every day!
           </p>
+          <div className="flex flex-wrap gap-4">
+            <button onClick={() => setShowRegister(true)}
+              className="btn-game bg-coral text-white hover:bg-coral-dark flex items-center gap-2">
+              Start for Free <ArrowRight size={18} />
+            </button>
+            <button onClick={() => setShowLogin(true)}
+              className="btn-game bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-600">
+              I have an account
+            </button>
+          </div>
           <div className="flex flex-wrap gap-3 mt-8">
             {FEATURE_PILLS.map(({ Icon, label }) => (
               <span key={label}
@@ -529,6 +539,18 @@ export default function LandingPage() {
               <p className="text-gray-600 dark:text-gray-400 text-sm">{desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── CTA ─────────────────────────────────────────── */}
+      <section className="max-w-2xl mx-auto px-6 pb-20 text-center">
+        <div className="rounded-3xl p-10 bg-gradient-to-br from-sky to-mint text-white">
+          <h2 className="font-display text-4xl mb-3">Ready to start reading?</h2>
+          <p className="mb-6 opacity-90">Join thousands of learners improving every day!</p>
+          <button onClick={() => setShowRegister(true)}
+            className="inline-flex items-center gap-2 bg-white text-sky font-display text-lg px-8 py-3 rounded-2xl shadow-lg hover:scale-105 transition-transform">
+            Create Free Account <ArrowRight size={20} />
+          </button>
         </div>
       </section>
 
