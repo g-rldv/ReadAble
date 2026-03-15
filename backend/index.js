@@ -562,7 +562,6 @@ app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 setupDatabase().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 ReadAble API on port ${PORT}`);
-    console.log(`   Origins: ${allowedOrigins.join(', ')}`);
   });
 }).catch(err => {
   console.error('[Fatal] DB setup failed:', err.message);
