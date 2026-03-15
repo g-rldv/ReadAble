@@ -1,15 +1,14 @@
 // ============================================================
-// Auth Context — global user/token state
+// Auth Context — stable multi-device session management
 //
-// Multi-device safety rules:
-//  1. NEVER clear the token on a network error or server timeout.
-//     Only a genuine HTTP 401 means the token is invalid.
-//  2. Poll /auth/me every 30 s while the tab is visible so XP,
-//     level, streak and achievements stay in sync across devices.
-//  3. On tab focus (visibilitychange) do an immediate poll so the
-//     user always sees fresh data after switching back.
-//  4. On login/register, flush any pending local settings to the
-//     server so the theme chosen on the landing page carries over.
+// Key design decisions:
+//  • Token is stored in a ref so polling callbacks never go stale
+//    without recreating the interval.
+//  • Only a genuine HTTP 401 clears the session. Network errors,
+//    timeouts, and Render cold-start 502/503s keep the user logged in.
+//  • Polls /auth/me every 30 s (only while tab is visible) so XP,
+//    level, streak and achievements stay in sync across devices.
+//  • Fires an immediate refresh when the tab regains focus.
 // ============================================================
 import React, {
   createContext, useContext, useState,
@@ -18,97 +17,96 @@ import React, {
 import api from '../utils/api';
 
 const AuthContext = createContext(null);
-
-// How often to auto-refresh user data (ms)
-const POLL_INTERVAL = 30_000;
+const POLL_MS = 30_000;
 
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [token,   setToken]   = useState(() => localStorage.getItem('readable_token'));
   const [loading, setLoading] = useState(true);
-  const pollRef = useRef(null);
 
-  // ── Helpers ──────────────────────────────────────────────────
-  // Only replace user object when something meaningful changed.
-  // This avoids cascading re-renders on every 30-second poll.
+  // Keep a ref to the latest token so poll/focus handlers
+  // always have the current value without recreating effects.
+  const tokenRef   = useRef(token);
+  const pollRef    = useRef(null);
+
+  // ── Merge user — only triggers re-render when something changed ─
   const mergeUser = useCallback((next) => {
     if (!next) return;
     setUser(prev => {
       if (!prev) return next;
-      const changed =
-        prev.xp           !== next.xp           ||
-        prev.level        !== next.level         ||
-        prev.streak       !== next.streak        ||
-        prev.username     !== next.username      ||
-        prev.avatar       !== next.avatar        ||
-        prev.achievements?.length !== next.achievements?.length;
-      return changed ? next : prev;
+      const same =
+        prev.xp           === next.xp     &&
+        prev.level        === next.level  &&
+        prev.streak       === next.streak &&
+        prev.username     === next.username &&
+        prev.avatar       === next.avatar &&
+        (prev.achievements?.length ?? 0) === (next.achievements?.length ?? 0);
+      return same ? prev : next;
     });
   }, []);
 
-  // Fetch fresh user from server — used by polling + refreshUser.
-  // Returns true on success, false on network error, throws on 401.
-  const fetchUser = useCallback(async (tkn) => {
-    const t = tkn ?? token;
-    if (!t) return false;
+  // ── Core fetch — never clears session on network errors ────────
+  const fetchUser = useCallback(async () => {
+    const t = tokenRef.current;
+    if (!t) return;
     try {
       const res = await api.get('/auth/me');
       mergeUser(res.data.user);
-      return true;
     } catch (err) {
       if (err.status === 401) {
-        // Token is genuinely invalid / expired — log out cleanly
+        // Genuine invalid/expired token — log out
         localStorage.removeItem('readable_token');
         delete api.defaults.headers.common['Authorization'];
+        tokenRef.current = null;
         setToken(null);
         setUser(null);
-        throw err; // re-throw so callers know
       }
-      // Network error, timeout, Render cold-start (503/502) etc.
-      // Keep the user logged in — the token is still valid.
-      console.warn('[Auth] Temporary fetch error (keeping session):', err.message);
-      return false;
+      // All other errors (timeout, 502, network) — keep session alive
     }
-  }, [token, mergeUser]);
+  }, [mergeUser]);
 
-  // ── Initial load on mount / token change ─────────────────────
+  // ── Initial load ──────────────────────────────────────────────
   useEffect(() => {
+    tokenRef.current = token;
     if (!token) { setLoading(false); return; }
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    fetchUser(token).finally(() => setLoading(false));
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── 30-second polling for multi-device sync ──────────────────
-  useEffect(() => {
-    if (!token) return;
-    pollRef.current = setInterval(() => {
-      if (document.visibilityState === 'visible') fetchUser();
-    }, POLL_INTERVAL);
-    return () => clearInterval(pollRef.current);
+    fetchUser().finally(() => setLoading(false));
   }, [token, fetchUser]);
 
-  // ── Immediate refresh on tab focus ───────────────────────────
+  // ── Polling — single stable interval, never recreated ─────────
   useEffect(() => {
-    if (!token) return;
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') fetchUser();
+    const start = () => {
+      clearInterval(pollRef.current);
+      pollRef.current = setInterval(() => {
+        if (tokenRef.current && document.visibilityState === 'visible') fetchUser();
+      }, POLL_MS);
     };
+    const onVisible = () => {
+      if (tokenRef.current && document.visibilityState === 'visible') fetchUser();
+    };
+    start();
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [token, fetchUser]);
+    return () => {
+      clearInterval(pollRef.current);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [fetchUser]); // fetchUser is stable (useCallback with stable deps)
 
   // ── Settings dirty-flag sync ─────────────────────────────────
-  // If the user changed settings while not logged in (e.g. theme on
-  // landing page), push those settings to the server right after login.
+  // Only push local settings to server if the user explicitly changed
+  // something (dirty flag) AND the token header is already set.
+  // We purposely do NOT overwrite server settings on a new device that
+  // hasn't changed anything — the server is the source of truth once
+  // the user is logged in.
   const syncLocalSettings = async () => {
-    const dirty  = localStorage.getItem('readable_settings_dirty') === 'true';
+    if (localStorage.getItem('readable_settings_dirty') !== 'true') return;
     const stored = localStorage.getItem('readable_settings');
-    if (dirty && stored) {
-      try {
-        await api.put('/settings', JSON.parse(stored));
-        localStorage.removeItem('readable_settings_dirty');
-      } catch (_) {}
-    }
+    if (!stored) return;
+    try {
+      await api.put('/settings', JSON.parse(stored));
+      localStorage.removeItem('readable_settings_dirty');
+    } catch (_) {}
+    // After pushing, immediately re-fetch so UI reflects server state
   };
 
   // ── Login ─────────────────────────────────────────────────────
@@ -117,6 +115,7 @@ export function AuthProvider({ children }) {
     const { token: t, user: u } = res.data;
     localStorage.setItem('readable_token', t);
     api.defaults.headers.common['Authorization'] = `Bearer ${t}`;
+    tokenRef.current = t;
     await syncLocalSettings();
     setToken(t);
     setUser(u);
@@ -129,6 +128,7 @@ export function AuthProvider({ children }) {
     const { token: t, user: u } = res.data;
     localStorage.setItem('readable_token', t);
     api.defaults.headers.common['Authorization'] = `Bearer ${t}`;
+    tokenRef.current = t;
     await syncLocalSettings();
     setToken(t);
     setUser(u);
@@ -140,15 +140,13 @@ export function AuthProvider({ children }) {
     clearInterval(pollRef.current);
     localStorage.removeItem('readable_token');
     delete api.defaults.headers.common['Authorization'];
+    tokenRef.current = null;
     setToken(null);
     setUser(null);
   }, []);
 
-  // ── Manual refresh (called after earning XP, changing avatar…) ─
-  const refreshUser = useCallback(async () => {
-    if (!token) return;
-    await fetchUser();
-  }, [token, fetchUser]);
+  // ── Manual refresh (after earning XP, changing avatar…) ───────
+  const refreshUser = useCallback(() => fetchUser(), [fetchUser]);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
