@@ -34,33 +34,53 @@ settingsRouter.put('/', requireAuth, async (req, res) => {
       bg_music_enabled, bg_music_theme, bg_music_volume,
     } = req.body;
 
-    const result = await pool.query(
-      `INSERT INTO settings (
-         user_id, text_size, theme,
-         tts_enabled, tts_voice, tts_rate, tts_pitch,
-         bg_music_enabled, bg_music_theme, bg_music_volume,
-         updated_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, NOW())
-       ON CONFLICT (user_id) DO UPDATE SET
-         text_size        = EXCLUDED.text_size,
-         theme            = EXCLUDED.theme,
-         tts_enabled      = EXCLUDED.tts_enabled,
-         tts_voice        = EXCLUDED.tts_voice,
-         tts_rate         = EXCLUDED.tts_rate,
-         tts_pitch        = EXCLUDED.tts_pitch,
-         bg_music_enabled = EXCLUDED.bg_music_enabled,
-         bg_music_theme   = EXCLUDED.bg_music_theme,
-         bg_music_volume  = EXCLUDED.bg_music_volume,
-         updated_at       = NOW()
-       RETURNING *`,
+    // Step 1: ensure the row exists (safe for new users)
+    await pool.query(
+      'INSERT INTO settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
+      [req.user.id]
+    );
+
+    // Step 2: update core columns that always exist
+    await pool.query(
+      `UPDATE settings SET
+         text_size   = $2,
+         theme       = $3,
+         tts_enabled = $4,
+         tts_voice   = $5,
+         tts_rate    = $6,
+         tts_pitch   = $7,
+         updated_at  = NOW()
+       WHERE user_id = $1`,
       [
-        req.user.id, text_size || 'medium', theme || 'light',
+        req.user.id,
+        text_size   || 'medium',
+        theme       || 'light',
         tts_enabled !== undefined ? tts_enabled : true,
-        tts_voice || '', tts_rate || 0.9, tts_pitch || 1.0,
-        bg_music_enabled !== undefined ? bg_music_enabled : false,
-        bg_music_theme || 'calm', bg_music_volume || 0.7,
+        tts_voice   || '',
+        tts_rate    !== undefined ? tts_rate   : 0.9,
+        tts_pitch   !== undefined ? tts_pitch  : 1.0,
       ]
     );
+
+    // Step 3: update music columns only if they exist in the schema
+    // (idempotent: migration may not have run on older deploys)
+    try {
+      await pool.query(
+        `UPDATE settings SET
+           bg_music_enabled = $2,
+           bg_music_theme   = $3,
+           bg_music_volume  = $4
+         WHERE user_id = $1`,
+        [
+          req.user.id,
+          bg_music_enabled !== undefined ? bg_music_enabled : false,
+          bg_music_theme   || 'calm',
+          bg_music_volume  !== undefined ? bg_music_volume  : 0.7,
+        ]
+      );
+    } catch (_) { /* columns not yet added — harmless */ }
+
+    const result = await pool.query('SELECT * FROM settings WHERE user_id=$1', [req.user.id]);
     res.json({ settings: result.rows[0] });
   } catch (err) {
     console.error('[Settings/Update]', err.message);
