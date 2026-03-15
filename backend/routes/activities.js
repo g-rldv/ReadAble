@@ -62,7 +62,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Activity not found' });
     }
     const activity          = actResult.rows[0];
-    const { score, feedback, isCorrect } = evaluateAnswer(activity, answer);
+    const { score, feedback, isCorrect, details } = evaluateAnswer(activity, answer);
 
     // 2. Upsert progress
     const existingProg = await client.query(
@@ -144,6 +144,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       score,
       feedback,
       isCorrect,
+      details,
       xpAwarded,
       newAchievements,
       streak: newStreak,
@@ -158,14 +159,22 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
 });
 
 // ── Evaluate Answer ───────────────────────────────────────────
+// Returns { score, feedback, isCorrect, details }
+// details is an array of per-item results shown in the result card.
 function evaluateAnswer(activity, answer) {
   const correct = activity.correct_answer;
-  let score = 0, isCorrect = false, feedback = '';
+  let score = 0, isCorrect = false, feedback = '', details = [];
 
   switch (activity.type) {
     case 'word_match': {
-      const pairs        = Object.entries(correct);
-      const correctCount = pairs.filter(([k, v]) => answer?.[k] === v).length;
+      const pairs = Object.entries(correct);
+      details = pairs.map(([left, rightCorrect]) => ({
+        label:   left,
+        given:   answer?.[left] ?? null,
+        correct: rightCorrect,
+        ok:      answer?.[left] === rightCorrect,
+      }));
+      const correctCount = details.filter(d => d.ok).length;
       score     = Math.round((correctCount / pairs.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -176,9 +185,16 @@ function evaluateAnswer(activity, answer) {
       break;
     }
     case 'fill_blank': {
-      const expected     = correct.answers;
-      const given        = answer?.answers || [];
-      const correctCount = expected.filter((a, i) => a?.toLowerCase() === given[i]?.toLowerCase()).length;
+      const expected = correct.answers;
+      const given    = answer?.answers || [];
+      const sentences = activity.content?.sentences || [];
+      details = expected.map((rightAns, i) => ({
+        label:   sentences[i]?.text?.replace('___', `[${given[i] || '?'}]`) || `Blank ${i+1}`,
+        given:   given[i] ?? null,
+        correct: rightAns,
+        ok:      rightAns?.toLowerCase() === given[i]?.toLowerCase(),
+      }));
+      const correctCount = details.filter(d => d.ok).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -189,9 +205,15 @@ function evaluateAnswer(activity, answer) {
       break;
     }
     case 'sentence_sort': {
-      const expected     = correct.order;
-      const given        = answer?.order || [];
-      const correctCount = expected.filter((s, i) => s === given[i]).length;
+      const expected = correct.order;
+      const given    = answer?.order || [];
+      details = expected.map((sentence, i) => ({
+        label:   `Step ${i + 1}`,
+        given:   given[i] ?? null,
+        correct: sentence,
+        ok:      sentence === given[i],
+      }));
+      const correctCount = details.filter(d => d.ok).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -202,9 +224,16 @@ function evaluateAnswer(activity, answer) {
       break;
     }
     case 'picture_word': {
-      const expected     = correct.answers;
-      const given        = answer?.answers || [];
-      const correctCount = expected.filter((a, i) => a === given[i]).length;
+      const expected = correct.answers;
+      const given    = answer?.answers || [];
+      const items    = activity.content?.items || [];
+      details = expected.map((rightAns, i) => ({
+        label:   items[i]?.picture || `Picture ${i+1}`,
+        given:   given[i] ?? null,
+        correct: rightAns,
+        ok:      rightAns === given[i],
+      }));
+      const correctCount = details.filter(d => d.ok).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -218,7 +247,7 @@ function evaluateAnswer(activity, answer) {
       score    = 0;
       feedback = 'Unknown activity type.';
   }
-  return { score, feedback, isCorrect };
+  return { score, feedback, isCorrect, details };
 }
 
 // ── Achievement checks ────────────────────────────────────────
