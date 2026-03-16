@@ -31,7 +31,7 @@ function RankBadge({ rank }) {
     3:'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
   };
   return (
-    <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center flex-shrink-0
+    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
                      font-bold text-xs ${cfg[rank] || 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
       {rank}
     </div>
@@ -73,7 +73,7 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
           </button>
         </div>
 
-        <div className="px-5 pb-6 modal-scroll max-h-[70vh]">
+        <div className="px-5 pb-6 overflow-y-auto max-h-[70vh]">
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="w-7 h-7 border-4 border-sky border-t-transparent rounded-full animate-spin"/>
@@ -104,7 +104,7 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
                   { icon:<BookOpen size={15} className="text-sky"/>,         label:'Played',    val:allPlayed    },
                   { icon:<CheckCircle size={15} className="text-emerald-500"/>, label:'Done',   val:allCompleted },
@@ -164,14 +164,14 @@ export default function LeaderboardPage() {
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
-      <div className="mb-5 sm:mb-7 text-center sm:text-left">
-        <h1 className="font-display text-2xl sm:text-4xl text-gray-800 dark:text-gray-100">Leaderboard</h1>
-        <p className="text-gray-500 text-xs sm:text-sm mt-1">Tap any player to see their profile</p>
+      <div className="mb-7">
+        <h1 className="font-display text-4xl text-gray-800 dark:text-gray-100">Leaderboard</h1>
+        <p className="text-gray-500 text-sm mt-1">Click any player to see their profile</p>
       </div>
 
       {/* Podium */}
       {leaders.length >= 3 && (
-        <div className="flex items-end justify-center gap-2 sm:gap-3 mb-6 px-2">
+        <div className="flex items-end justify-center gap-3 mb-6 px-2">
           {[leaders[1], leaders[0], leaders[2]].map((leader, i) => {
             const m = PODIUM_META[i];
             const sz = i === 1 ? 52 : 40;
@@ -185,11 +185,11 @@ export default function LeaderboardPage() {
                   <AvatarDisplay avatar={leader.avatar} username={leader.username} size={sz}/>
                 </div>
                 <div className={`w-full rounded-t-xl text-center ${m.height} bg-gradient-to-b ${m.bg} flex flex-col items-center justify-center gap-0.5 px-1`}>
-                  <p className={`font-display text-[11px] sm:text-xs ${m.text}`}>{m.label}</p>
-                  <p className={`font-bold text-[10px] sm:text-xs ${m.text} truncate w-full text-center px-1`}>{leader.username}</p>
+                  <p className={`font-display text-xs ${m.text}`}>{m.label}</p>
+                  <p className={`font-bold text-xs ${m.text} truncate w-full text-center px-1`}>{leader.username}</p>
                   <div className="flex items-center gap-0.5">
                     <Star size={9} className={`${m.text} fill-current opacity-80`}/>
-                    <span className={`text-[9px] sm:text-[10px] font-bold ${m.text}`}>{leader.xp}</span>
+                    <span className={`text-[10px] font-bold ${m.text}`}>{leader.xp}</span>
                   </div>
                 </div>
               </button>
@@ -210,12 +210,12 @@ export default function LeaderboardPage() {
           const isMe = leader.username === user?.username;
           return (
             <button key={leader.username} onClick={() => setSelected(leader.username)}
-              className={`flex items-center gap-3 px-3 sm:px-4 py-3 border-b w-full text-left
+              className={`flex items-center gap-3 px-4 py-3 border-b w-full text-left
                           last:border-0 transition-colors
                           border-gray-100 dark:border-gray-700/50
                           ${isMe ? 'bg-sky/8 dark:bg-sky/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800/40'}`}>
               <RankBadge rank={idx + 1}/>
-              <div className="w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0 rounded-xl overflow-hidden
+              <div className="w-9 h-9 flex-shrink-0 rounded-xl overflow-hidden
                               bg-gradient-to-br from-sky/20 to-indigo-100
                               dark:from-sky/10 dark:to-indigo-900/30 flex items-center justify-center">
                 <AvatarDisplay avatar={leader.avatar} username={leader.username} size={36}/>
