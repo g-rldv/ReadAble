@@ -37,8 +37,13 @@ function readLocal() {
 }
 
 // ── Inline background music engine ──────────────────────────
+// Fix: track every live oscillator node so stop() can kill them
+// immediately — preventing stacking when toggled rapidly.
 const _music = (() => {
   let ctx = null, gain = null, timer = null, playing = false, theme = 'calm';
+  // Keep refs to all scheduled oscillators so we can stop them on demand
+  const liveOscs = new Set();
+
   const N = {
     C3:174,D3:196,E3:220,F3:233,G3:261,A3:293,B3:329,
     C4:349,D4:392,E4:440,F4:466,G4:523,A4:587,B4:659,
@@ -58,6 +63,7 @@ const _music = (() => {
                notes:[N.A3,N.C4,N.E4,N.G4,N.E4,N.C4,
                       N.E4,N.G4,N.A4,N.C5,N.A4,N.G4] },
   };
+
   function initCtx() {
     if (ctx) return ctx;
     const Ctor = window.AudioContext || window.webkitAudioContext;
@@ -68,6 +74,15 @@ const _music = (() => {
     gain.connect(ctx.destination);
     return ctx;
   }
+
+  // Kill all live oscillator nodes immediately
+  function killAllOscs() {
+    liveOscs.forEach(osc => {
+      try { osc.stop(0); } catch (_) {}
+    });
+    liveOscs.clear();
+  }
+
   function scheduleLoop(startTime, t) {
     if (!playing || !ctx) return;
     const td = THEMES[t] || THEMES.calm;
@@ -84,18 +99,28 @@ const _music = (() => {
         env.gain.linearRampToValueAtTime(td.vol, ts + td.atk);
         env.gain.setValueAtTime(td.vol, ts + len * td.rel);
         env.gain.exponentialRampToValueAtTime(0.0001, end);
-        osc.start(ts); osc.stop(end + 0.05);
+        osc.start(ts);
+        osc.stop(end + 0.05);
+        liveOscs.add(osc);
+        // Auto-remove from set when it finishes naturally
+        osc.onended = () => liveOscs.delete(osc);
       }
       ts += len;
     }
     const loopLen = td.notes.length * len;
-    timer = setTimeout(() => scheduleLoop(ctx.currentTime + 0.05, theme),
-      Math.max(50, (startTime + loopLen - ctx.currentTime - 0.3) * 1000));
+    timer = setTimeout(
+      () => scheduleLoop(ctx.currentTime + 0.05, theme),
+      Math.max(50, (startTime + loopLen - ctx.currentTime - 0.3) * 1000)
+    );
   }
+
   return {
     start(t = 'calm') {
-      this.stop(); theme = t;
-      const c = initCtx(); if (!c) return false;
+      // Always fully stop first — kills all scheduled oscillators
+      this.stop();
+      theme = t;
+      const c = initCtx();
+      if (!c) return false;
       if (c.state === 'suspended') c.resume().catch(() => {});
       playing = true;
       gain.gain.cancelScheduledValues(c.currentTime);
@@ -105,11 +130,15 @@ const _music = (() => {
       return c.state !== 'suspended';
     },
     stop() {
-      playing = false; clearTimeout(timer);
+      playing = false;
+      clearTimeout(timer);
+      // Kill every oscillator that was scheduled — this is the key fix
+      killAllOscs();
+      // Fade out master gain so the kill isn't a harsh click
       if (gain && ctx) {
         gain.gain.cancelScheduledValues(ctx.currentTime);
         gain.gain.setValueAtTime(gain.gain.value || 0.001, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.15);
       }
     },
     setVolume(v) {
