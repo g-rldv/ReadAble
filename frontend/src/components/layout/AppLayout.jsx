@@ -10,6 +10,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import {
   LayoutDashboard, BookOpen, Trophy, User, Settings,
   LogOut, Volume2, VolumeX, Star, Menu, X,
+  Music, Music2, SlidersHorizontal, Sparkles,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -68,7 +69,7 @@ function LogoutModal({ onConfirm, onCancel }) {
 }
 
 function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
-                           toggleSound, onLogoutClick, onClose }) {
+                           toggleSound, updateSettings, onLogoutClick, onClose }) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo + optional close button (mobile) */}
@@ -129,14 +130,16 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
 
       {/* Bottom actions */}
       <div className="px-3 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
+
+        {/* Sound toggle row */}
         <button onClick={toggleSound}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
                      text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
           {soundOn
             ? <Volume2 size={20} className="text-emerald-500 flex-shrink-0"/>
             : <VolumeX size={20} className="flex-shrink-0"/>}
-          <div className="text-left">
-            <span>Sound: {soundOn ? 'On' : 'Off'}</span>
+          <div className="text-left flex-1">
+            <span className="text-gray-700 dark:text-gray-300">Sound: {soundOn ? 'On' : 'Off'}</span>
             {soundOn && (
               <span className="block text-[10px] text-gray-400 leading-none mt-0.5">
                 {settings.tts_enabled && 'Voice'}
@@ -146,6 +149,53 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
             )}
           </div>
         </button>
+
+        {/* Music theme quick-picker — visible when sound is on */}
+        {soundOn && (
+          <div className="px-1 pb-1">
+            {/* Music on/off toggle */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl
+                            bg-gray-50 dark:bg-gray-800/60 mb-1.5">
+              <div className="flex items-center gap-2">
+                <Music size={14} className={settings.bg_music_enabled ? 'text-purple-500' : 'text-gray-400'}/>
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Music</span>
+              </div>
+              <button onClick={() => updateSettings({ bg_music_enabled: !settings.bg_music_enabled })}
+                className={`relative w-10 h-5 rounded-full transition-colors duration-300 flex-shrink-0
+                            ${settings.bg_music_enabled ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-300
+                                 ${settings.bg_music_enabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+              </button>
+            </div>
+
+            {/* Music theme chips — only when music is enabled */}
+            {settings.bg_music_enabled && (
+              <div className="grid grid-cols-4 gap-1">
+                {[
+                  { key:'calm',    Icon:Music,              label:'Calm'    },
+                  { key:'playful', Icon:Music2,             label:'Playful' },
+                  { key:'focus',   Icon:SlidersHorizontal,  label:'Focus'   },
+                  { key:'fantasy', Icon:Sparkles,           label:'Fantasy' },
+                ].map(({ key, Icon, label }) => {
+                  const active = settings.bg_music_theme === key;
+                  return (
+                    <button key={key}
+                      onClick={() => updateSettings({ bg_music_theme: key })}
+                      className={`flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-bold
+                                  transition-all duration-150
+                                  ${active
+                                    ? 'bg-purple-500 text-white shadow-sm'
+                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+                                  }`}>
+                      <Icon size={14}/>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
         <button onClick={onLogoutClick}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
                      text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
@@ -183,28 +233,31 @@ export default function AppLayout() {
         <SidebarContent
           user={user} settings={settings} soundOn={soundOn}
           xpPct={xpPct} currentXP={currentXP}
-          toggleSound={toggleSound}
+          toggleSound={toggleSound} updateSettings={updateSettings}
           onLogoutClick={() => setShowLogoutModal(true)}
         />
       </aside>
 
-      {/* ── Mobile full-screen sidebar overlay ─────────────── */}
-      {drawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-[9998]" onClick={closeDrawer}>
-          {/* Full-screen sidebar — not a partial drawer */}
-          <div className="absolute inset-0 flex flex-col"
-            style={{ background: 'var(--bg-sidebar)' }}
-            onClick={e => e.stopPropagation()}>
-            <SidebarContent
-              user={user} settings={settings} soundOn={soundOn}
-              xpPct={xpPct} currentXP={currentXP}
-              toggleSound={toggleSound}
-              onLogoutClick={() => { closeDrawer(); setShowLogoutModal(true); }}
-              onClose={closeDrawer}
-            />
-          </div>
+      {/* ── Mobile full-screen sidebar — CSS slide transition ── */}
+      <div className={`lg:hidden fixed inset-0 z-[9998] transition-all duration-300
+                       ${drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        {/* Dark backdrop fades in */}
+        <div className={`absolute inset-0 bg-black/20 transition-opacity duration-300
+                         ${drawerOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={closeDrawer}/>
+        {/* Sidebar slides in from left */}
+        <div className={`absolute inset-0 flex flex-col transition-transform duration-300 ease-out
+                         ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          style={{ background: 'var(--bg-sidebar)' }}>
+          <SidebarContent
+            user={user} settings={settings} soundOn={soundOn}
+            xpPct={xpPct} currentXP={currentXP}
+            toggleSound={toggleSound} updateSettings={updateSettings}
+            onLogoutClick={() => { closeDrawer(); setShowLogoutModal(true); }}
+            onClose={closeDrawer}
+          />
         </div>
-      )}
+      </div>
 
       {/* ── Main column ─────────────────────────────────────── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
