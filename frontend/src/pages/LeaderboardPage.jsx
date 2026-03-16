@@ -165,15 +165,15 @@ export default function LeaderboardPage() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in">
+    <div className="max-w-2xl mx-auto animate-fade-in px-1">
       <div className="mb-7">
-        <h1 className="font-display text-4xl text-gray-800 dark:text-gray-100">Leaderboard</h1>
+        <h1 className="font-display text-2xl md:text-4xl text-gray-800 dark:text-gray-100">Leaderboard</h1>
         <p className="text-gray-500 text-sm mt-1">Click any player to see their profile</p>
       </div>
 
       {/* Podium */}
       {leaders.length >= 3 && (
-        <div className="flex items-end justify-center gap-3 mb-6 px-2">
+        <div className="flex items-end justify-center gap-2 mb-6 px-1">
           {[leaders[1], leaders[0], leaders[2]].map((leader, i) => {
             const m = PODIUM_META[i];
             const sz = i === 1 ? 52 : 40;
