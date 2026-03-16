@@ -519,19 +519,18 @@ async function setupDatabase() {
 }
 
 // ── CORS ──────────────────────────────────────────────────────
-// Accept: any onrender.com subdomain, any localhost port, and
-// the explicit FRONTEND_URL env var.  This prevents login failures
-// caused by Render URL mismatches.
-function isAllowedOrigin(origin) {
-  if (!origin) return true; // same-origin / server-to-server
-  if (/^https:\/\/[a-z0-9-]+\.onrender\.com$/.test(origin)) return true;
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
-  if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) return true;
-  return false;
-}
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(cors({
-  origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS blocked: ${origin}`));
+  },
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
   credentials: true,
@@ -562,6 +561,7 @@ app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 setupDatabase().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 ReadAble API on port ${PORT}`);
+    console.log(`   Origins: ${allowedOrigins.join(', ')}`);
   });
 }).catch(err => {
   console.error('[Fatal] DB setup failed:', err.message);
