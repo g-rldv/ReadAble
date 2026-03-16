@@ -304,6 +304,7 @@ export default function AppLayout() {
             user={user} settings={settings} soundOn={soundOn}
             xpPct={xpPct} currentXP={currentXP}
             toggleSound={toggleSound} updateSettings={updateSettings}
+            isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen}
             onLogoutClick={() => { closeDrawer(); setShowLogoutModal(true); }}
             onClose={closeDrawer}
           />
