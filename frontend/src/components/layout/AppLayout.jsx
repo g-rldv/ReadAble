@@ -1,7 +1,7 @@
 // ============================================================
-// AppLayout — sidebar + mobile overlay + main content area
-// SidebarContent is defined OUTSIDE AppLayout so React never
-// unmounts/remounts the sidebar tree on AppLayout re-renders.
+// AppLayout — fixed left sidebar + scrollable main content
+// Desktop-focused. SidebarContent lives outside AppLayout so
+// React never remounts it when AppLayout re-renders.
 // ============================================================
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
@@ -9,7 +9,7 @@ import { useAuth }     from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import {
   LayoutDashboard, BookOpen, Trophy, User, Settings,
-  LogOut, Menu, X, Volume2, VolumeX, Star,
+  LogOut, Volume2, VolumeX, Star,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -20,28 +20,28 @@ const NAV_ITEMS = [
   { to:'/settings',    icon:Settings,        label:'Settings'    },
 ];
 
-// ── Avatar helper ─────────────────────────────────────────────
 function SidebarAvatar({ avatar, username }) {
   const isImage = avatar && (avatar.startsWith('data:') || avatar.startsWith('http'));
   if (isImage) return (
-    <img src={avatar} alt="avatar" className="w-10 h-10 rounded-2xl object-cover"
+    <img src={avatar} alt="avatar"
+      className="w-10 h-10 rounded-2xl object-cover flex-shrink-0"
       onError={e => { e.currentTarget.style.display = 'none'; }} />
   );
   const isEmoji = avatar && /\p{Emoji_Presentation}/u.test(avatar);
   return (
-    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky to-indigo-500 flex items-center justify-center text-white font-bold">
+    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky to-indigo-500
+                    flex items-center justify-center text-white font-bold flex-shrink-0">
       {isEmoji
-        ? <span className="text-xl">{avatar}</span>
+        ? <span className="text-xl leading-none">{avatar}</span>
         : <span className="text-sm">{username?.[0]?.toUpperCase() || '?'}</span>}
     </div>
   );
 }
 
-// ── Logout confirmation modal ─────────────────────────────────
 function LogoutModal({ onConfirm, onCancel }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.55)' }}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+      style={{ background: 'rgba(0,0,0,0.5)' }}
       onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-pop"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
@@ -59,7 +59,7 @@ function LogoutModal({ onConfirm, onCancel }) {
           <button onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold
                        hover:bg-rose-600 transition-colors flex items-center justify-center gap-2">
-            <LogOut size={16} /> Sign Out
+            <LogOut size={16}/> Sign Out
           </button>
         </div>
       </div>
@@ -67,41 +67,38 @@ function LogoutModal({ onConfirm, onCancel }) {
   );
 }
 
-// ── Sidebar content — standalone component with explicit props ─
-// Defined OUTSIDE AppLayout so its identity is stable across renders.
-// If defined inside AppLayout, React recreates it as a new type on
-// every re-render which unmounts/remounts the entire sidebar tree.
-function SidebarContent({ user, settings, soundOn, xpPct, currentXP, toggleSound, onLogoutClick, onNavClick }) {
+function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
+                           toggleSound, onLogoutClick }) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+      <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
-            <BookOpen size={16} className="text-white" />
+          <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center flex-shrink-0">
+            <BookOpen size={16} className="text-white"/>
           </div>
           <span className="font-display text-2xl text-sky">ReadAble</span>
         </div>
       </div>
 
-      {/* User mini-profile */}
-      <div className="px-4 py-4 mx-3 mt-3 rounded-2xl border border-sky/20"
-        style={{ background: 'linear-gradient(135deg, rgba(77,150,255,0.08), rgba(107,203,119,0.06))' }}>
+      {/* User card */}
+      <div className="px-4 py-4 mx-3 mt-3 rounded-2xl border border-sky/20 flex-shrink-0"
+        style={{ background: 'linear-gradient(135deg,rgba(77,150,255,0.08),rgba(107,203,119,0.06))' }}>
         <div className="flex items-center gap-3">
-          <SidebarAvatar avatar={user?.avatar} username={user?.username} />
+          <SidebarAvatar avatar={user?.avatar} username={user?.username}/>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm truncate text-gray-800 dark:text-gray-200">{user?.username}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
           </div>
-          <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-1">
-            <Star size={11} className="text-amber-500 fill-amber-500" />
+          <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-1 flex-shrink-0">
+            <Star size={11} className="text-amber-500 fill-amber-500"/>
             <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
           </div>
         </div>
         <div className="mt-3">
           <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-sky to-emerald-400 rounded-full transition-all duration-700"
-              style={{ width: `${xpPct}%` }} />
+              style={{ width: `${xpPct}%` }}/>
           </div>
           <p className="text-[10px] text-gray-400 mt-1">{currentXP}/50 XP to Level {(user?.level || 1) + 1}</p>
         </div>
@@ -110,126 +107,83 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP, toggleSound
       {/* Navigation */}
       <nav className="flex-1 px-3 mt-4 space-y-1">
         {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to} onClick={onNavClick}
+          <NavLink key={to} to={to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-sm transition-all duration-200 ${
+              `flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-sm transition-all ${
                 isActive
                   ? 'bg-sky text-white shadow-md shadow-sky/25'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100'
-              }`
-            }>
-            <Icon size={20} />
-            {label}
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+              }`}>
+            <Icon size={20}/>{label}
           </NavLink>
         ))}
       </nav>
 
       {/* Bottom actions */}
-      <div className="px-3 pb-4 space-y-1 border-t border-gray-100 dark:border-gray-700 pt-3">
+      <div className="px-3 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
         <button onClick={toggleSound}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
                      text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
           {soundOn
-            ? <Volume2 size={20} className="text-emerald-500 flex-shrink-0" />
-            : <VolumeX size={20} className="flex-shrink-0" />}
+            ? <Volume2 size={20} className="text-emerald-500 flex-shrink-0"/>
+            : <VolumeX size={20} className="flex-shrink-0"/>}
           <div className="text-left">
             <span>Sound: {soundOn ? 'On' : 'Off'}</span>
             {soundOn && (
               <span className="block text-[10px] text-gray-400 leading-none mt-0.5">
-                {settings.tts_enabled && 'Voice'}{settings.tts_enabled && settings.bg_music_enabled && ' · '}{settings.bg_music_enabled && 'Music'}
+                {settings.tts_enabled && 'Voice'}
+                {settings.tts_enabled && settings.bg_music_enabled && ' · '}
+                {settings.bg_music_enabled && 'Music'}
               </span>
             )}
           </div>
         </button>
-
         <button onClick={onLogoutClick}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
                      text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
-          <LogOut size={20} />
-          Sign Out
+          <LogOut size={20}/>Sign Out
         </button>
       </div>
     </div>
   );
 }
 
-// ── AppLayout ─────────────────────────────────────────────────
 export default function AppLayout() {
   const { user, logout }             = useAuth();
   const { settings, updateSettings } = useSettings();
   const navigate                     = useNavigate();
-  const [mobileOpen,      setMobileOpen]      = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/'); };
-
-  const soundOn = settings.tts_enabled || settings.bg_music_enabled;
-  const toggleSound = () => {
-    updateSettings({ tts_enabled: !soundOn, bg_music_enabled: !soundOn && settings.bg_music_enabled });
-  };
-
+  const soundOn      = settings.tts_enabled || settings.bg_music_enabled;
+  const toggleSound  = () => updateSettings({
+    tts_enabled: !soundOn,
+    bg_music_enabled: !soundOn && settings.bg_music_enabled,
+  });
   const currentXP = (user?.xp || 0) % 50;
   const xpPct     = Math.min(100, Math.round((currentXP / 50) * 100));
-
-  const sidebarProps = {
-    user, settings, soundOn, xpPct, currentXP,
-    toggleSound,
-    onLogoutClick: () => setShowLogoutModal(true),
-    onNavClick:    () => setMobileOpen(false),
-  };
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col shadow-card"
+      {/* Sidebar */}
+      <aside className="w-64 flex-shrink-0 flex flex-col shadow-card"
         style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-color)' }}>
-        <SidebarContent {...sidebarProps} />
+        <SidebarContent
+          user={user} settings={settings} soundOn={soundOn}
+          xpPct={xpPct} currentXP={currentXP}
+          toggleSound={toggleSound}
+          onLogoutClick={() => setShowLogoutModal(true)}
+        />
       </aside>
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-72 flex flex-col shadow-2xl"
-            style={{ background: 'var(--bg-sidebar)' }}>
-            <button onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
-              <X size={22} />
-            </button>
-            <SidebarContent {...sidebarProps} />
-          </aside>
-        </div>
-      )}
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 shadow-sm"
-          style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
-          <button onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
-            <Menu size={22} />
-          </button>
-          <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded-lg bg-sky flex items-center justify-center">
-              <BookOpen size={12} className="text-white" />
-            </div>
-            <span className="font-display text-xl text-sky">ReadAble</span>
-          </div>
-          <div className="ml-auto flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-3 py-1">
-            <Star size={13} className="text-amber-500 fill-amber-500" />
-            <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-          <Outlet />
-        </main>
-      </div>
+      {/* Main */}
+      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <Outlet/>
+      </main>
 
       {showLogoutModal && (
-        <LogoutModal onConfirm={handleLogout} onCancel={() => setShowLogoutModal(false)} />
+        <LogoutModal onConfirm={handleLogout} onCancel={() => setShowLogoutModal(false)}/>
       )}
     </div>
   );
