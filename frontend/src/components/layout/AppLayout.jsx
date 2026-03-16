@@ -3,14 +3,14 @@
 // Desktop-focused. SidebarContent lives outside AppLayout so
 // React never remounts it when AppLayout re-renders.
 // ============================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth }     from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import {
   LayoutDashboard, BookOpen, Trophy, User, Settings,
   LogOut, Volume2, VolumeX, Star, Menu, X,
-  Music, Music2, SlidersHorizontal, Sparkles,
+  Music, Music2, SlidersHorizontal, Sparkles, Maximize2, Minimize,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -69,7 +69,8 @@ function LogoutModal({ onConfirm, onCancel }) {
 }
 
 function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
-                           toggleSound, updateSettings, onLogoutClick, onClose }) {
+                           toggleSound, updateSettings, onLogoutClick, onClose,
+                           isFullscreen, toggleFullscreen }) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo + optional close button (mobile) */}
@@ -196,6 +197,16 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
             )}
           </div>
         )}
+        {/* Fullscreen toggle */}
+        <button onClick={toggleFullscreen}
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
+                     text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+          {isFullscreen
+            ? <Minimize size={20} className="text-indigo-500 flex-shrink-0"/>
+            : <Maximize2 size={20} className="flex-shrink-0"/>}
+          <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+        </button>
+
         <button onClick={onLogoutClick}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
                      text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
@@ -221,7 +232,23 @@ export default function AppLayout() {
   const currentXP = (user?.xp || 0) % 50;
   const xpPct     = Math.min(100, Math.round((currentXP / 50) * 100));
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen,   setDrawerOpen]   = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Keep isFullscreen in sync with actual browser fullscreen state
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
   const closeDrawer = () => setDrawerOpen(false);
 
   return (
@@ -234,6 +261,7 @@ export default function AppLayout() {
           user={user} settings={settings} soundOn={soundOn}
           xpPct={xpPct} currentXP={currentXP}
           toggleSound={toggleSound} updateSettings={updateSettings}
+          isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen}
           onLogoutClick={() => setShowLogoutModal(true)}
         />
       </aside>
@@ -275,9 +303,17 @@ export default function AppLayout() {
             </div>
             <span className="font-display text-xl text-sky">ReadAble</span>
           </div>
-          <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2.5 py-1 flex-shrink-0">
-            <Star size={12} className="text-amber-500 fill-amber-500"/>
-            <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2.5 py-1">
+              <Star size={12} className="text-amber-500 fill-amber-500"/>
+              <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
+            </div>
+            <button onClick={toggleFullscreen}
+              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              {isFullscreen
+                ? <Minimize size={18} className="text-indigo-500"/>
+                : <Maximize2 size={18} className="text-gray-500 dark:text-gray-400"/>}
+            </button>
           </div>
         </header>
 
