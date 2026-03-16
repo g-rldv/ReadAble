@@ -383,7 +383,7 @@ export default function LandingPage() {
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
 
       {/* ── Nav ─────────────────────────────────────────── */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
+      <nav className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
             <BookOpen size={16} className="text-white" />
@@ -401,33 +401,33 @@ export default function LandingPage() {
             {showSettings && <QuickSettings onClose={() => setShowSettings(false)} />}
           </div>
           <button onClick={() => { setShowSettings(false); setShowLogin(true); }}
-            className="px-5 py-2 rounded-2xl font-bold text-sky border-2 border-sky hover:bg-sky/10 transition-colors text-sm">
+            className="px-3 py-1.5 md:px-5 md:py-2 rounded-2xl font-bold text-sky border-2 border-sky hover:bg-sky/10 transition-colors text-xs md:text-sm">
             Sign In
           </button>
           <button onClick={() => { setShowSettings(false); setShowRegister(true); }}
-            className="px-5 py-2 rounded-2xl font-bold text-white bg-sky hover:bg-sky-dark transition-colors text-sm shadow-md">
+            className="px-3 py-1.5 md:px-5 md:py-2 rounded-2xl font-bold text-white bg-sky hover:bg-sky-dark transition-colors text-xs md:text-sm shadow-md">
             Join Free
           </button>
         </div>
       </nav>
 
       {/* ── Hero ────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 pt-12 pb-8 grid lg:grid-cols-2 gap-12 items-center">
+      <section className="max-w-6xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-8 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
         <div className="animate-slide-up">
           <div className="inline-flex items-center gap-2 bg-sunny/20 text-yellow-700 dark:text-yellow-300 px-4 py-1.5 rounded-full text-sm font-bold mb-5">
             <Zap size={14} className="fill-current" /> Made for everyone
           </div>
-          <h1 className="font-display text-5xl lg:text-6xl text-gray-900 dark:text-white leading-tight mb-5">
+          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl text-gray-900 dark:text-white leading-tight mb-4">
             Reading made<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-coral to-sky">
               fun &amp; easy
             </span>
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-md font-medium">
+          <p className="text-base text-gray-600 dark:text-gray-300 mb-6 font-medium">
             Interactive word games and reading activities designed for all learners.
             Track progress, earn rewards, and grow your reading skills every day!
           </p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             <button onClick={() => setShowRegister(true)}
               className="btn-game bg-coral text-white hover:bg-coral-dark flex items-center gap-2">
               Start for Free <ArrowRight size={18} />
@@ -437,11 +437,11 @@ export default function LandingPage() {
               I have an account
             </button>
           </div>
-          <div className="flex flex-wrap gap-3 mt-8">
+          <div className="flex flex-wrap gap-2 mt-6">
             {FEATURE_PILLS.map(({ Icon, label }) => (
               <span key={label}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-gray-800 shadow-sm
-                           text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm
+                           text-xs md:text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
                 <Icon size={13} className="text-sky flex-shrink-0" />
                 {label}
               </span>
@@ -451,7 +451,7 @@ export default function LandingPage() {
 
         {/* ── Trial game ──────────────────────────────────── */}
         <div className="animate-pop">
-          <div className="rounded-3xl p-6 shadow-xl border-2 border-sky/20"
+          <div className="rounded-3xl p-4 md:p-6 shadow-xl border-2 border-sky/20"
             style={{ background: 'var(--bg-card)' }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-xl text-gray-800 dark:text-gray-200 flex items-center gap-2">
@@ -482,7 +482,7 @@ export default function LandingPage() {
                     if (showFeedback && !isSel && isCorr) style = 'bg-mint/50 text-mint-dark';
                     return (
                       <button key={opt} onClick={() => handlePick(opt)}
-                        className={`py-3 rounded-2xl font-bold text-sm transition-all duration-200 border-2 border-transparent ${style}`}>
+                        className={`py-4 rounded-2xl font-bold text-sm transition-all duration-200 border-2 border-transparent ${style}`}>
                         {opt}
                       </button>
                     );
@@ -555,8 +555,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="font-display text-4xl text-center mb-12 text-gray-800 dark:text-gray-200">
+      <section className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
+        <h2 className="font-display text-3xl md:text-4xl text-center mb-8 md:mb-12 text-gray-800 dark:text-gray-200">
           Why learners love ReadAble
         </h2>
         <div className="grid md:grid-cols-3 gap-6">
