@@ -309,28 +309,67 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
 function QuickSettings({ onClose }) {
   const { settings, updateSettings } = useSettings();
   return (
-    <div className="absolute right-0 top-12 z-40 w-56 rounded-2xl shadow-2xl border overflow-hidden animate-pop"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
-      <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border-color)' }}>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Quick Theme</p>
+    <>
+      {/* ── Mobile: full-screen centered modal ────────────── */}
+      <div className="md:hidden fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/50"
+        onClick={onClose}>
+        <div className="w-full max-w-xs rounded-2xl shadow-2xl overflow-hidden animate-pop"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-4 py-3 border-b"
+            style={{ borderColor: 'var(--border-color)' }}>
+            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Quick Theme</p>
+            <button onClick={onClose}
+              className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <X size={16} className="text-gray-400"/>
+            </button>
+          </div>
+          <div className="p-3 grid grid-cols-3 gap-2">
+            {QUICK_THEMES.map(t => (
+              <button key={t.key}
+                onClick={() => { updateSettings({ theme: t.key }); onClose(); }}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl text-center transition-all
+                  ${settings.theme === t.key
+                    ? 'bg-sky/15 text-sky ring-2 ring-sky/40'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                <t.Icon size={20}/>
+                <span className="text-xs font-semibold leading-tight">{t.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="px-4 pb-3">
+            <Link to="/settings" onClick={onClose}
+              className="text-xs text-sky font-semibold hover:underline flex items-center gap-1">
+              All settings <ArrowRight size={11}/>
+            </Link>
+          </div>
+        </div>
       </div>
-      <div className="p-2 grid grid-cols-3 gap-1">
-        {QUICK_THEMES.map(t => (
-          <button key={t.key} onClick={() => { updateSettings({ theme: t.key }); onClose(); }}
-            className={`flex flex-col items-center gap-0.5 p-2 rounded-xl text-center transition-all
-              ${settings.theme === t.key ? 'bg-sky/10 text-sky' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-            <t.Icon size={16} />
-            <span className="text-[10px] font-semibold">{t.label}</span>
-          </button>
-        ))}
+
+      {/* ── Desktop: anchored dropdown ─────────────────────── */}
+      <div className="hidden md:block absolute right-0 top-12 z-40 w-56 rounded-2xl shadow-2xl border overflow-hidden animate-pop"
+        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+        <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border-color)' }}>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Quick Theme</p>
+        </div>
+        <div className="p-2 grid grid-cols-3 gap-1">
+          {QUICK_THEMES.map(t => (
+            <button key={t.key} onClick={() => { updateSettings({ theme: t.key }); onClose(); }}
+              className={`flex flex-col items-center gap-0.5 p-2 rounded-xl text-center transition-all
+                ${settings.theme === t.key ? 'bg-sky/10 text-sky' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              <t.Icon size={16}/>
+              <span className="text-[10px] font-semibold">{t.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="px-3 pb-2.5">
+          <Link to="/settings" onClick={onClose}
+            className="text-xs text-sky font-semibold hover:underline flex items-center gap-1">
+            All settings <ArrowRight size={11}/>
+          </Link>
+        </div>
       </div>
-      <div className="px-3 pb-2.5">
-        <Link to="/settings" onClick={onClose}
-          className="text-xs text-sky font-semibold hover:underline flex items-center gap-1">
-          All settings <ArrowRight size={11} />
-        </Link>
-      </div>
-    </div>
+    </>
   );
 }
 
