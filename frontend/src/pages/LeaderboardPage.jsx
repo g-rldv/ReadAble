@@ -1,6 +1,7 @@
 // ============================================================
 // LeaderboardPage — fully responsive top readers list
 // ============================================================
+import ReactDOM from 'react-dom';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
@@ -55,7 +56,7 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
   const allCompleted = data ? parseInt(data.stats?.completed_count  ?? 0, 10) : 0;
   const allAvg       = data ? Math.round(parseFloat(data.stats?.avg_score ?? 0)) : 0;
 
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
@@ -133,7 +134,8 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
