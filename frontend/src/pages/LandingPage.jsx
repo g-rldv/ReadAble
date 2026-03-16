@@ -139,8 +139,7 @@ function SignInModal({ onClose, onSwitchToRegister }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
@@ -259,8 +258,7 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
@@ -429,6 +427,16 @@ export default function LandingPage() {
             Interactive word games and reading activities designed for all learners.
             Track progress, earn rewards, and grow your reading skills every day!
           </p>
+          <div className="flex flex-wrap gap-4">
+            <button onClick={() => setShowRegister(true)}
+              className="btn-game bg-coral text-white hover:bg-coral-dark flex items-center gap-2">
+              Start for Free <ArrowRight size={18} />
+            </button>
+            <button onClick={() => setShowLogin(true)}
+              className="btn-game bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-600">
+              I have an account
+            </button>
+          </div>
           <div className="flex flex-wrap gap-3 mt-8">
             {FEATURE_PILLS.map(({ Icon, label }) => (
               <span key={label}
@@ -443,7 +451,7 @@ export default function LandingPage() {
 
         {/* ── Trial game ──────────────────────────────────── */}
         <div className="animate-pop">
-          <div className={`rounded-3xl p-6 shadow-xl border-2 border-sky/20 transition-all ${isPerfect ? 'animate-win-pulse' : ''}`}
+          <div className="rounded-3xl p-6 shadow-xl border-2 border-sky/20"
             style={{ background: 'var(--bg-card)' }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-xl text-gray-800 dark:text-gray-200 flex items-center gap-2">
@@ -482,30 +490,63 @@ export default function LandingPage() {
                 </div>
               </>
             ) : (
-              <div className={`text-center py-6 ${isPerfect ? 'animate-rise-up' : ''}`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3
-                  ${isPerfect ? 'bg-amber-100 dark:bg-amber-900/30 animate-star-pop' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                  {isPerfect
-                    ? <Trophy size={36} className="text-amber-500" />
-                    : trialScore >= 2
-                    ? <Star size={36} className="text-yellow-500 fill-yellow-500" />
-                    : <Check size={36} className="text-emerald-500" />
-                  }
+              <div className="text-center py-4 animate-result-reveal">
+
+                {/* ── Icon with glow ring ─────────────────── */}
+                <div className="relative w-20 h-20 mx-auto mb-4">
+                  {/* Expanding glow ring behind icon */}
+                  <div className={`absolute inset-0 rounded-full animate-glow-ring
+                    ${isPerfect ? 'bg-amber-400/40' : trialScore >= 2 ? 'bg-yellow-400/30' : 'bg-emerald-400/30'}`}/>
+                  {/* Icon circle */}
+                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center
+                                   animate-icon-spin shadow-lg
+                    ${isPerfect
+                      ? 'bg-gradient-to-br from-amber-300 to-amber-500'
+                      : trialScore >= 2
+                      ? 'bg-gradient-to-br from-yellow-300 to-yellow-500'
+                      : 'bg-gradient-to-br from-emerald-400 to-emerald-600'}`}>
+                    {isPerfect
+                      ? <Trophy size={36} className="text-white drop-shadow" />
+                      : trialScore >= 2
+                      ? <Star size={36} className="text-white fill-white drop-shadow" />
+                      : <Check size={36} className="text-white drop-shadow" strokeWidth={3}/>
+                    }
+                  </div>
                 </div>
-                {isPerfect && (
-                  <p className="font-display text-xl text-amber-500 mb-1 animate-rise-up">PERFECT SCORE!</p>
-                )}
-                <h4 className="font-display text-2xl mb-2 text-gray-800 dark:text-gray-100">
-                  {trialScore === TRIAL_ITEMS.length ? 'Amazing!' : `${trialScore}/${TRIAL_ITEMS.length} Correct!`}
-                </h4>
-                <p className="text-gray-600 dark:text-gray-400 mb-5 text-sm">
-                  {isPerfect
-                    ? 'You nailed it! Sign up to track your progress and unlock all activities!'
-                    : 'Good try! Sign up to access more games and see how you improve!'}
-                </p>
+
+                {/* ── Score label ─────────────────────────── */}
+                <div className="animate-score-sweep">
+                  {isPerfect && (
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-500 mb-1">
+                      ✦ Perfect Score ✦
+                    </p>
+                  )}
+                  <h4 className="font-display text-3xl mb-1 text-gray-800 dark:text-gray-100">
+                    {isPerfect ? 'Amazing!' : trialScore >= 2 ? 'Well done!' : `${trialScore}/${TRIAL_ITEMS.length} Correct`}
+                  </h4>
+                  {/* Score dots */}
+                  <div className="flex items-center justify-center gap-1.5 mb-3">
+                    {TRIAL_ITEMS.map((_, i) => (
+                      <div key={i}
+                        className={`w-2.5 h-2.5 rounded-full transition-all ${
+                          i < trialScore ? 'bg-emerald-400 scale-110' : 'bg-gray-200 dark:bg-gray-600'
+                        }`}/>
+                    ))}
+                  </div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed max-w-xs mx-auto">
+                    {isPerfect
+                      ? 'You nailed every question! Sign up to track your progress.'
+                      : 'Sign up to access more games and see how you improve!'}
+                  </p>
+                </div>
+
+                {/* ── CTA button with shimmer ─────────────── */}
                 <button onClick={() => setShowRegister(true)}
-                  className="btn-game bg-coral text-white inline-flex items-center gap-2 mx-auto">
-                  {isPerfect ? 'Claim Your Score!' : 'Save My Progress'} <ArrowRight size={18} />
+                  className={`mt-5 btn-game inline-flex items-center gap-2 mx-auto text-white
+                    ${isPerfect ? 'animate-shimmer' : 'bg-coral'}`}
+                  style={isPerfect ? {} : undefined}>
+                  {isPerfect ? 'Claim Your Score!' : 'Save My Progress'}
+                  <ArrowRight size={17}/>
                 </button>
               </div>
             )}
@@ -529,6 +570,18 @@ export default function LandingPage() {
               <p className="text-gray-600 dark:text-gray-400 text-sm">{desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── CTA ─────────────────────────────────────────── */}
+      <section className="max-w-2xl mx-auto px-6 pb-20 text-center">
+        <div className="rounded-3xl p-10 bg-gradient-to-br from-sky to-mint text-white">
+          <h2 className="font-display text-4xl mb-3">Ready to start reading?</h2>
+          <p className="mb-6 opacity-90">Join thousands of learners improving every day!</p>
+          <button onClick={() => setShowRegister(true)}
+            className="inline-flex items-center gap-2 bg-white text-sky font-display text-lg px-8 py-3 rounded-2xl shadow-lg hover:scale-105 transition-transform">
+            Create Free Account <ArrowRight size={20} />
+          </button>
         </div>
       </section>
 
