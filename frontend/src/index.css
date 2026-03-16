@@ -302,3 +302,7 @@ aside[style*="var(--bg-sidebar)"] {
 
 /* ── Prevent iOS bounce scroll on fixed modals ───────────── */
 .modal-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* Hide scrollbar for filter pill rows */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
