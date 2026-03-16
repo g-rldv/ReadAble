@@ -142,14 +142,13 @@ export default function WordMatchGame({ activity, onSubmit, submitting }) {
 
       {/* Tip — responsive text */}
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 px-3 py-2 rounded-xl bg-sky/5 border border-sky/15">
-        <span className="sm:hidden">Tap a word, then tap a slot to match!</span>
-        <span className="hidden sm:inline">Drag words onto their matching slots — or tap a word then tap a slot.</span>
+Drag words onto their matching slots — or click a word then click a slot.
       </p>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 gap-8">
         {/* Left — drop targets */}
-        <div className="space-y-2 sm:space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Match these</p>
+        <div className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Match these</p>
           {content.pairs.map(({ left }) => {
             const matched = matches[left];
             const isOver  = overLeft === left;
@@ -161,13 +160,13 @@ export default function WordMatchGame({ activity, onSubmit, submitting }) {
                 onDrop={() => onDrop(left)}
                 onDragLeave={() => setOverLeft(null)}
                 onClick={() => handleTapSlot(left)}
-                className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border-2
-                            transition-all cursor-pointer select-none game-item
+                className={`flex items-center justify-between p-3 rounded-2xl border-2
+                            transition-all cursor-pointer select-none
                   ${isOver   ? 'border-sky bg-sky/10 scale-[1.02]' : ''}
                   ${matched  ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : ''}
                   ${isTarget && !isOver && !matched ? 'border-sky/50 border-dashed bg-sky/5' : ''}
                   ${!isOver && !matched && !isTarget ? 'border-gray-200 dark:border-gray-600' : ''}`}>
-                <span className="font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{left}</span>
+                <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">{left}</span>
                 {matched ? (
                   <button
                     draggable
@@ -180,7 +179,7 @@ export default function WordMatchGame({ activity, onSubmit, submitting }) {
                     className="flex items-center gap-1 px-2 py-1 bg-emerald-500 text-white rounded-lg
                                text-xs font-bold cursor-grab active:cursor-grabbing
                                hover:bg-rose-500 transition-colors touch-none flex-shrink-0 ml-1">
-                    <span className="truncate max-w-[70px] sm:max-w-none">{matched}</span>
+                    <span className="truncate max-w-none">{matched}</span>
                     <X size={10} className="flex-shrink-0 opacity-70"/>
                   </button>
                 ) : (
@@ -194,10 +193,9 @@ export default function WordMatchGame({ activity, onSubmit, submitting }) {
         </div>
 
         {/* Right — answer chips */}
-        <div className="space-y-2 sm:space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-            <span className="sm:hidden">Tap to pick</span>
-            <span className="hidden sm:inline">Drag to match</span>
+        <div className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">
+Drag to match
           </p>
           {rightItems.map(right => {
             const isUsed     = usedRight.has(right);
@@ -212,8 +210,8 @@ export default function WordMatchGame({ activity, onSubmit, submitting }) {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
                 onClick={() => !isUsed && handleTapRight(right)}
-                className={`p-2.5 sm:p-3 rounded-xl border-2 text-xs sm:text-sm font-bold text-center
-                            transition-all select-none touch-none game-item
+                className={`p-3 rounded-2xl border-2 text-sm font-bold text-center
+                            transition-all select-none touch-none
                   ${isUsed
                     ? 'opacity-30 cursor-not-allowed border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-400'
                     : isSelected
@@ -242,7 +240,7 @@ export default function WordMatchGame({ activity, onSubmit, submitting }) {
 
       <button onClick={() => allMatched && onSubmit(matches)}
         disabled={!allMatched || submitting}
-        className="btn-game w-full bg-coral text-white disabled:opacity-40 text-sm sm:text-base">
+        className="btn-game w-full bg-coral text-white disabled:opacity-40 text-base">
         {submitting ? 'Checking…' : allMatched ? 'Check Answers!' : `Match all ${content.pairs.length} pairs`}
       </button>
     </div>
