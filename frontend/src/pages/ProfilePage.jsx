@@ -391,7 +391,7 @@ export default function ProfilePage() {
           <History size={11}/> All Time
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-2 lg:gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard Icon={BookOpen}    iconCls="text-sky"          bg="bg-sky/10"                              label="Played"     val={statsLoading ? '…' : allPlayed}       loading={statsLoading}/>
         <StatCard Icon={CheckCircle} iconCls="text-emerald-500"  bg="bg-emerald-50 dark:bg-emerald-900/20"  label="Completed"  val={statsLoading ? '…' : allCompleted}    loading={statsLoading}/>
         <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"   bg="bg-indigo-50 dark:bg-indigo-900/20"    label="Avg Score"  val={statsLoading ? '…' : `${allAvg}%`}   loading={statsLoading}/>
@@ -415,9 +415,8 @@ export default function ProfilePage() {
           <Trophy size={12}/> See All
         </button>
       </div>
-      {/* Desktop: 4-col grid  |  Mobile: 2-col grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
-        {sortedAch.slice(0, 8).map(ach => (
+      <div className="grid grid-cols-6 gap-3">
+        {sortedAch.slice(0, 12).map(ach => (
           <AchTile key={ach.key} ach={ach} earned={unlocked.has(ach.key)}/>
         ))}
       </div>
@@ -425,28 +424,19 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="animate-fade-in">
-      <h1 className="font-display text-2xl lg:text-3xl text-gray-800 dark:text-gray-100 mb-5">
+    <div className="max-w-5xl mx-auto animate-fade-in space-y-6">
+      <h1 className="font-display text-3xl text-gray-800 dark:text-gray-100">
         My Profile
       </h1>
 
-      {/* ── DESKTOP: two-column side-by-side ──────────────── */}
-      <div className="hidden lg:grid lg:grid-cols-[380px_1fr] lg:gap-6 lg:items-start">
-        {/* Left column */}
-        <div className="space-y-5">
-          {ProfileCard}
-          {StatsSection}
-        </div>
-        {/* Right column — achievements take the full height */}
-        <div>{AchievementsPanel}</div>
-      </div>
-
-      {/* ── MOBILE: single-column stack ───────────────────── */}
-      <div className="lg:hidden space-y-4">
+      {/* ── Row 1: Profile card + Stats side by side ──────── */}
+      <div className="grid grid-cols-[420px_1fr] gap-6 items-start">
         {ProfileCard}
         {StatsSection}
-        {AchievementsPanel}
       </div>
+
+      {/* ── Row 2: Achievements full width ────────────────── */}
+      <div>{AchievementsPanel}</div>
 
       {/* Modals */}
       {showAvatarModal && (
