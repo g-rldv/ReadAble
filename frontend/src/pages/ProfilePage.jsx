@@ -228,20 +228,21 @@ function StatCard({ Icon, iconCls, bg, label, val, loading }) {
 function AchTile({ ach, earned }) {
   const AchIcon = GROUP_ICONS[ach.group] || Star;
   return (
-    <div className={`rounded-2xl p-3 text-center border-2 transition-all
+    <div className={`rounded-xl md:rounded-2xl p-2 md:p-3 text-center border-2 transition-all
       ${earned
         ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 shadow-sm'
         : 'border-gray-100 dark:border-gray-700 opacity-40 grayscale'}`}>
-      <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-xl mx-auto mb-2 flex items-center justify-center
+      <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl mx-auto mb-1.5 flex items-center justify-center
         ${earned ? 'bg-amber-100 dark:bg-amber-800/40' : 'bg-gray-100 dark:bg-gray-800'}`}>
-        <AchIcon size={18} className={earned ? 'text-amber-500' : 'text-gray-400'}/>
+        <AchIcon size={15} className={earned ? 'text-amber-500' : 'text-gray-400'}/>
       </div>
-      <p className="font-bold text-[11px] text-gray-700 dark:text-gray-200 leading-tight">{ach.title}</p>
-      <p className="text-[9px] text-gray-400 mt-0.5 leading-tight hidden lg:block">{ach.desc}</p>
+      <p className="font-bold text-[10px] md:text-[11px] text-gray-700 dark:text-gray-200 leading-tight line-clamp-2">
+        {ach.title}
+      </p>
       {earned && (
-        <span className="inline-block mt-1 text-[9px] bg-amber-200 dark:bg-amber-800/50
-                         text-amber-800 dark:text-amber-200 px-1.5 py-0.5 rounded-full font-bold">
-          Earned!
+        <span className="inline-block mt-1 text-[8px] md:text-[9px] bg-amber-200 dark:bg-amber-800/50
+                         text-amber-800 dark:text-amber-200 px-1 py-0.5 rounded-full font-bold">
+          ✓ Earned
         </span>
       )}
     </div>
@@ -310,54 +311,110 @@ export default function ProfilePage() {
         <div className="absolute inset-0 opacity-10"
           style={{ backgroundImage:'radial-gradient(circle at 20% 50%,#fff 1px,transparent 1px),radial-gradient(circle at 80% 20%,#fff 1px,transparent 1px)', backgroundSize:'40px 40px' }}/>
 
-        <div className="relative px-5 md:px-8 pt-6 md:pt-8 pb-0">
-          {/* On mobile: stacked. On desktop: single row. */}
-          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-
-            {/* Avatar row on mobile: avatar + level badge side by side */}
-            <div className="flex items-center gap-4 md:gap-0">
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl ring-4 ring-white/40 overflow-hidden">
-                  <AvatarDisplay avatar={user?.avatar} username={user?.username} size={96}/>
-                </div>
-                <button onClick={() => setShowAvatarModal(true)}
-                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white text-sky
-                             flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                  <Camera size={13}/>
-                </button>
-                {savingAvatar && (
-                  <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                  </div>
-                )}
+        {/* ── Mobile layout: avatar top-left, name right, XP bar ── */}
+        <div className="md:hidden relative px-5 pt-6 pb-0">
+          <div className="flex items-start gap-4">
+            {/* Avatar */}
+            <div className="relative flex-shrink-0">
+              <div className="w-16 h-16 rounded-2xl ring-4 ring-white/40 overflow-hidden">
+                <AvatarDisplay avatar={user?.avatar} username={user?.username} size={64}/>
               </div>
-
-              {/* Level badge — on mobile sits next to avatar */}
-              <div className="md:hidden flex-shrink-0 bg-white/20 rounded-2xl px-4 py-2 text-center">
-                <div className="font-display text-3xl text-white leading-none">{user?.level || 1}</div>
-                <div className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Level</div>
-                <div className="flex items-center justify-center gap-1 mt-1 bg-amber-400/30 rounded-full px-2 py-0.5">
-                  <Star size={10} className="text-amber-200 fill-amber-200"/>
-                  <span className="text-[11px] font-bold text-white">{user?.xp || 0} XP</span>
+              <button onClick={() => setShowAvatarModal(true)}
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white text-sky
+                           flex items-center justify-center shadow-md">
+                <Camera size={11}/>
+              </button>
+              {savingAvatar && (
+                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Name + meta */}
+            {/* Name + level + xp inline */}
+            <div className="flex-1 min-w-0 pt-0.5">
+              {editUsername ? (
+                <div className="flex items-center gap-1.5 mb-1">
+                  <input value={newUsername}
+                    onChange={e => { setNewUsername(e.target.value); setUsernameErr(''); }}
+                    className="flex-1 px-2 py-1 rounded-lg border border-white/60 text-sm font-bold
+                               outline-none bg-white/20 text-white placeholder-white/60 min-w-0"
+                    maxLength={30} autoFocus/>
+                  <button onClick={handleSaveUsername} disabled={savingUsername}
+                    className="w-7 h-7 rounded-lg bg-white/20 text-white flex items-center justify-center flex-shrink-0">
+                    {savingUsername ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Check size={13}/>}
+                  </button>
+                  <button onClick={() => { setEditUsername(false); setUsernameErr(''); setNewUsername(user?.username || ''); }}
+                    className="w-7 h-7 rounded-lg bg-white/20 text-white flex items-center justify-center flex-shrink-0">
+                    <X size={13}/>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <h1 className="font-display text-xl text-white leading-tight truncate">{user?.username}</h1>
+                  <button onClick={() => { setEditUsername(true); setNewUsername(user?.username || ''); }}
+                    className="p-1 rounded-md bg-white/20 flex-shrink-0">
+                    <Edit2 size={11} className="text-white"/>
+                  </button>
+                </div>
+              )}
+              {usernameErr && <p className="text-[10px] text-rose-200 mb-0.5">{usernameErr}</p>}
+              {/* Level + XP on one line */}
+              <div className="flex items-center gap-2">
+                <span className="bg-white/20 rounded-full px-2 py-0.5 text-xs font-bold text-white">
+                  Lv {user?.level || 1}
+                </span>
+                <span className="flex items-center gap-1 bg-amber-400/30 rounded-full px-2 py-0.5">
+                  <Star size={9} className="text-amber-200 fill-amber-200"/>
+                  <span className="text-[11px] font-bold text-white">{user?.xp || 0} XP</span>
+                </span>
+              </div>
+              <p className="text-[10px] text-white/60 mt-1 truncate">{user?.email}</p>
+            </div>
+          </div>
+          {/* XP bar */}
+          <div className="mt-4">
+            <div className="flex justify-between text-[10px] text-white/70 mb-1">
+              <span>To Level {(user?.level || 1) + 1}</span>
+              <span>{currentXP}/{xpForLevel} XP</span>
+            </div>
+            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+              <div className="h-full bg-white rounded-full transition-all duration-700"
+                style={{ width:`${xpPct}%` }}/>
+            </div>
+          </div>
+          <div className="h-4"/>
+        </div>
+
+        {/* ── Desktop layout: avatar + name centre + level badge right ── */}
+        <div className="hidden md:block relative px-8 pt-8 pb-0">
+          <div className="flex items-center gap-6">
+            <div className="relative flex-shrink-0">
+              <div className="w-24 h-24 rounded-2xl ring-4 ring-white/40 overflow-hidden">
+                <AvatarDisplay avatar={user?.avatar} username={user?.username} size={96}/>
+              </div>
+              <button onClick={() => setShowAvatarModal(true)}
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white text-sky
+                           flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                <Camera size={15}/>
+              </button>
+              {savingAvatar && (
+                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                </div>
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               {editUsername ? (
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <div className="flex items-center gap-2 mb-1">
                   <input value={newUsername}
                     onChange={e => { setNewUsername(e.target.value); setUsernameErr(''); }}
                     className="px-3 py-1.5 rounded-xl border-2 border-white/60 text-base font-bold
-                               outline-none bg-white/20 text-white placeholder-white/60 min-w-0 w-full max-w-xs"
+                               outline-none bg-white/20 text-white placeholder-white/60 w-56 min-w-0"
                     maxLength={30} autoFocus/>
                   <button onClick={handleSaveUsername} disabled={savingUsername}
                     className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 flex-shrink-0">
-                    {savingUsername
-                      ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                      : <Check size={15}/>}
+                    {savingUsername ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Check size={15}/>}
                   </button>
                   <button onClick={() => { setEditUsername(false); setUsernameErr(''); setNewUsername(user?.username || ''); }}
                     className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 flex-shrink-0">
@@ -366,24 +423,20 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2 mb-1">
-                  <h1 className="font-display text-2xl md:text-3xl text-white leading-tight truncate">
-                    {user?.username}
-                  </h1>
+                  <h1 className="font-display text-3xl text-white leading-tight truncate">{user?.username}</h1>
                   <button onClick={() => { setEditUsername(true); setNewUsername(user?.username || ''); }}
                     className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors flex-shrink-0">
-                    <Edit2 size={13} className="text-white"/>
+                    <Edit2 size={14} className="text-white"/>
                   </button>
                 </div>
               )}
               {usernameErr && <p className="text-xs text-rose-200 mb-1">{usernameErr}</p>}
-              <p className="text-xs md:text-sm text-white/75 truncate">{user?.email}</p>
+              <p className="text-sm text-white/75 truncate">{user?.email}</p>
               <p className="text-xs text-white/60 mt-0.5">
                 Member since {new Date(user?.created_at || Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})}
               </p>
             </div>
-
-            {/* Level badge — desktop only (hidden on mobile, shown inline above) */}
-            <div className="hidden md:block flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center">
+            <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center">
               <div className="font-display text-5xl text-white leading-none">{user?.level || 1}</div>
               <div className="text-xs font-bold text-white/70 uppercase tracking-widest mt-1">Level</div>
               <div className="flex items-center justify-center gap-1 mt-2 bg-amber-400/30 rounded-full px-3 py-1">
@@ -392,9 +445,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-
-          {/* XP bar */}
-          <div className="mt-5">
+          <div className="mt-6">
             <div className="flex justify-between text-xs text-white/70 mb-1.5">
               <span>Progress to Level {(user?.level || 1) + 1}</span>
               <span>{currentXP} / {xpForLevel} XP</span>
@@ -418,7 +469,7 @@ export default function ProfilePage() {
           </span>
           {statsLoading && <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin ml-1"/>}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
           <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}     loading={statsLoading}/>
           <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted}  loading={statsLoading}/>
           <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"  bg="bg-indigo-50 dark:bg-indigo-900/20"   label="Avg Score"  val={statsLoading ? '…' : `${allAvg}%`} loading={statsLoading}/>
@@ -453,7 +504,6 @@ export default function ProfilePage() {
             style={{ width:`${Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}%` }}/>
         </div>
 
-        {/* 3 cols on mobile, 6 on desktop */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
           {sortedAch.slice(0, 12).map(ach => (
             <AchTile key={ach.key} ach={ach} earned={unlocked.has(ach.key)}/>
