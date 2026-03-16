@@ -56,7 +56,7 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
   const allAvg       = data ? Math.round(parseFloat(data.stats?.avg_score ?? 0)) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 lg:bg-black/0"
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
