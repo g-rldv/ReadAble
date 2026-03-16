@@ -40,14 +40,14 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
       </div>
 
       {/* Sentences */}
-      <div className="space-y-2 sm:space-y-3 mb-5">
+      <div className="space-y-3 mb-5">
         {content.sentences.map((s, idx) => {
           const filled   = answers[idx];
           const isActive = idx === activeIdx;
           const parts    = s.text.split('___');
           return (
             <div key={idx} onClick={() => setActiveIdx(idx)}
-              className={`p-3 sm:p-4 rounded-xl border-2 cursor-pointer transition-all
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all
                 ${isActive
                   ? 'border-sky shadow-sm'
                   : 'border-gray-200 dark:border-gray-600 hover:border-sky/40'}`}
@@ -59,7 +59,7 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
                   <Volume2 size={13}/>
                 </button>
               </div>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm sm:text-base leading-relaxed">
+              <p className="font-semibold text-gray-800 dark:text-gray-200 text-base leading-relaxed">
                 {parts[0]}
                 <button
                   onClick={e => { e.stopPropagation(); if (filled) clearAnswer(idx); else setActiveIdx(idx); }}
@@ -89,7 +89,7 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
             return (
               <button key={opt} onClick={() => pickAnswer(opt)}
                 className={`px-4 py-2 rounded-xl border-2 font-bold text-sm transition-all
-                            min-h-[44px] active:scale-95
+                            
                   ${isChosen
                     ? 'bg-sky text-white border-sky'
                     : 'border-sky/40 text-sky hover:bg-sky/10 hover:border-sky'}`}>
@@ -102,7 +102,7 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
 
       <button onClick={() => allFilled && onSubmit({ answers })}
         disabled={!allFilled || submitting}
-        className="btn-game w-full bg-coral text-white disabled:opacity-40 text-sm sm:text-base">
+        className="btn-game w-full bg-coral text-white disabled:opacity-40 text-base">
         {submitting ? 'Checking…' : allFilled ? 'Check Answers!' : `Fill all ${content.sentences.length} blanks`}
       </button>
     </div>
