@@ -3,6 +3,7 @@
 // Delete confirmation is GitHub-style:
 //   type your username → enter password → confirm
 // ============================================================
+import ReactDOM from 'react-dom';
 import React, { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth }     from '../contexts/AuthContext';
@@ -132,7 +133,7 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
     }
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
@@ -246,7 +247,8 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
