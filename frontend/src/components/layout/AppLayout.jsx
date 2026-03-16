@@ -41,7 +41,7 @@ function SidebarAvatar({ avatar, username }) {
 
 function LogoutModal({ onConfirm, onCancel }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 lg:bg-black/0"
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="w-full max-w-xs rounded-2xl shadow-2xl p-6 animate-pop"
         style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
@@ -220,7 +220,7 @@ export default function AppLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden
+        <main className="flex-1 overflow-y-auto
                          px-4 py-5 lg:px-8 lg:py-7
                          pb-24 lg:pb-7">
           {/* pb-24 on mobile = space for bottom nav */}
