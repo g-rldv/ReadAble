@@ -94,7 +94,7 @@ function AnswerSummary({ details, type }) {
               {details.map((d, i) => <ItemRow key={i} d={d} i={i}/>)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {details.map((d, i) => <ItemRow key={i} d={d} i={i}/>)}
             </div>
           )}
@@ -168,10 +168,10 @@ export default function GamePage() {
           <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400"/>
         </Link>
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-xl sm:text-2xl text-gray-800 dark:text-gray-100 leading-tight">
+          <h1 className="font-display text-2xl text-gray-800 dark:text-gray-100 leading-tight">
             {activity?.title}
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5 line-clamp-2">{activity?.description}</p>
+          <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{activity?.description}</p>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${DIFF_STYLE[activity?.difficulty]}`}>
               {activity?.difficulty}
@@ -197,7 +197,7 @@ export default function GamePage() {
 
       {/* ── Game ────────────────────────────────────────── */}
       {GameComponent && !result && (
-        <div className="rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-card border border-gray-100 dark:border-gray-700 animate-pop"
+        <div className="rounded-3xl p-6 shadow-card border border-gray-100 dark:border-gray-700 animate-pop"
           style={{ background:'var(--bg-card)' }}>
           <GameComponent
             key={gameKey}
@@ -211,7 +211,7 @@ export default function GamePage() {
       {/* ── Result ──────────────────────────────────────── */}
       {result && (
         <div ref={resultRef}
-          className="rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl border-2 animate-pop"
+          className="rounded-3xl p-6 shadow-xl border-2 animate-pop"
           style={{ background:'var(--bg-card)',
             borderColor: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#FFD93D' : '#FF6B6B' }}>
 
@@ -223,7 +223,7 @@ export default function GamePage() {
             <div className="font-display text-5xl mb-1" style={{
               color: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#F0C000' : '#FF6B6B'
             }}>{result.score}%</div>
-            <p className="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-200 leading-snug">
+            <p className="text-base font-bold text-gray-700 dark:text-gray-200 leading-snug">
               {result.feedback}
             </p>
           </div>
