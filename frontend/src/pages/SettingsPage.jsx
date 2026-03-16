@@ -45,9 +45,9 @@ const TEXT_SIZES = [
 // ── Reusable components ───────────────────────────────────────
 function Section({ title, icon, children }) {
   return (
-    <div className="rounded-3xl p-6"
+    <div className="rounded-3xl p-4 md:p-6"
       style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
-      <h3 className="font-display text-xl mb-5 flex items-center gap-2 text-gray-800 dark:text-gray-200">
+      <h3 className="font-display text-lg md:text-xl mb-4 md:mb-5 flex items-center gap-2 text-gray-800 dark:text-gray-200">
         {icon} {title}
       </h3>
       {children}
@@ -57,7 +57,7 @@ function Section({ title, icon, children }) {
 
 function Toggle({ on, onToggle, label, sub }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-2xl"
+    <div className="flex items-center justify-between p-3 md:p-4 rounded-2xl"
       style={{ background:'var(--bg-primary)', border:'1px solid var(--border-color)' }}>
       <div>
         <p className="font-bold text-sm text-gray-700 dark:text-gray-300">{label}</p>
@@ -272,10 +272,10 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-2xl mx-auto space-y-4 md:space-y-6 animate-fade-in">
 
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl text-gray-800 dark:text-gray-200">Settings</h1>
+        <h1 className="font-display text-2xl md:text-3xl text-gray-800 dark:text-gray-200">Settings</h1>
         {saved && (
           <div className="flex items-center gap-2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400
                           px-4 py-2 rounded-full text-sm font-bold">
@@ -286,7 +286,7 @@ export default function SettingsPage() {
 
       {/* ── Appearance ─────────────────────────────────────── */}
       <Section title="Appearance" icon={<Sun size={22} className="text-amber-400" />}>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {THEMES.map(t => (
             <ThemeCard key={t.key} theme={t} active={settings.theme === t.key} onSelect={k => save({ theme:k })} />
           ))}
