@@ -108,11 +108,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
-  /* Prevent layout shift when scrollbar appears */
   scrollbar-gutter: stable;
-  /* Safe area for notched phones */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
 body {
@@ -121,11 +117,7 @@ body {
   color: var(--text-primary, #1A1A2E);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent double-tap zoom on mobile */
-  touch-action: manipulation;
-  /* Prevent text size adjustment on rotation */
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+
 }
 
 /* ── Typography ──────────────────────────────────────────── */
@@ -163,9 +155,6 @@ html.text-xlarge { font-size: 21px; }
 .btn-game {
   @apply font-display font-bold rounded-2xl px-5 py-3 transition-all duration-150 select-none;
   @apply active:scale-95 focus-visible:outline-none;
-  /* comfortable tap target on mobile */
-  min-height: 44px;
-  touch-action: manipulation;
 }
 .btn-game:active  { transform: scale(0.95); }
 .btn-game:hover   { filter: brightness(1.06); }
@@ -186,20 +175,11 @@ html.text-xlarge { font-size: 21px; }
 .drop-zone {
   @apply border-2 border-dashed rounded-2xl transition-all duration-200;
   min-height: 3rem;
-  /* Minimum 44px tap target */
-  min-height: 44px;
 }
 .drop-zone.active  { @apply border-sky bg-sky/10 scale-105; }
 .drop-zone.correct { @apply border-mint bg-mint/10; }
 .drop-zone.wrong   { @apply border-coral bg-coral/10; }
 
-/* ── Game item tap/drag targets ──────────────────────────── */
-.game-item {
-  min-height: 44px;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
 
 /* ── Confetti ────────────────────────────────────────────── */
 .confetti-piece {
