@@ -55,7 +55,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
 
       {/* Picture */}
       <div className="text-center mb-4 animate-pop" key={currentIdx}>
-        <div className="text-7xl sm:text-8xl leading-none animate-float mb-1" role="img">
+        <div className="text-8xl leading-none animate-float mb-1" role="img">
           {current.picture}
         </div>
         <p className="text-xs text-gray-400 font-semibold">
@@ -64,7 +64,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
       </div>
 
       {/* Answer grid — 2 cols, large touch targets */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {current.options.map(opt => {
           const isSelected = picked === opt;
           const isCorrect  = opt === current.answer;
@@ -77,8 +77,8 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
             cls = 'border-sky bg-sky/20 text-sky';
           return (
             <button key={opt} onClick={() => pickAnswer(opt)}
-              className={`py-3 sm:py-4 rounded-xl font-bold border-2 transition-all duration-200
-                          text-sm sm:text-base min-h-[52px] active:scale-95 ${cls}`}>
+              className={`py-4 rounded-2xl font-bold border-2 transition-all duration-200
+                          text-base ${cls}`}>
               {opt}
             </button>
           );
@@ -90,7 +90,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
         <button onClick={() => goTo(Math.max(0, currentIdx - 1))}
           disabled={currentIdx === 0}
           className="flex items-center gap-1 px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700
-                     text-gray-600 dark:text-gray-400 font-bold text-xs sm:text-sm
+                     text-gray-600 dark:text-gray-400 font-bold text-sm
                      disabled:opacity-30 hover:bg-sky/10 transition-colors">
           <ChevronLeft size={15}/> Prev
         </button>
@@ -100,7 +100,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
         <button onClick={() => goTo(Math.min(content.items.length - 1, currentIdx + 1))}
           disabled={currentIdx === content.items.length - 1}
           className="flex items-center gap-1 px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700
-                     text-gray-600 dark:text-gray-400 font-bold text-xs sm:text-sm
+                     text-gray-600 dark:text-gray-400 font-bold text-sm
                      disabled:opacity-30 hover:bg-sky/10 transition-colors">
           Next <ChevronRight size={15}/>
         </button>
@@ -108,7 +108,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
 
       {allDone && (
         <button onClick={() => onSubmit({ answers })} disabled={submitting}
-          className="btn-game w-full bg-coral text-white text-sm sm:text-base animate-pop">
+          className="btn-game w-full bg-coral text-white text-base animate-pop">
           {submitting ? 'Checking…' : 'Check Answers!'}
         </button>
       )}
