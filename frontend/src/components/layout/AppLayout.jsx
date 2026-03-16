@@ -237,17 +237,40 @@ export default function AppLayout() {
 
   // Keep isFullscreen in sync with actual browser fullscreen state
   useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', onChange);
-    return () => document.removeEventListener('fullscreenchange', onChange);
+    const onChange = () => setIsFullscreen(
+      !!(document.fullscreenElement ||
+         document.webkitFullscreenElement ||
+         document.mozFullScreenElement)
+    );
+    document.addEventListener('fullscreenchange',       onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    document.addEventListener('mozfullscreenchange',    onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange',       onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
+      document.removeEventListener('mozfullscreenchange',    onChange);
+    };
   }, []);
 
-  const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      const el = document.documentElement;
+      const isFs = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement
+      );
+      if (!isFs) {
+        // Try standard then vendor-prefixed
+        if (el.requestFullscreen)       await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
+      } else {
+        if (document.exitFullscreen)             await document.exitFullscreen();
+        else if (document.webkitExitFullscreen)  document.webkitExitFullscreen();
+        else if (document.mozCancelFullScreen)   document.mozCancelFullScreen();
+      }
+    } catch (_) {}
   }, []);
   const closeDrawer = () => setDrawerOpen(false);
 
