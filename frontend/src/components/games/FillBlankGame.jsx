@@ -1,5 +1,6 @@
 // ============================================================
 // FillBlankGame — tap options to fill sentence blanks
+// Fully responsive — large tap targets for mobile
 // ============================================================
 import React, { useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -7,94 +8,91 @@ import { Volume2 } from 'lucide-react';
 
 export default function FillBlankGame({ activity, onSubmit, submitting }) {
   const { content } = activity;
-  const { speak } = useSettings();
-  const [answers, setAnswers] = useState(new Array(content.sentences.length).fill(''));
+  const { speak }   = useSettings();
+  const [answers,   setAnswers]   = useState(new Array(content.sentences.length).fill(''));
   const [activeIdx, setActiveIdx] = useState(0);
 
   const pickAnswer = (opt) => {
-    setAnswers(a => { const n = [...a]; n[activeIdx] = opt; return n; });
-    // Move to next unfilled sentence
-    const nextEmpty = answers.findIndex((a, i) => i > activeIdx && !a);
+    const next = [...answers];
+    next[activeIdx] = opt;
+    setAnswers(next);
+    // Move to next unfilled
+    const nextEmpty = next.findIndex((a, i) => i > activeIdx && !a);
     if (nextEmpty !== -1) setActiveIdx(nextEmpty);
   };
 
   const clearAnswer = (idx) => {
-    setAnswers(a => { const n = [...a]; n[idx] = ''; return n; });
-    setActiveIdx(idx);
+    const next = [...answers]; next[idx] = '';
+    setAnswers(next); setActiveIdx(idx);
   };
 
   const allFilled = answers.every(a => a !== '');
 
-  const handleSubmit = () => {
-    if (!allFilled) return;
-    onSubmit({ answers });
-  };
-
-  // Build sentence display with blank placeholder
-  const renderSentence = (sentence, idx) => {
-    const filled = answers[idx];
-    const isActive = idx === activeIdx;
-    const parts = sentence.text.split('___');
-    return (
-      <div key={idx}
-        onClick={() => setActiveIdx(idx)}
-        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all
-          ${isActive ? 'border-sky shadow-md bg-sky/5' : 'border-gray-200 dark:border-gray-600 hover:border-sky/50'}`}>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-bold text-gray-400">Sentence {idx + 1}</span>
-          <button onClick={e => { e.stopPropagation(); speak(sentence.text.replace('___', filled || 'blank')); }}
-            className="text-sky hover:text-sky-dark p-1 rounded-lg">
-            <Volume2 size={14} />
-          </button>
-        </div>
-        <p className="font-semibold text-gray-800 dark:text-gray-200 text-base leading-relaxed">
-          {parts[0]}
-          <button
-            onClick={e => { e.stopPropagation(); if (filled) clearAnswer(idx); setActiveIdx(idx); }}
-            className={`inline-flex items-center px-3 py-0.5 mx-1 rounded-lg border-2 border-dashed min-w-[80px] justify-center font-bold transition-all
-              ${filled
-                ? 'bg-sky text-white border-sky hover:bg-red-400 hover:border-red-400'
-                : isActive
-                ? 'border-sky text-sky bg-sky/10 animate-pulse'
-                : 'border-gray-300 text-gray-400'
-              }`}>
-            {filled || '?'}
-          </button>
-          {parts[1]}
-        </p>
-      </div>
-    );
-  };
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <p className="font-bold text-gray-700 dark:text-gray-300">{content.instruction}</p>
-        <button onClick={() => speak(content.instruction)} className="p-2 rounded-xl text-sky hover:bg-sky/10">
-          <Volume2 size={18} />
+      {/* Instruction */}
+      <div className="flex items-start justify-between gap-2 mb-4">
+        <p className="font-bold text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{content.instruction}</p>
+        <button onClick={() => speak(content.instruction)}
+          className="p-2 rounded-xl text-sky hover:bg-sky/10 flex-shrink-0">
+          <Volume2 size={16}/>
         </button>
       </div>
 
       {/* Sentences */}
-      <div className="space-y-3 mb-6">
-        {content.sentences.map((s, i) => renderSentence(s, i))}
+      <div className="space-y-3 mb-5">
+        {content.sentences.map((s, idx) => {
+          const filled   = answers[idx];
+          const isActive = idx === activeIdx;
+          const parts    = s.text.split('___');
+          return (
+            <div key={idx} onClick={() => setActiveIdx(idx)}
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all
+                ${isActive
+                  ? 'border-sky shadow-sm'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-sky/40'}`}
+              style={{ background: isActive ? 'rgba(77,150,255,0.04)' : 'var(--bg-card)' }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-bold text-gray-400">Sentence {idx + 1}</span>
+                <button onClick={e => { e.stopPropagation(); speak(s.text.replace('___', filled || 'blank')); }}
+                  className="text-sky p-1 rounded-lg hover:bg-sky/10">
+                  <Volume2 size={13}/>
+                </button>
+              </div>
+              <p className="font-semibold text-gray-800 dark:text-gray-200 text-base leading-relaxed">
+                {parts[0]}
+                <button
+                  onClick={e => { e.stopPropagation(); if (filled) clearAnswer(idx); else setActiveIdx(idx); }}
+                  className={`inline-flex items-center px-2.5 py-0.5 mx-1 rounded-lg border-2 border-dashed
+                              min-w-[72px] justify-center font-bold transition-all text-sm
+                    ${filled
+                      ? 'bg-sky text-white border-sky hover:bg-rose-400 hover:border-rose-400'
+                      : isActive
+                      ? 'border-sky text-sky bg-sky/10 animate-pulse'
+                      : 'border-gray-300 text-gray-400 dark:border-gray-600'
+                    }`}>
+                  {filled || '?'}
+                </button>
+                {parts[1]}
+              </p>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Word options for active sentence */}
-      <div className="rounded-2xl border-2 border-dashed border-sky/30 bg-sky/5 p-4 mb-6">
-        <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">
-          Sentence {activeIdx + 1} — tap the right word:
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {content.sentences[activeIdx]?.options.map(opt => {
-            const isSelected = answers[activeIdx] === opt;
+      {/* Option chips */}
+      <div className="mb-5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Choose a word:</p>
+        <div className="flex flex-wrap gap-2">
+          {content.options.map(opt => {
+            const isChosen = answers[activeIdx] === opt;
             return (
               <button key={opt} onClick={() => pickAnswer(opt)}
-                className={`px-5 py-2.5 rounded-2xl font-bold text-sm transition-all border-2
-                  ${isSelected
-                    ? 'bg-sky text-white border-sky shadow-md scale-105'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:border-sky hover:text-sky hover:-translate-y-0.5'
-                  }`}>
+                className={`px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all min-h-[48px]
+                            
+                  ${isChosen
+                    ? 'bg-sky text-white border-sky'
+                    : 'border-sky/40 text-sky hover:bg-sky/10 hover:border-sky'}`}>
                 {opt}
               </button>
             );
@@ -102,21 +100,10 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
         </div>
       </div>
 
-      {/* Progress */}
-      <div className="mb-4">
-        <div className="flex justify-between text-xs text-gray-400 mb-1">
-          <span>{answers.filter(Boolean).length}/{content.sentences.length} filled</span>
-          {allFilled && <span className="text-mint font-bold">All filled! ✓</span>}
-        </div>
-        <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-coral to-sunny rounded-full transition-all duration-500"
-            style={{ width: `${(answers.filter(Boolean).length / content.sentences.length) * 100}%` }} />
-        </div>
-      </div>
-
-      <button onClick={handleSubmit} disabled={!allFilled || submitting}
-        className="btn-game w-full bg-coral text-white disabled:opacity-40 disabled:cursor-not-allowed text-lg">
-        {submitting ? '⏳ Checking…' : allFilled ? '✅ Check My Answers!' : 'Fill in all blanks to continue'}
+      <button onClick={() => allFilled && onSubmit({ answers })}
+        disabled={!allFilled || submitting}
+        className="btn-game w-full bg-coral text-white disabled:opacity-40 text-base">
+        {submitting ? 'Checking…' : allFilled ? 'Check Answers!' : `Fill all ${content.sentences.length} blanks`}
       </button>
     </div>
   );
