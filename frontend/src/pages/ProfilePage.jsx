@@ -166,7 +166,7 @@ function AllAchievementsModal({ unlocked, onClose }) {
                   <GrpIcon size={12} className="text-gray-400"/>
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{GROUP_LABELS[g]}</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {items.map(ach => {
                     const earned  = unlocked.has(ach.key);
                     const AchIcon = GROUP_ICONS[ach.group] || Star;
