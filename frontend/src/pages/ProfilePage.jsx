@@ -304,76 +304,86 @@ export default function ProfilePage() {
   return (
     <div className="max-w-5xl mx-auto animate-fade-in space-y-5">
 
-      {/* ══ HERO BANNER ═══════════════════════════════════════
-          Full-width gradient card: big avatar left, name +
-          email + member-since centre, level badge right.
-          XP bar runs along the bottom edge.
-      ═══════════════════════════════════════════════════════ */}
+      {/* ══ HERO BANNER ══════════════════════════════════════ */}
       <div className="relative rounded-3xl overflow-hidden shadow-lg"
         style={{ background:'linear-gradient(135deg,#4D96FF 0%,#6BCB77 100%)' }}>
-
-        {/* Subtle pattern overlay */}
         <div className="absolute inset-0 opacity-10"
           style={{ backgroundImage:'radial-gradient(circle at 20% 50%,#fff 1px,transparent 1px),radial-gradient(circle at 80% 20%,#fff 1px,transparent 1px)', backgroundSize:'40px 40px' }}/>
 
-        <div className="relative px-8 pt-8 pb-0">
-          <div className="flex items-center gap-6">
+        <div className="relative px-5 md:px-8 pt-6 md:pt-8 pb-0">
+          {/* On mobile: stacked. On desktop: single row. */}
+          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
 
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-24 h-24 rounded-2xl ring-4 ring-white/40 overflow-hidden">
-                <AvatarDisplay avatar={user?.avatar} username={user?.username} size={96}/>
-              </div>
-              <button onClick={() => setShowAvatarModal(true)}
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white text-sky
-                           flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                <Camera size={15}/>
-              </button>
-              {savingAvatar && (
-                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+            {/* Avatar row on mobile: avatar + level badge side by side */}
+            <div className="flex items-center gap-4 md:gap-0">
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl ring-4 ring-white/40 overflow-hidden">
+                  <AvatarDisplay avatar={user?.avatar} username={user?.username} size={96}/>
                 </div>
-              )}
+                <button onClick={() => setShowAvatarModal(true)}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white text-sky
+                             flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                  <Camera size={13}/>
+                </button>
+                {savingAvatar && (
+                  <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                  </div>
+                )}
+              </div>
+
+              {/* Level badge — on mobile sits next to avatar */}
+              <div className="md:hidden flex-shrink-0 bg-white/20 rounded-2xl px-4 py-2 text-center">
+                <div className="font-display text-3xl text-white leading-none">{user?.level || 1}</div>
+                <div className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Level</div>
+                <div className="flex items-center justify-center gap-1 mt-1 bg-amber-400/30 rounded-full px-2 py-0.5">
+                  <Star size={10} className="text-amber-200 fill-amber-200"/>
+                  <span className="text-[11px] font-bold text-white">{user?.xp || 0} XP</span>
+                </div>
+              </div>
             </div>
 
             {/* Name + meta */}
             <div className="flex-1 min-w-0">
               {editUsername ? (
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <input value={newUsername}
                     onChange={e => { setNewUsername(e.target.value); setUsernameErr(''); }}
                     className="px-3 py-1.5 rounded-xl border-2 border-white/60 text-base font-bold
-                               outline-none bg-white/20 text-white placeholder-white/60 w-56"
+                               outline-none bg-white/20 text-white placeholder-white/60 min-w-0 w-full max-w-xs"
                     maxLength={30} autoFocus/>
                   <button onClick={handleSaveUsername} disabled={savingUsername}
-                    className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30">
+                    className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 flex-shrink-0">
                     {savingUsername
                       ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/>
                       : <Check size={15}/>}
                   </button>
                   <button onClick={() => { setEditUsername(false); setUsernameErr(''); setNewUsername(user?.username || ''); }}
-                    className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30">
+                    className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 flex-shrink-0">
                     <X size={15}/>
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 mb-1">
-                  <h1 className="font-display text-3xl text-white leading-tight">{user?.username}</h1>
+                  <h1 className="font-display text-2xl md:text-3xl text-white leading-tight truncate">
+                    {user?.username}
+                  </h1>
                   <button onClick={() => { setEditUsername(true); setNewUsername(user?.username || ''); }}
-                    className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors">
-                    <Edit2 size={14} className="text-white"/>
+                    className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors flex-shrink-0">
+                    <Edit2 size={13} className="text-white"/>
                   </button>
                 </div>
               )}
               {usernameErr && <p className="text-xs text-rose-200 mb-1">{usernameErr}</p>}
-              <p className="text-sm text-white/75">{user?.email}</p>
+              <p className="text-xs md:text-sm text-white/75 truncate">{user?.email}</p>
               <p className="text-xs text-white/60 mt-0.5">
                 Member since {new Date(user?.created_at || Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})}
               </p>
             </div>
 
-            {/* Level badge */}
-            <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center">
+            {/* Level badge — desktop only (hidden on mobile, shown inline above) */}
+            <div className="hidden md:block flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center">
               <div className="font-display text-5xl text-white leading-none">{user?.level || 1}</div>
               <div className="text-xs font-bold text-white/70 uppercase tracking-widest mt-1">Level</div>
               <div className="flex items-center justify-center gap-1 mt-2 bg-amber-400/30 rounded-full px-3 py-1">
@@ -383,8 +393,8 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* XP bar — flush to bottom of hero */}
-          <div className="mt-6">
+          {/* XP bar */}
+          <div className="mt-5">
             <div className="flex justify-between text-xs text-white/70 mb-1.5">
               <span>Progress to Level {(user?.level || 1) + 1}</span>
               <span>{currentXP} / {xpForLevel} XP</span>
@@ -394,15 +404,11 @@ export default function ProfilePage() {
                 style={{ width:`${xpPct}%` }}/>
             </div>
           </div>
-
-          {/* Spacer so bar isn't flush to card edge */}
           <div className="h-5"/>
         </div>
       </div>
 
-      {/* ══ STATS ROW ══════════════════════════════════════════
-          4 stat cards in a single horizontal strip.
-      ═══════════════════════════════════════════════════════ */}
+      {/* ══ STATS ROW ════════════════════════════════════════ */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <h2 className="font-display text-xl text-gray-800 dark:text-gray-100">Stats</h2>
@@ -412,7 +418,7 @@ export default function ProfilePage() {
           </span>
           {statsLoading && <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin ml-1"/>}
         </div>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}     loading={statsLoading}/>
           <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted}  loading={statsLoading}/>
           <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"  bg="bg-indigo-50 dark:bg-indigo-900/20"   label="Avg Score"  val={statsLoading ? '…' : `${allAvg}%`} loading={statsLoading}/>
@@ -420,44 +426,41 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ══ ACHIEVEMENTS ═══════════════════════════════════════
-          Full-width panel, 6-column grid of tiles.
-      ═══════════════════════════════════════════════════════ */}
-      <div className="rounded-3xl p-6 border"
+      {/* ══ ACHIEVEMENTS ════════════════════════════════════ */}
+      <div className="rounded-3xl p-4 md:p-6 border"
         style={{ background:'var(--bg-card)', borderColor:'var(--border-color)' }}>
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-display text-xl text-gray-800 dark:text-gray-100">Achievements</h2>
             <p className="text-xs text-gray-400 mt-0.5">
               {earnedCount} of {ACHIEVEMENTS.length} earned
               {earnedCount > 0 && (
                 <span className="ml-2 text-amber-500 font-bold">
-                  {Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}% complete
+                  · {Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}% complete
                 </span>
               )}
             </p>
           </div>
           <button onClick={() => setShowAllAch(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold
-                       bg-sky/10 text-sky hover:bg-sky/20 transition-colors">
-            <Trophy size={14}/> See All
+            className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-bold
+                       bg-sky/10 text-sky hover:bg-sky/20 transition-colors flex-shrink-0">
+            <Trophy size={13}/> See All
           </button>
         </div>
 
-        {/* Progress bar */}
-        <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 mb-5 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 mb-4 overflow-hidden">
           <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-700"
             style={{ width:`${Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}%` }}/>
         </div>
 
-        <div className="grid grid-cols-6 gap-3">
+        {/* 3 cols on mobile, 6 on desktop */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
           {sortedAch.slice(0, 12).map(ach => (
             <AchTile key={ach.key} ach={ach} earned={unlocked.has(ach.key)}/>
           ))}
         </div>
       </div>
 
-      {/* Modals */}
       {showAvatarModal && (
         <AvatarModal current={user?.avatar || ''} onClose={() => setShowAvatarModal(false)} onSave={handleSaveAvatar}/>
       )}
