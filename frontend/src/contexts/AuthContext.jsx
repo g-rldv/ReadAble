@@ -93,11 +93,6 @@ export function AuthProvider({ children }) {
   }, [fetchUser]); // fetchUser is stable (useCallback with stable deps)
 
   // ── Settings dirty-flag sync ─────────────────────────────────
-  // Only push local settings to server if the user explicitly changed
-  // something (dirty flag) AND the token header is already set.
-  // We purposely do NOT overwrite server settings on a new device that
-  // hasn't changed anything — the server is the source of truth once
-  // the user is logged in.
   const syncLocalSettings = async () => {
     if (localStorage.getItem('readable_settings_dirty') !== 'true') return;
     const stored = localStorage.getItem('readable_settings');
@@ -106,7 +101,6 @@ export function AuthProvider({ children }) {
       await api.put('/settings', JSON.parse(stored));
       localStorage.removeItem('readable_settings_dirty');
     } catch (_) {}
-    // After pushing, immediately re-fetch so UI reflects server state
   };
 
   // ── Login ─────────────────────────────────────────────────────
