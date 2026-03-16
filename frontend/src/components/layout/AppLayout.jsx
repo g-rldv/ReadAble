@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { to:'/dashboard',   icon:LayoutDashboard, label:'Dashboard'   },
+  { to:'/dashboard',   icon:LayoutDashboard, label:'Home'        },
   { to:'/activities',  icon:BookOpen,        label:'Activities'  },
   { to:'/leaderboard', icon:Trophy,          label:'Leaderboard' },
   { to:'/profile',     icon:User,            label:'My Profile'  },
