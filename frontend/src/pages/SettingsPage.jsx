@@ -133,8 +133,7 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.72)' }}
+    <div className="fixed top-0 bottom-0 right-0 left-64 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
         style={{ background:'var(--bg-card)', border:'2px solid #f43f5e40' }}>
