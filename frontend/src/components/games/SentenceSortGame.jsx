@@ -135,7 +135,7 @@ export default function SentenceSortGame({ activity, onSubmit, submitting }) {
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
             className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-grab active:cursor-grabbing
-                        transition-all select-none
+                        transition-all select-none touch-none
               ${overIdx === idx  ? 'border-sky bg-sky/10 scale-[1.01]' : ''}
               ${dragIdx === idx  ? 'opacity-40 scale-[0.98]' : ''}
               ${overIdx !== idx && dragIdx !== idx ? 'border-gray-200 dark:border-gray-600 hover:border-sky/40 hover:shadow-md' : ''}`}
@@ -147,7 +147,7 @@ export default function SentenceSortGame({ activity, onSubmit, submitting }) {
             {/* Grip handle */}
             <GripVertical size={18} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />
             {/* Text */}
-            <p className="flex-1 font-semibold text-gray-800 dark:text-gray-200 text-sm leading-relaxed min-w-0">
+            <p className="flex-1 font-semibold text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
               {sentence}
             </p>
             {/* TTS */}
