@@ -3,6 +3,7 @@
 // Desktop (lg+): two-column layout — profile/stats left, achievements right
 // Mobile (<lg):  single-column stack
 // ============================================================
+import ReactDOM from 'react-dom';
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
@@ -90,7 +91,7 @@ function AvatarModal({ current, onClose, onSave }) {
     reader.readAsDataURL(file);
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl p-6 shadow-2xl"
@@ -131,14 +132,15 @@ function AvatarModal({ current, onClose, onSave }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 // ── All Achievements modal ────────────────────────────────────
 function AllAchievementsModal({ unlocked, onClose }) {
   const groups = ['milestone','xp','level','streak','progress','skill'];
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-xl rounded-3xl flex flex-col max-h-[88vh] overflow-hidden shadow-2xl"
@@ -202,7 +204,8 @@ function AllAchievementsModal({ unlocked, onClose }) {
           })}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
