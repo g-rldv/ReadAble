@@ -91,7 +91,7 @@ function AvatarModal({ current, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 lg:bg-black/0"
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl p-6 shadow-2xl"
         style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
@@ -139,7 +139,7 @@ function AvatarModal({ current, onClose, onSave }) {
 function AllAchievementsModal({ unlocked, onClose }) {
   const groups = ['milestone','xp','level','streak','progress','skill'];
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 lg:bg-black/0"
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-xl rounded-3xl flex flex-col max-h-[88vh] overflow-hidden shadow-2xl"
         style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
