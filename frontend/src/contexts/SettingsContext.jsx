@@ -15,11 +15,11 @@ import api from '../utils/api';
 
 const SettingsContext = createContext(null);
 
-const DARK_THEMES = new Set(['dark','gradient','ocean','sunset','midnight','forest']);
+const DARK_THEMES = new Set(['night']);
 
 export const DEFAULTS = {
   text_size:        'medium',
-  theme:            'light',
+  theme:            'cotton',
   tts_enabled:      false,   // off by default — less jarring on first load
   tts_voice:        '',
   tts_rate:         0.9,
