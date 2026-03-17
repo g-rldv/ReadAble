@@ -45,7 +45,7 @@ function LogoutModal({ onConfirm, onCancel }) {
       style={{ background: 'rgba(0,0,0,0.5)' }}
       onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-pop"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+        style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
         <h3 className="font-display text-xl text-gray-800 dark:text-gray-100 mb-1">Sign Out?</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Your progress is saved. You can sign back in any time.
@@ -316,7 +316,7 @@ export default function AppLayout() {
 
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 flex-shrink-0 shadow-sm"
-          style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
+          style={{ background: 'var(--bg-card-grad)', borderBottom: '1px solid var(--border-color)' }}>
           <button onClick={() => setDrawerOpen(true)}
             className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0">
             <Menu size={22} className="text-gray-700 dark:text-gray-300"/>
