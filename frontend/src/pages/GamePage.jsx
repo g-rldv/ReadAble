@@ -88,7 +88,7 @@ function AnswerSummary({ details, type }) {
 
       {/* Expandable content */}
       {open && (
-        <div className="px-4 pb-4 pt-2" style={{ background:'var(--bg-card)' }}>
+        <div className="px-4 pb-4 pt-2" style={{ background:'var(--bg-card-grad)' }}>
           {type === 'sentence_sort' ? (
             <div className="space-y-1.5">
               {details.map((d, i) => <ItemRow key={i} d={d} i={i}/>)}
@@ -198,7 +198,7 @@ export default function GamePage() {
       {/* ── Game ────────────────────────────────────────── */}
       {GameComponent && !result && (
         <div className="rounded-3xl p-6 shadow-card border border-gray-100 dark:border-gray-700 animate-pop"
-          style={{ background:'var(--bg-card)' }}>
+          style={{ background:'var(--bg-card-grad)' }}>
           <GameComponent
             key={gameKey}
             activity={activity}
@@ -212,7 +212,7 @@ export default function GamePage() {
       {result && (
         <div ref={resultRef}
           className="rounded-3xl p-4 md:p-6 shadow-xl border-2 animate-pop"
-          style={{ background:'var(--bg-card)',
+          style={{ background:'var(--bg-card-grad)',
             borderColor: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#FFD93D' : '#FF6B6B' }}>
 
           {/* Score header */}
