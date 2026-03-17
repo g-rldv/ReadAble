@@ -40,10 +40,10 @@ const FEATURE_PILLS = [
 
 // Quick theme swatches in the nav settings dropdown
 const QUICK_THEMES = [
-  { key: 'cotton',    Icon: Heart,    label: 'Candy'    },
-  { key: 'sky',       Icon: Cloud,    label: 'Sky'      },
-  { key: 'mint',      Icon: Leaf,     label: 'Mint'     },
-  { key: 'sunshine',  Icon: Sun,      label: 'Sun'      },
+  { key: 'cotton',    Icon: Sun,      label: 'Light'    },
+  { key: 'sky',       Icon: Heart,    label: 'Berry'    },
+  { key: 'mint',      Icon: Leaf,     label: 'Meadow'   },
+  { key: 'sunshine',  Icon: Cloud,    label: 'Sunrise'  },
   { key: 'lavender',  Icon: Sparkles, label: 'Purple'   },
   { key: 'night',     Icon: Moon,     label: 'Night'    },
 ];
@@ -142,7 +142,7 @@ function SignInModal({ onClose, onSwitchToRegister }) {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+        style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-1">
@@ -261,7 +261,7 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+        style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
         <div className="flex items-center justify-between px-5 pt-5 pb-1">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-coral flex items-center justify-center">
@@ -314,7 +314,7 @@ function QuickSettings({ onClose }) {
       <div className="md:hidden fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/50"
         onClick={onClose}>
         <div className="w-full max-w-xs rounded-2xl shadow-2xl overflow-hidden animate-pop"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+          style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-4 py-3 border-b"
             style={{ borderColor: 'var(--border-color)' }}>
@@ -348,7 +348,7 @@ function QuickSettings({ onClose }) {
 
       {/* ── Desktop: anchored dropdown ─────────────────────── */}
       <div className="hidden md:block absolute right-0 top-12 z-40 w-56 rounded-2xl shadow-2xl border overflow-hidden animate-pop"
-        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+        style={{ background: 'var(--bg-card-grad)', borderColor: 'var(--border-color)' }}>
         <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border-color)' }}>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Quick Theme</p>
         </div>
@@ -491,7 +491,7 @@ export default function LandingPage() {
         {/* ── Trial game ──────────────────────────────────── */}
         <div className="animate-pop">
           <div className="rounded-3xl p-4 md:p-6 shadow-xl border-2 border-sky/20"
-            style={{ background: 'var(--bg-card)' }}>
+            style={{ background: 'var(--bg-card-grad)' }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-xl text-gray-800 dark:text-gray-200 flex items-center gap-2">
                 <Gamepad2 size={20} className="text-sky" /> Try a Quick Game!
@@ -601,7 +601,7 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-3 gap-6">
           {FEATURES.map(({ Icon, color, title, desc }) => (
             <div key={title} className={`rounded-3xl p-6 bg-gradient-to-br ${color} border border-gray-100 dark:border-gray-700`}
-              style={{ background: undefined, backgroundColor: 'var(--bg-card)' }}>
+              style={{ background: undefined, backgroundColor: 'var(--bg-card-grad)' }}>
               <div className="w-11 h-11 rounded-2xl bg-sky/10 dark:bg-sky/20 flex items-center justify-center mb-3 shadow-sm">
                 <Icon size={22} className="text-sky" />
               </div>
