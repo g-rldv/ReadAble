@@ -58,7 +58,7 @@ function ActivityCard({ activity, progress }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setTilt({x:0,y:0}); }}
       onMouseMove={onMouseMove}
-      style={{ transform, boxShadow:shadow, transition, background:'var(--bg-card)', transformStyle:'preserve-3d', willChange:'transform', display:'flex', flexDirection:'column' }}
+      style={{ transform, boxShadow:shadow, transition, background:'var(--bg-card-grad)', transformStyle:'preserve-3d', willChange:'transform', display:'flex', flexDirection:'column' }}
       className="rounded-2xl overflow-hidden cursor-pointer">
       <div className={`h-1.5 w-full flex-shrink-0 ${d.bar}`}/>
       <div className="p-4 flex flex-col gap-2 flex-1">
@@ -72,7 +72,7 @@ function ActivityCard({ activity, progress }) {
         <div className="flex items-center justify-between pt-1">
           {score !== null
             ? <span className={`text-xs font-semibold ${score >= 80 ? 'text-emerald-500' : score >= 50 ? 'text-amber-500' : 'text-gray-400'}`}>{score}%</span>
-            : <span className="text-xs text-neutral dark:text-neutral">Not played</span>}
+            : <span className="text-xs text-gray-300 dark:text-gray-600">Not played</span>}
           <span className="text-xs font-bold text-sky"
             style={{ opacity:hovered?1:0, transform:hovered?'translateX(0)':'translateX(4px)', transition:'opacity 0.18s, transform 0.18s' }}>
             Play →
@@ -164,7 +164,7 @@ export default function ActivitiesPage() {
 
       {/* Filter bar */}
       <div className="rounded-2xl p-3 md:p-4 space-y-3"
-        style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
+        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {TYPES.map(t => (
             <FilterPill key={t.key} active={activeType === t.key} onClick={() => setActiveType(t.key)}
