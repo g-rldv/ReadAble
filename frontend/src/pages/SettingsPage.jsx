@@ -18,15 +18,15 @@ import {
 
 // ── Theme catalogue ───────────────────────────────────────────
 const THEMES = [
-  { key:'cotton',    label:'Cotton Candy', desc:'Soft pink & cream',     Icon:Heart,    preview:{bg:'#FFF0F5', card:'#FFFFFF', text:'#3D2645', accent:'#F472B6'} },
-  { key:'sky',       label:'Blue Sky',     desc:'Baby blue & clouds',    Icon:Cloud,    preview:{bg:'#EFF8FF', card:'#FFFFFF', text:'#1E3A5F', accent:'#60B8F5'} },
-  { key:'mint',      label:'Mint Fresh',   desc:'Cool mint & cream',     Icon:Leaf,     preview:{bg:'#F0FDF6', card:'#FFFFFF', text:'#1A3D2B', accent:'#34D399'} },
-  { key:'sunshine',  label:'Sunshine',     desc:'Warm yellow & cream',   Icon:Sun,      preview:{bg:'#FFFBEB', card:'#FFFFFF', text:'#3D2E00', accent:'#FBBF24'} },
-  { key:'lavender',  label:'Lavender',     desc:'Soft purple & lilac',   Icon:Sparkles, preview:{bg:'#F5F0FF', card:'#FFFFFF', text:'#2D1B5E', accent:'#A78BFA'} },
-  { key:'peach',     label:'Peachy',       desc:'Warm peach & apricot',  Icon:Candy,    preview:{bg:'#FFF5EE', card:'#FFFFFF', text:'#3D1A00', accent:'#FB923C'} },
-  { key:'bubblegum', label:'Bubblegum',    desc:'Bright & playful pink', Icon:Star,     preview:{bg:'#FFF0FA', card:'#FFF8FD', text:'#4A0A35', accent:'#EC4899'} },
-  { key:'ocean',     label:'Ocean Breeze', desc:'Light aqua & seafoam',  Icon:Droplets, preview:{bg:'#ECFEFF', card:'#FFFFFF', text:'#0C3040', accent:'#22D3EE'} },
-  { key:'night',     label:'Starry Night', desc:'Soft dark with pastels',Icon:Moon,     preview:{bg:'#1E1A2E', card:'#2A2540', text:'#F0EBFF', accent:'#C4B5FD'} },
+  { key:'cotton',    label:'Strawberry',   desc:'Juicy red-pink',        Icon:Heart,    preview:{bg:'#FFD6E8', card:'#FFF0F6', text:'#5C0A28', accent:'#F01060'} },
+  { key:'sky',       label:'Ocean Blue',   desc:'Deep bright blue',      Icon:Cloud,    preview:{bg:'#C0DCFF', card:'#E0EEFF', text:'#05204A', accent:'#1060E0'} },
+  { key:'mint',      label:'Jungle',       desc:'Vivid emerald green',   Icon:Leaf,     preview:{bg:'#B0F0CC', card:'#D8F8E8', text:'#062818', accent:'#08902E'} },
+  { key:'sunshine',  label:'Banana',       desc:'Rich warm yellow',      Icon:Sun,      preview:{bg:'#FFE060', card:'#FFF0A0', text:'#2A1800', accent:'#C08000'} },
+  { key:'lavender',  label:'Grape',        desc:'Rich purple violet',    Icon:Sparkles, preview:{bg:'#D8C0FF', card:'#EDE0FF', text:'#200660', accent:'#6010C8'} },
+  { key:'peach',     label:'Mango',        desc:'Bright orange',         Icon:Candy,    preview:{bg:'#FFD0A0', card:'#FFE8C8', text:'#401000', accent:'#D05800'} },
+  { key:'bubblegum', label:'Bubblegum',    desc:'Electric magenta',      Icon:Star,     preview:{bg:'#FFC0E8', card:'#FFDAF4', text:'#400028', accent:'#C00080'} },
+  { key:'ocean',     label:'Tropical',     desc:'Bright cyan teal',      Icon:Droplets, preview:{bg:'#90E8F8', card:'#C0F4FF', text:'#002030', accent:'#0088B0'} },
+  { key:'night',     label:'Midnight',     desc:'Deep navy neon glow',   Icon:Moon,     preview:{bg:'#0E0830', card:'#1C1448', text:'#F0E8FF', accent:'#9850FF'} },
 ];
 
 const MUSIC_THEMES = [
