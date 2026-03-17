@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import {
   BookOpen, Zap, ArrowRight, Volume2,
-  Gamepad2, BarChart2, Trophy, Heart,
+  Gamepad2, BarChart2, Trophy, Heart, Cloud,
   TrendingUp, Palette, Check, Star, X,
   Eye, EyeOff, Mail, Lock, User, Settings,
   Sun, Moon, Sparkles, Waves, Flame, Leaf,
@@ -40,12 +40,12 @@ const FEATURE_PILLS = [
 
 // Quick theme swatches in the nav settings dropdown
 const QUICK_THEMES = [
-  { key: 'light',    Icon: Sun,      label: 'Light'    },
-  { key: 'dark',     Icon: Moon,     label: 'Dark'     },
-  { key: 'gradient', Icon: Sparkles, label: 'Gradient' },
-  { key: 'ocean',    Icon: Waves,    label: 'Ocean'    },
-  { key: 'sunset',   Icon: Flame,    label: 'Sunset'   },
-  { key: 'forest',   Icon: Leaf,     label: 'Forest'   },
+  { key: 'cotton',    Icon: Heart,    label: 'Candy'    },
+  { key: 'sky',       Icon: Cloud,    label: 'Sky'      },
+  { key: 'mint',      Icon: Leaf,     label: 'Mint'     },
+  { key: 'sunshine',  Icon: Sun,      label: 'Sun'      },
+  { key: 'lavender',  Icon: Sparkles, label: 'Purple'   },
+  { key: 'night',     Icon: Moon,     label: 'Night'    },
 ];
 
 // ── Win stars burst ───────────────────────────────────────────
