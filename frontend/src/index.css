@@ -7,121 +7,128 @@
    Applied via [data-theme="x"] on <html>
    ═══════════════════════════════════════════════════════════ */
 
-/* ── LIGHT (default) ─────────────────────────────────────── */
-/* ════════════════════════════════════════════════════════════
-   VIVID WARM THEMES — saturated, joyful, clearly distinct
-   Designed for ages 4-10. Every theme pops with real color.
-   ════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES — one block per theme
+   Applied via [data-theme="x"] on <html>
+   ═══════════════════════════════════════════════════════════ */
 
-/* ── STRAWBERRY (default) — juicy red-pink ──────────────── */
+/* ── DEFAULT / LIGHT — clean warm white ─────────────────── */
 :root,
 [data-theme="cotton"] {
-  --bg-primary:   #FFD6E8;
-  --bg-card:      #FFF0F6;
-  --bg-sidebar:   #FFB8D4;
-  --text-primary: #5C0A28;
-  --text-muted:   #C0406A;
-  --border-color: #FF80B0;
-  --shadow:       0 4px 20px rgba(255,60,120,0.25);
-  --accent:       #F01060;
+  --bg-primary:    #FFF8F2;
+  --bg-card:       #FFFFFF;
+  --bg-card-grad:  linear-gradient(145deg, #FFFFFF 0%, #FFF0F5 100%);
+  --bg-sidebar:    #FFF4F0;
+  --text-primary:  #2C1810;
+  --text-muted:    #8C6060;
+  --border-color:  #F0D8D0;
+  --shadow:        0 4px 20px rgba(200,100,80,0.10);
+  --accent:        #F07050;
 }
 
-/* ── OCEAN — deep bright blue ───────────────────────────── */
+/* ── STRAWBERRY — rosy pink tones ───────────────────────── */
 [data-theme="sky"] {
-  --bg-primary:   #C0DCFF;
-  --bg-card:      #E0EEFF;
-  --bg-sidebar:   #A0C8FF;
-  --text-primary: #05204A;
-  --text-muted:   #2060C0;
-  --border-color: #4090E8;
-  --shadow:       0 4px 20px rgba(30,100,255,0.25);
-  --accent:       #1060E0;
+  --bg-primary:    #FFF0F4;
+  --bg-card:       #FFF8FA;
+  --bg-card-grad:  linear-gradient(145deg, #FFF8FA 0%, #FFE8F0 100%);
+  --bg-sidebar:    #FFE0EA;
+  --text-primary:  #4A0E20;
+  --text-muted:    #B05070;
+  --border-color:  #F8B8CC;
+  --shadow:        0 4px 18px rgba(230,80,120,0.14);
+  --accent:        #E83060;
 }
 
-/* ── JUNGLE — vivid emerald green ───────────────────────── */
+/* ── MEADOW — fresh sage green ──────────────────────────── */
 [data-theme="mint"] {
-  --bg-primary:   #B0F0CC;
-  --bg-card:      #D8F8E8;
-  --bg-sidebar:   #88E8B0;
-  --text-primary: #062818;
-  --text-muted:   #0A9040;
-  --border-color: #20C060;
-  --shadow:       0 4px 20px rgba(10,160,70,0.25);
-  --accent:       #08902E;
+  --bg-primary:    #F2FAF2;
+  --bg-card:       #F8FEF8;
+  --bg-card-grad:  linear-gradient(145deg, #F8FEF8 0%, #E0F5E0 100%);
+  --bg-sidebar:    #E0F4E0;
+  --text-primary:  #0E2E14;
+  --text-muted:    #3A7A46;
+  --border-color:  #98D8A0;
+  --shadow:        0 4px 18px rgba(40,160,80,0.12);
+  --accent:        #22A845;
 }
 
-/* ── BANANA — rich warm yellow ──────────────────────────── */
+/* ── SUNRISE — warm golden peach ────────────────────────── */
 [data-theme="sunshine"] {
-  --bg-primary:   #FFE060;
-  --bg-card:      #FFF0A0;
-  --bg-sidebar:   #FFD020;
-  --text-primary: #2A1800;
-  --text-muted:   #805000;
-  --border-color: #E0A000;
-  --shadow:       0 4px 20px rgba(220,150,0,0.30);
-  --accent:       #C08000;
+  --bg-primary:    #FFF8ED;
+  --bg-card:       #FFFCF5;
+  --bg-card-grad:  linear-gradient(145deg, #FFFCF5 0%, #FFF0D0 100%);
+  --bg-sidebar:    #FFECC8;
+  --text-primary:  #3A2000;
+  --text-muted:    #906820;
+  --border-color:  #F0C870;
+  --shadow:        0 4px 18px rgba(220,160,20,0.15);
+  --accent:        #D08010;
 }
 
-/* ── GRAPE — rich purple violet ─────────────────────────── */
+/* ── LAVENDER — soft lilac purple ───────────────────────── */
 [data-theme="lavender"] {
-  --bg-primary:   #D8C0FF;
-  --bg-card:      #EDE0FF;
-  --bg-sidebar:   #C0A0F8;
-  --text-primary: #200660;
-  --text-muted:   #6020C0;
-  --border-color: #9060E8;
-  --shadow:       0 4px 20px rgba(120,40,240,0.28);
-  --accent:       #6010C8;
+  --bg-primary:    #F6F2FF;
+  --bg-card:       #FAF8FF;
+  --bg-card-grad:  linear-gradient(145deg, #FAF8FF 0%, #EEE0FF 100%);
+  --bg-sidebar:    #EDE0FF;
+  --text-primary:  #220850;
+  --text-muted:    #7040C0;
+  --border-color:  #C8A8F0;
+  --shadow:        0 4px 18px rgba(120,60,220,0.13);
+  --accent:        #8040D8;
 }
 
-/* ── MANGO — bright orange ───────────────────────────────── */
+/* ── MANGO — warm coral orange ──────────────────────────── */
 [data-theme="peach"] {
-  --bg-primary:   #FFD0A0;
-  --bg-card:      #FFE8C8;
-  --bg-sidebar:   #FFB860;
-  --text-primary: #401000;
-  --text-muted:   #C04800;
-  --border-color: #F07000;
-  --shadow:       0 4px 20px rgba(240,100,0,0.28);
-  --accent:       #D05800;
+  --bg-primary:    #FFF4EC;
+  --bg-card:       #FFF9F5;
+  --bg-card-grad:  linear-gradient(145deg, #FFF9F5 0%, #FFE8D0 100%);
+  --bg-sidebar:    #FFE0C0;
+  --text-primary:  #3A1200;
+  --text-muted:    #B05828;
+  --border-color:  #F0A868;
+  --shadow:        0 4px 18px rgba(220,110,40,0.15);
+  --accent:        #E06818;
 }
 
-/* ── BUBBLEGUM — electric magenta ───────────────────────── */
+/* ── BUBBLEGUM — sweet pink magenta ─────────────────────── */
 [data-theme="bubblegum"] {
-  --bg-primary:   #FFC0E8;
-  --bg-card:      #FFDAF4;
-  --bg-sidebar:   #FF98D8;
-  --text-primary: #400028;
-  --text-muted:   #B80870;
-  --border-color: #E820A0;
-  --shadow:       0 4px 20px rgba(230,0,140,0.28);
-  --accent:       #C00080;
+  --bg-primary:    #FFF0F8;
+  --bg-card:       #FFF8FC;
+  --bg-card-grad:  linear-gradient(145deg, #FFF8FC 0%, #FFE0F4 100%);
+  --bg-sidebar:    #FFCCEA;
+  --text-primary:  #3A0828;
+  --text-muted:    #C03888;
+  --border-color:  #F888CC;
+  --shadow:        0 4px 18px rgba(230,50,160,0.14);
+  --accent:        #D82890;
 }
 
-/* ── TROPICAL — bright cyan teal ────────────────────────── */
+/* ── AQUA — bright sky aqua ─────────────────────────────── */
 [data-theme="ocean"] {
-  --bg-primary:   #90E8F8;
-  --bg-card:      #C0F4FF;
-  --bg-sidebar:   #60D8F0;
-  --text-primary: #002030;
-  --text-muted:   #007090;
-  --border-color: #00B0D0;
-  --shadow:       0 4px 20px rgba(0,160,200,0.28);
-  --accent:       #0088B0;
+  --bg-primary:    #EEF9FD;
+  --bg-card:       #F5FCFF;
+  --bg-card-grad:  linear-gradient(145deg, #F5FCFF 0%, #D8F4FC 100%);
+  --bg-sidebar:    #D0EEFC;
+  --text-primary:  #04222E;
+  --text-muted:    #1878A0;
+  --border-color:  #70CCE8;
+  --shadow:        0 4px 18px rgba(0,160,210,0.15);
+  --accent:        #0898C8;
 }
 
-/* ── MIDNIGHT — deep navy, glowing neon pastels ──────────── */
+/* ── MIDNIGHT — deep navy, soft neon glow ───────────────── */
 [data-theme="night"] {
-  --bg-primary:   #0E0830;
-  --bg-card:      #1C1448;
-  --bg-sidebar:   #080520;
-  --text-primary: #F0E8FF;
-  --text-muted:   #B090FF;
-  --border-color: #5030C0;
-  --shadow:       0 4px 24px rgba(0,0,0,0.6);
-  --accent:       #9850FF;
+  --bg-primary:    #0C0A20;
+  --bg-card:       #181430;
+  --bg-card-grad:  linear-gradient(145deg, #1E1840 0%, #141030 100%);
+  --bg-sidebar:    #0A0818;
+  --text-primary:  #F0ECFF;
+  --text-muted:    #A890E0;
+  --border-color:  #3C2E80;
+  --shadow:        0 4px 22px rgba(0,0,0,0.55);
+  --accent:        #9060F0;
 }
-
 /* ── Global resets ───────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -179,15 +186,7 @@ html.text-xlarge { font-size: 21px; }
 .btn-game:disabled{ opacity: 0.55; cursor: not-allowed; }
 
 /* ── Gradient backdrop (gradient theme) ──────────────────── */
-[data-theme="gradient"] body,
-[data-theme="gradient"] #root,
-[data-theme="gradient"] > div {
-  background: linear-gradient(135deg,#1a1a2e,#533483,#c25ba6) fixed;
-}
-[data-theme="gradient"] .shadow-card {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
+
 
 /* ── Drop zones (games) ───────────────────────────────────── */
 .drop-zone {
