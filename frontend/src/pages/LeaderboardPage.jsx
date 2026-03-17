@@ -60,7 +60,7 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
-        style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
+        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
 
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div className="flex items-center gap-2">
@@ -202,7 +202,7 @@ export default function LeaderboardPage() {
 
       {/* Full list */}
       <div className="rounded-2xl overflow-hidden border"
-        style={{ background:'var(--bg-card)', borderColor:'var(--border-color)' }}>
+        style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
         {leaders.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <Trophy size={36} className="mx-auto mb-3 opacity-30"/>
