@@ -114,7 +114,7 @@ export default function DashboardPage() {
           ].map(({ icon, label, val, bg }) => (
             <div key={label}
               className="rounded-2xl p-3 md:p-4 border border-gray-200 dark:border-gray-700"
-              style={{ background: 'var(--bg-card)', opacity: statsLoading && label !== 'Day Streak' ? 0.6 : 1 }}>
+              style={{ background: 'var(--bg-card-grad)', opacity: statsLoading && label !== 'Day Streak' ? 0.6 : 1 }}>
               <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mb-2`}>{icon}</div>
               <div className="font-display text-xl md:text-2xl text-gray-800 dark:text-gray-100">{val}</div>
               <div className="text-xs text-gray-500 font-semibold mt-0.5">{label}</div>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
 
       {/* Up Next */}
       <div className="rounded-2xl md:rounded-3xl p-4 md:p-6 border border-gray-200 dark:border-gray-700"
-        style={{ background: 'var(--bg-card)' }}>
+        style={{ background: 'var(--bg-card-grad)' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg md:text-xl text-gray-800 dark:text-gray-100">Up Next</h2>
           <Link to="/activities" className="text-sky text-sm font-bold flex items-center gap-1 hover:underline">
@@ -167,7 +167,7 @@ export default function DashboardPage() {
       {/* Recent Activity */}
       {progress.length > 0 && (
         <div className="rounded-2xl md:rounded-3xl p-4 md:p-6 border border-gray-200 dark:border-gray-700"
-          style={{ background: 'var(--bg-card)' }}>
+          style={{ background: 'var(--bg-card-grad)' }}>
           <h2 className="font-display text-lg md:text-xl text-gray-800 dark:text-gray-100 mb-3">Recent Activity</h2>
           <div className="space-y-0">
             {progress.slice(0, 5).map((p, i) => (
