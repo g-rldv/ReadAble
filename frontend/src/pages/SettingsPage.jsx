@@ -18,15 +18,15 @@ import {
 
 // ── Theme catalogue ───────────────────────────────────────────
 const THEMES = [
-  { key:'cotton',    label:'Strawberry',   desc:'Juicy red-pink',        Icon:Heart,    preview:{bg:'#FFD6E8', card:'#FFF0F6', text:'#5C0A28', accent:'#F01060'} },
-  { key:'sky',       label:'Ocean Blue',   desc:'Deep bright blue',      Icon:Cloud,    preview:{bg:'#C0DCFF', card:'#E0EEFF', text:'#05204A', accent:'#1060E0'} },
-  { key:'mint',      label:'Jungle',       desc:'Vivid emerald green',   Icon:Leaf,     preview:{bg:'#B0F0CC', card:'#D8F8E8', text:'#062818', accent:'#08902E'} },
-  { key:'sunshine',  label:'Banana',       desc:'Rich warm yellow',      Icon:Sun,      preview:{bg:'#FFE060', card:'#FFF0A0', text:'#2A1800', accent:'#C08000'} },
-  { key:'lavender',  label:'Grape',        desc:'Rich purple violet',    Icon:Sparkles, preview:{bg:'#D8C0FF', card:'#EDE0FF', text:'#200660', accent:'#6010C8'} },
-  { key:'peach',     label:'Mango',        desc:'Bright orange',         Icon:Candy,    preview:{bg:'#FFD0A0', card:'#FFE8C8', text:'#401000', accent:'#D05800'} },
-  { key:'bubblegum', label:'Bubblegum',    desc:'Electric magenta',      Icon:Star,     preview:{bg:'#FFC0E8', card:'#FFDAF4', text:'#400028', accent:'#C00080'} },
-  { key:'ocean',     label:'Tropical',     desc:'Bright cyan teal',      Icon:Droplets, preview:{bg:'#90E8F8', card:'#C0F4FF', text:'#002030', accent:'#0088B0'} },
-  { key:'night',     label:'Midnight',     desc:'Deep navy neon glow',   Icon:Moon,     preview:{bg:'#0E0830', card:'#1C1448', text:'#F0E8FF', accent:'#9850FF'} },
+  { key:'cotton',    label:'Light',        desc:'Clean warm white',      Icon:Sun,      preview:{bg:'#FFF8F2', card:'#FFFFFF', text:'#2C1810', accent:'#F07050'} },
+  { key:'sky',       label:'Strawberry',   desc:'Rosy pink tones',       Icon:Heart,    preview:{bg:'#FFF0F4', card:'#FFF8FA', text:'#4A0E20', accent:'#E83060'} },
+  { key:'mint',      label:'Meadow',       desc:'Fresh sage green',      Icon:Leaf,     preview:{bg:'#F2FAF2', card:'#F8FEF8', text:'#0E2E14', accent:'#22A845'} },
+  { key:'sunshine',  label:'Sunrise',      desc:'Warm golden peach',     Icon:Sun,      preview:{bg:'#FFF8ED', card:'#FFFCF5', text:'#3A2000', accent:'#D08010'} },
+  { key:'lavender',  label:'Lavender',     desc:'Soft lilac purple',     Icon:Sparkles, preview:{bg:'#F6F2FF', card:'#FAF8FF', text:'#220850', accent:'#8040D8'} },
+  { key:'peach',     label:'Mango',        desc:'Warm coral orange',     Icon:Candy,    preview:{bg:'#FFF4EC', card:'#FFF9F5', text:'#3A1200', accent:'#E06818'} },
+  { key:'bubblegum', label:'Bubblegum',    desc:'Sweet pink magenta',    Icon:Star,     preview:{bg:'#FFF0F8', card:'#FFF8FC', text:'#3A0828', accent:'#D82890'} },
+  { key:'ocean',     label:'Aqua',         desc:'Bright sky aqua',       Icon:Droplets, preview:{bg:'#EEF9FD', card:'#F5FCFF', text:'#04222E', accent:'#0898C8'} },
+  { key:'night',     label:'Midnight',     desc:'Deep navy soft glow',   Icon:Moon,     preview:{bg:'#0C0A20', card:'#181430', text:'#F0ECFF', accent:'#9060F0'} },
 ];
 
 const MUSIC_THEMES = [
@@ -47,7 +47,7 @@ const TEXT_SIZES = [
 function Section({ title, icon, children }) {
   return (
     <div className="rounded-3xl p-4 md:p-6"
-      style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
+      style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
       <h3 className="font-display text-lg md:text-xl mb-4 md:mb-5 flex items-center gap-2 text-gray-800 dark:text-gray-200">
         {icon} {title}
       </h3>
@@ -95,7 +95,7 @@ function ThemeCard({ theme, active, onSelect }) {
           </div>
         </div>
       </div>
-      <div className="px-2.5 py-2" style={{ background:'var(--bg-card)' }}>
+      <div className="px-2.5 py-2" style={{ background:'var(--bg-card-grad)' }}>
         <div className="flex items-center gap-1">
           <Icon size={12} className={active ? 'text-sky' : 'text-gray-400'} />
           <span className={`font-bold text-xs ${active ? 'text-sky' : 'text-gray-700 dark:text-gray-200'}`}>{label}</span>
@@ -138,7 +138,7 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
-        style={{ background:'var(--bg-card)', border:'2px solid #f43f5e40' }}>
+        style={{ background:'var(--bg-card-grad)', border:'2px solid #f43f5e40' }}>
 
         {/* Red header bar */}
         <div className="bg-rose-500 px-5 py-4 flex items-center gap-3">
@@ -399,7 +399,7 @@ export default function SettingsPage() {
 
       {/* ── Danger Zone ────────────────────────────────────── */}
       <div className="rounded-3xl p-6 border-2 border-rose-200 dark:border-rose-900"
-        style={{ background:'var(--bg-card)' }}>
+        style={{ background:'var(--bg-card-grad)' }}>
         <h3 className="font-display text-xl mb-1 text-rose-600 dark:text-rose-400 flex items-center gap-2">
           <AlertTriangle size={20} /> Danger Zone
         </h3>
