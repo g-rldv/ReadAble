@@ -10,22 +10,23 @@ import { useAuth }     from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import {
-  Sun, Moon, Eye, Volume2, Type, Check,
-  Music, Music2, Waves, Leaf, Flame, Sparkles, Zap,
-  SlidersHorizontal, Candy, Trash2, AlertTriangle, Lock, AtSign,
+  Sun, Heart, Star, Cloud, Leaf, Sparkles, Moon,
+  Droplets, Volume2, Type, Check,
+  Music, Music2, SlidersHorizontal,
+  Candy, Trash2, AlertTriangle, Lock, AtSign,
 } from 'lucide-react';
 
 // ── Theme catalogue ───────────────────────────────────────────
 const THEMES = [
-  { key:'light',         label:'Light',         desc:'Warm & bright',       Icon:Sun,              preview:{bg:'#FFF8F0',                                          card:'#FFFFFF',                  text:'#1A1A2E', accent:'#4D96FF'} },
-  { key:'dark',          label:'Dark',          desc:'Easy on the eyes',    Icon:Moon,             preview:{bg:'#0F0F1A',                                          card:'#1A1A2E',                  text:'#F1F5F9', accent:'#4D96FF'} },
-  { key:'gradient',      label:'Gradient',      desc:'Purple dream glass',  Icon:Sparkles,         preview:{bg:'linear-gradient(135deg,#1a1a2e,#533483,#c25ba6)',  card:'rgba(255,255,255,0.15)',    text:'#F8FAFC', accent:'#a78bfa'} },
-  { key:'ocean',         label:'Ocean',         desc:'Deep sea calm',       Icon:Waves,            preview:{bg:'#031929',                                          card:'#0a2a42',                  text:'#e0f2fe', accent:'#38bdf8'} },
-  { key:'sunset',        label:'Sunset',        desc:'Golden hour glow',    Icon:Flame,            preview:{bg:'linear-gradient(160deg,#120824,#6b21a8,#f59e0b)', card:'#1e1040',                  text:'#fef3c7', accent:'#f59e0b'} },
-  { key:'midnight',      label:'Midnight',      desc:'Electric night',      Icon:Zap,              preview:{bg:'#04040f',                                          card:'#090920',                  text:'#e2e8f0', accent:'#818cf8'} },
-  { key:'forest',        label:'Forest',        desc:'Natural greens',      Icon:Leaf,             preview:{bg:'#0d1f0e',                                          card:'#162618',                  text:'#d1fae5', accent:'#34d399'} },
-  { key:'candy',         label:'Candy',         desc:'Sweet pastels',       Icon:Candy,            preview:{bg:'#fff0fb',                                          card:'#ffffff',                  text:'#1a0a2e', accent:'#ec4899'} },
-  { key:'high-contrast', label:'High Contrast', desc:'Maximum clarity',     Icon:Eye,              preview:{bg:'#000000',                                          card:'#0A0A0A',                  text:'#FFFFFF', accent:'#FFFF00'} },
+  { key:'cotton',    label:'Cotton Candy', desc:'Soft pink & cream',     Icon:Heart,    preview:{bg:'#FFF0F5', card:'#FFFFFF', text:'#3D2645', accent:'#F472B6'} },
+  { key:'sky',       label:'Blue Sky',     desc:'Baby blue & clouds',    Icon:Cloud,    preview:{bg:'#EFF8FF', card:'#FFFFFF', text:'#1E3A5F', accent:'#60B8F5'} },
+  { key:'mint',      label:'Mint Fresh',   desc:'Cool mint & cream',     Icon:Leaf,     preview:{bg:'#F0FDF6', card:'#FFFFFF', text:'#1A3D2B', accent:'#34D399'} },
+  { key:'sunshine',  label:'Sunshine',     desc:'Warm yellow & cream',   Icon:Sun,      preview:{bg:'#FFFBEB', card:'#FFFFFF', text:'#3D2E00', accent:'#FBBF24'} },
+  { key:'lavender',  label:'Lavender',     desc:'Soft purple & lilac',   Icon:Sparkles, preview:{bg:'#F5F0FF', card:'#FFFFFF', text:'#2D1B5E', accent:'#A78BFA'} },
+  { key:'peach',     label:'Peachy',       desc:'Warm peach & apricot',  Icon:Candy,    preview:{bg:'#FFF5EE', card:'#FFFFFF', text:'#3D1A00', accent:'#FB923C'} },
+  { key:'bubblegum', label:'Bubblegum',    desc:'Bright & playful pink', Icon:Star,     preview:{bg:'#FFF0FA', card:'#FFF8FD', text:'#4A0A35', accent:'#EC4899'} },
+  { key:'ocean',     label:'Ocean Breeze', desc:'Light aqua & seafoam',  Icon:Droplets, preview:{bg:'#ECFEFF', card:'#FFFFFF', text:'#0C3040', accent:'#22D3EE'} },
+  { key:'night',     label:'Starry Night', desc:'Soft dark with pastels',Icon:Moon,     preview:{bg:'#1E1A2E', card:'#2A2540', text:'#F0EBFF', accent:'#C4B5FD'} },
 ];
 
 const MUSIC_THEMES = [
