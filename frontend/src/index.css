@@ -9,116 +9,117 @@
 
 /* ── LIGHT (default) ─────────────────────────────────────── */
 /* ════════════════════════════════════════════════════════════
-   PASTEL THEMES — soft, eye-friendly, designed for ages 4-10
+   VIVID WARM THEMES — saturated, joyful, clearly distinct
+   Designed for ages 4-10. Every theme pops with real color.
    ════════════════════════════════════════════════════════════ */
 
-/* ── COTTON CANDY (default) — soft pink & cream ─────────── */
+/* ── STRAWBERRY (default) — juicy red-pink ──────────────── */
 :root,
 [data-theme="cotton"] {
-  --bg-primary:   #FFF0F5;
-  --bg-card:      #FFFFFF;
-  --bg-sidebar:   #FFF5F8;
-  --text-primary: #3D2645;
-  --text-muted:   #8B6B8B;
-  --border-color: #F5C6D8;
-  --shadow:       0 4px 16px rgba(255,140,180,0.15);
-  --accent:       #F472B6;
+  --bg-primary:   #FFD6E8;
+  --bg-card:      #FFF0F6;
+  --bg-sidebar:   #FFB8D4;
+  --text-primary: #5C0A28;
+  --text-muted:   #C0406A;
+  --border-color: #FF80B0;
+  --shadow:       0 4px 20px rgba(255,60,120,0.25);
+  --accent:       #F01060;
 }
 
-/* ── SKY — baby blue & white clouds ─────────────────────── */
+/* ── OCEAN — deep bright blue ───────────────────────────── */
 [data-theme="sky"] {
-  --bg-primary:   #EFF8FF;
-  --bg-card:      #FFFFFF;
-  --bg-sidebar:   #F5FBFF;
-  --text-primary: #1E3A5F;
-  --text-muted:   #6B93B8;
-  --border-color: #BAE0F8;
-  --shadow:       0 4px 16px rgba(100,180,255,0.15);
-  --accent:       #60B8F5;
+  --bg-primary:   #C0DCFF;
+  --bg-card:      #E0EEFF;
+  --bg-sidebar:   #A0C8FF;
+  --text-primary: #05204A;
+  --text-muted:   #2060C0;
+  --border-color: #4090E8;
+  --shadow:       0 4px 20px rgba(30,100,255,0.25);
+  --accent:       #1060E0;
 }
 
-/* ── MINT — fresh mint green & cream ────────────────────── */
+/* ── JUNGLE — vivid emerald green ───────────────────────── */
 [data-theme="mint"] {
-  --bg-primary:   #F0FDF6;
-  --bg-card:      #FFFFFF;
-  --bg-sidebar:   #F5FEF8;
-  --text-primary: #1A3D2B;
-  --text-muted:   #5A8A6A;
-  --border-color: #A8ECC0;
-  --shadow:       0 4px 16px rgba(80,200,130,0.15);
-  --accent:       #34D399;
+  --bg-primary:   #B0F0CC;
+  --bg-card:      #D8F8E8;
+  --bg-sidebar:   #88E8B0;
+  --text-primary: #062818;
+  --text-muted:   #0A9040;
+  --border-color: #20C060;
+  --shadow:       0 4px 20px rgba(10,160,70,0.25);
+  --accent:       #08902E;
 }
 
-/* ── SUNSHINE — warm yellow & cream ─────────────────────── */
+/* ── BANANA — rich warm yellow ──────────────────────────── */
 [data-theme="sunshine"] {
-  --bg-primary:   #FFFBEB;
-  --bg-card:      #FFFFFF;
-  --bg-sidebar:   #FFFDF0;
-  --text-primary: #3D2E00;
-  --text-muted:   #8A7030;
-  --border-color: #FDE68A;
-  --shadow:       0 4px 16px rgba(255,210,60,0.18);
-  --accent:       #FBBF24;
+  --bg-primary:   #FFE060;
+  --bg-card:      #FFF0A0;
+  --bg-sidebar:   #FFD020;
+  --text-primary: #2A1800;
+  --text-muted:   #805000;
+  --border-color: #E0A000;
+  --shadow:       0 4px 20px rgba(220,150,0,0.30);
+  --accent:       #C08000;
 }
 
-/* ── LAVENDER — soft purple & lilac ─────────────────────── */
+/* ── GRAPE — rich purple violet ─────────────────────────── */
 [data-theme="lavender"] {
-  --bg-primary:   #F5F0FF;
-  --bg-card:      #FFFFFF;
-  --bg-sidebar:   #F9F5FF;
-  --text-primary: #2D1B5E;
-  --text-muted:   #7C5FA8;
-  --border-color: #D8C4F8;
-  --shadow:       0 4px 16px rgba(160,120,255,0.15);
-  --accent:       #A78BFA;
+  --bg-primary:   #D8C0FF;
+  --bg-card:      #EDE0FF;
+  --bg-sidebar:   #C0A0F8;
+  --text-primary: #200660;
+  --text-muted:   #6020C0;
+  --border-color: #9060E8;
+  --shadow:       0 4px 20px rgba(120,40,240,0.28);
+  --accent:       #6010C8;
 }
 
-/* ── PEACH — warm peach & apricot ───────────────────────── */
+/* ── MANGO — bright orange ───────────────────────────────── */
 [data-theme="peach"] {
-  --bg-primary:   #FFF5EE;
-  --bg-card:      #FFFFFF;
-  --bg-sidebar:   #FFF8F3;
-  --text-primary: #3D1A00;
-  --text-muted:   #A0603A;
-  --border-color: #FDD0A8;
-  --shadow:       0 4px 16px rgba(255,160,80,0.15);
-  --accent:       #FB923C;
+  --bg-primary:   #FFD0A0;
+  --bg-card:      #FFE8C8;
+  --bg-sidebar:   #FFB860;
+  --text-primary: #401000;
+  --text-muted:   #C04800;
+  --border-color: #F07000;
+  --shadow:       0 4px 20px rgba(240,100,0,0.28);
+  --accent:       #D05800;
 }
 
-/* ── BUBBLEGUM — bright pink, fun & playful ─────────────── */
+/* ── BUBBLEGUM — electric magenta ───────────────────────── */
 [data-theme="bubblegum"] {
-  --bg-primary:   #FFF0FA;
-  --bg-card:      #FFF8FD;
-  --bg-sidebar:   #FFECF8;
-  --text-primary: #4A0A35;
-  --text-muted:   #9B4080;
-  --border-color: #F9B0E0;
-  --shadow:       0 4px 16px rgba(240,80,180,0.15);
-  --accent:       #EC4899;
+  --bg-primary:   #FFC0E8;
+  --bg-card:      #FFDAF4;
+  --bg-sidebar:   #FF98D8;
+  --text-primary: #400028;
+  --text-muted:   #B80870;
+  --border-color: #E820A0;
+  --shadow:       0 4px 20px rgba(230,0,140,0.28);
+  --accent:       #C00080;
 }
 
-/* ── OCEAN BREEZE — light aqua & seafoam ────────────────── */
+/* ── TROPICAL — bright cyan teal ────────────────────────── */
 [data-theme="ocean"] {
-  --bg-primary:   #ECFEFF;
-  --bg-card:      #FFFFFF;
-  --bg-sidebar:   #F0FEFF;
-  --text-primary: #0C3040;
-  --text-muted:   #3A8DA8;
-  --border-color: #A5E8F0;
-  --shadow:       0 4px 16px rgba(30,200,220,0.15);
-  --accent:       #22D3EE;
+  --bg-primary:   #90E8F8;
+  --bg-card:      #C0F4FF;
+  --bg-sidebar:   #60D8F0;
+  --text-primary: #002030;
+  --text-muted:   #007090;
+  --border-color: #00B0D0;
+  --shadow:       0 4px 20px rgba(0,160,200,0.28);
+  --accent:       #0088B0;
 }
 
-/* ── RAINBOW NIGHT — soft dark with pastel accents ──────── */
+/* ── MIDNIGHT — deep navy, glowing neon pastels ──────────── */
 [data-theme="night"] {
-  --bg-primary:   #1E1A2E;
-  --bg-card:      #2A2540;
-  --bg-sidebar:   #231E38;
-  --text-primary: #F0EBFF;
-  --text-muted:   #B8A8DC;
-  --border-color: #3D3560;
-  --shadow:       0 4px 20px rgba(0,0,0,0.4);
-  --accent:       #C4B5FD;
+  --bg-primary:   #0E0830;
+  --bg-card:      #1C1448;
+  --bg-sidebar:   #080520;
+  --text-primary: #F0E8FF;
+  --text-muted:   #B090FF;
+  --border-color: #5030C0;
+  --shadow:       0 4px 24px rgba(0,0,0,0.6);
+  --accent:       #9850FF;
 }
 
 /* ── Global resets ───────────────────────────────────────── */
