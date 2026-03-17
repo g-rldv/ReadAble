@@ -72,7 +72,7 @@ function ActivityCard({ activity, progress }) {
         <div className="flex items-center justify-between pt-1">
           {score !== null
             ? <span className={`text-xs font-semibold ${score >= 80 ? 'text-emerald-500' : score >= 50 ? 'text-amber-500' : 'text-gray-400'}`}>{score}%</span>
-            : <span className="text-xs text-gray-300 dark:text-gray-600">Not played</span>}
+            : <span className="text-xs text-neutral dark:text-neutral">Not played</span>}
           <span className="text-xs font-bold text-sky"
             style={{ opacity:hovered?1:0, transform:hovered?'translateX(0)':'translateX(4px)', transition:'opacity 0.18s, transform 0.18s' }}>
             Play →
