@@ -95,7 +95,7 @@ function AvatarModal({ current, onClose, onSave }) {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl p-6 shadow-2xl"
-        style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
+        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-xl text-gray-800 dark:text-gray-100">Choose Avatar</h3>
           <button onClick={onClose}><X size={20} className="text-gray-400"/></button>
@@ -144,7 +144,7 @@ function AllAchievementsModal({ unlocked, onClose }) {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-xl rounded-3xl flex flex-col max-h-[88vh] overflow-hidden shadow-2xl"
-        style={{ background:'var(--bg-card)', border:'1px solid var(--border-color)' }}>
+        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0"
           style={{ borderColor:'var(--border-color)' }}>
@@ -213,7 +213,7 @@ function AllAchievementsModal({ unlocked, onClose }) {
 function StatCard({ Icon, iconCls, bg, label, val, loading }) {
   return (
     <div className="rounded-2xl p-3 lg:p-4 border"
-      style={{ background:'var(--bg-card)', borderColor:'var(--border-color)',
+      style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)',
                opacity: loading ? 0.6 : 1 }}>
       <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center mb-2`}>
         <Icon size={16} className={iconCls}/>
@@ -479,7 +479,7 @@ export default function ProfilePage() {
 
       {/* ══ ACHIEVEMENTS ════════════════════════════════════ */}
       <div className="rounded-3xl p-4 md:p-6 border"
-        style={{ background:'var(--bg-card)', borderColor:'var(--border-color)' }}>
+        style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-display text-xl text-gray-800 dark:text-gray-100">Achievements</h2>
