@@ -8,7 +8,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import {
   BookOpen, Zap, ArrowRight, Volume2,
   Gamepad2, BarChart2, Trophy, Heart, Cloud,
-  TrendingUp, Palette, Check, Star, X,
+  TrendingUp, Palette, Check, Star, X, UserPlus,
   Eye, EyeOff, Mail, Lock, User, Settings,
   Sun, Moon, Sparkles, Waves, Flame, Leaf,
   LogIn,
@@ -523,7 +523,7 @@ export default function LandingPage() {
             className="flex items-center justify-center gap-1.5 rounded-2xl font-bold bg-sky text-white hover:bg-sky-dark transition-colors shadow-md
                        w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2 sm:text-sm"
             title="Join Free">
-            <Star size={16} className="flex-shrink-0" />
+            <UserPlus size={16} className="flex-shrink-0" />
             <span className="hidden sm:inline">Join Free</span>
           </button>
         </div>
