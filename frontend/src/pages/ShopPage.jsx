@@ -7,7 +7,7 @@ import api             from '../utils/api';
 import CharacterAvatar, {
   ALL_SHOP_ITEMS, SKIN_TONES, DEFAULT_EQUIPPED, itemById, ownedDefaults,
 } from '../components/character/CharacterAvatar';
-import { ShoppingBag, Coins, Check, Lock, Sparkles, RefreshCw } from 'lucide-react';
+import { ShoppingBag, Check, Lock, Sparkles } from 'lucide-react';
 
 const CATEGORIES = [
   { key: 'all',        label: 'All'         },
