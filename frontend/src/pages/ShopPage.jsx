@@ -283,20 +283,21 @@ export default function ShopPage() {
                 ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/40 dark:bg-emerald-900/10'
                 : 'border-gray-200 dark:border-gray-700';
 
-              const MobileBtn = () => isOwned || item.isDefault ? (
+              // Inline mobile action button — do NOT extract as component inside map()
+              const mobileBtn = isOwned || item.isDefault ? (
                 <button onClick={() => handleEquip(item)} disabled={!!equipping}
-                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all
+                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap flex-shrink-0 transition-all
                     ${isEq ? 'bg-sky text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
                   {equipping === item.id ? '…' : isEq ? '✓ On' : 'Equip'}
                 </button>
               ) : freeByAch ? (
                 <button onClick={() => handleBuy({ ...item, cost: 0 })} disabled={!!buying}
-                  className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-amber-400 text-white whitespace-nowrap">
+                  className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-amber-400 text-white whitespace-nowrap flex-shrink-0">
                   {buying === item.id ? '…' : '🎁 Free'}
                 </button>
               ) : (
                 <button onClick={() => handleBuy(item)} disabled={!!buying || !canBuy(item)}
-                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1 whitespace-nowrap transition-all
+                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1 whitespace-nowrap flex-shrink-0 transition-all
                     ${canBuy(item) ? 'bg-amber-400 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'}`}>
                   {buying === item.id ? '…' : <><span>🪙</span><span>{item.cost}</span></>}
                 </button>
@@ -307,9 +308,9 @@ export default function ShopPage() {
                   {/* Mobile: slim horizontal row */}
                   <div className={`sm:hidden flex items-center gap-2 px-3 py-2.5 rounded-2xl border-2 transition-all ${borderCls}`}
                     style={{ background: isEq || isOwned ? undefined : 'var(--bg-card-grad)' }}>
-                    {/* Emoji — fixed small size */}
+                    {/* Emoji */}
                     <span className="text-xl w-7 text-center flex-shrink-0 leading-none">{item.preview}</span>
-                    {/* Info — takes remaining space, truncates */}
+                    {/* Info — fills space, truncates */}
                     <div className="flex-1 min-w-0 overflow-hidden">
                       <p className="font-bold text-sm text-gray-800 dark:text-gray-100 leading-tight truncate">{item.name}</p>
                       <p className="text-[10px] font-semibold leading-none mt-0.5 truncate">
@@ -323,10 +324,8 @@ export default function ShopPage() {
                         }
                       </p>
                     </div>
-                    {/* Button — always pinned to right, never shrinks */}
-                    <div className="flex-shrink-0">
-                      <MobileBtn />
-                    </div>
+                    {/* Action button — pinned right */}
+                    {mobileBtn}
                   </div>
 
                   {/* Desktop: vertical card */}
