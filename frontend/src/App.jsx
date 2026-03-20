@@ -1,12 +1,11 @@
 // ============================================================
-// App.jsx — root router + providers + error boundary
+// App.jsx — root router + shop route added
 // ============================================================
 import React, { Component, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 
-// Eager-load tiny pages; lazy-load heavier ones
 import LandingPage    from './pages/LandingPage';
 import LoginPage, { RegisterPage } from './pages/LoginPage';
 import AppLayout      from './components/layout/AppLayout';
@@ -17,8 +16,8 @@ const GamePage       = React.lazy(() => import('./pages/GamePage'));
 const ProfilePage    = React.lazy(() => import('./pages/ProfilePage'));
 const SettingsPage   = React.lazy(() => import('./pages/SettingsPage'));
 const LeaderboardPage= React.lazy(() => import('./pages/LeaderboardPage'));
+const ShopPage       = React.lazy(() => import('./pages/ShopPage'));
 
-// ── Loading spinner (no emoji — renders instantly) ───────────
 function Spinner({ message = 'Loading…' }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4"
@@ -29,7 +28,6 @@ function Spinner({ message = 'Loading…' }) {
   );
 }
 
-// ── Error boundary — catches any render error, shows message not white screen ─
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(e) { return { error: e }; }
@@ -58,7 +56,6 @@ class ErrorBoundary extends Component {
   }
 }
 
-// ── Route guard ───────────────────────────────────────────────
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <Spinner message="Loading ReadAble…" />;
@@ -84,6 +81,7 @@ function AppRoutes() {
           <Route path="/profile"     element={<ProfilePage />} />
           <Route path="/settings"    element={<SettingsPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/shop"        element={<ShopPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
