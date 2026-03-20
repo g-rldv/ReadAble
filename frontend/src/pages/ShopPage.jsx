@@ -1,5 +1,7 @@
 // ============================================================
 // ShopPage.jsx — Buy & equip cosmetic items with coins
+// Mobile: compact horizontal preview bar + full-width item grid
+// Desktop: sticky sidebar preview + items grid
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }     from '../contexts/AuthContext';
@@ -7,21 +9,21 @@ import api             from '../utils/api';
 import CharacterAvatar, {
   ALL_SHOP_ITEMS, SKIN_TONES, DEFAULT_EQUIPPED, itemById, ownedDefaults,
 } from '../components/character/CharacterAvatar';
-import { ShoppingBag, Check, Lock, Sparkles } from 'lucide-react';
+import { ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react';
 
 const CATEGORIES = [
-  { key: 'all',        label: 'All'         },
-  { key: 'hat',        label: '🎩 Hats'     },
-  { key: 'top',        label: '👕 Tops'     },
-  { key: 'accessory',  label: '✨ Accessories' },
-  { key: 'background', label: '🖼️ Backgrounds' },
+  { key: 'all',        label: 'All',          emoji: '✨' },
+  { key: 'hat',        label: 'Hats',         emoji: '🎩' },
+  { key: 'top',        label: 'Tops',         emoji: '👕' },
+  { key: 'accessory',  label: 'Accessories',  emoji: '💎' },
+  { key: 'background', label: 'Backgrounds',  emoji: '🖼️' },
 ];
 
 const CATEGORY_SLOT = { hat:'hat', top:'top', accessory:'accessory', background:'background' };
 
 function CoinBadge({ coins }) {
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-sm"
+    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-sm flex-shrink-0"
       style={{ background:'rgba(251,191,36,0.15)', color:'#D97706', border:'1px solid rgba(251,191,36,0.3)' }}>
       <span>🪙</span>
       <span>{coins ?? 0}</span>
@@ -32,13 +34,14 @@ function CoinBadge({ coins }) {
 export default function ShopPage() {
   const { user, refreshUser } = useAuth();
 
-  const [wardrobe,  setWardrobe]  = useState([]);
-  const [equipped,  setEquipped]  = useState({ ...DEFAULT_EQUIPPED });
-  const [category,  setCategory]  = useState('all');
-  const [buying,    setBuying]    = useState(null);
-  const [equipping, setEquipping] = useState(null);
-  const [toast,     setToast]     = useState(null);
-  const [loading,   setLoading]   = useState(true);
+  const [wardrobe,      setWardrobe]      = useState([]);
+  const [equipped,      setEquipped]      = useState({ ...DEFAULT_EQUIPPED });
+  const [category,      setCategory]      = useState('all');
+  const [buying,        setBuying]        = useState(null);
+  const [equipping,     setEquipping]     = useState(null);
+  const [toast,         setToast]         = useState(null);
+  const [loading,       setLoading]       = useState(true);
+  const [previewOpen,   setPreviewOpen]   = useState(false); // mobile collapsible
 
   // ── Load wardrobe & equipped ──────────────────────────────
   const load = useCallback(async () => {
@@ -62,10 +65,7 @@ export default function ShopPage() {
   // ── Buy item ──────────────────────────────────────────────
   const handleBuy = async (item) => {
     if (wardrobe.includes(item.id)) return;
-    if ((user?.coins ?? 0) < item.cost) {
-      showToast('Not enough coins!', 'error');
-      return;
-    }
+    if ((user?.coins ?? 0) < item.cost) { showToast('Not enough coins!', 'error'); return; }
     setBuying(item.id);
     try {
       await api.post('/users/buy-item', { itemId: item.id, cost: item.cost });
@@ -81,26 +81,24 @@ export default function ShopPage() {
   const handleEquip = async (item) => {
     const slot  = CATEGORY_SLOT[item.category];
     const isOn  = equipped[slot] === item.id;
-    const newId = isOn ? (item.category === 'hat' ? 'hat_none'
-                         : item.category === 'accessory' ? 'acc_none'
-                         : item.category === 'background' ? 'bg_white'
-                         : 'top_sky') : item.id;
-    const next  = { ...equipped, [slot]: newId };
+    const newId = isOn
+      ? (item.category === 'hat'        ? 'hat_none'
+       : item.category === 'accessory'  ? 'acc_none'
+       : item.category === 'background' ? 'bg_white'
+       : 'top_sky')
+      : item.id;
+    const next = { ...equipped, [slot]: newId };
     setEquipped(next);
     setEquipping(item.id);
-    try {
-      await api.post('/users/equip-item', { category: item.category, itemId: newId });
-    } catch (_) {}
+    try { await api.post('/users/equip-item', { category: item.category, itemId: newId }); }
+    catch (_) {}
     finally { setEquipping(null); }
   };
 
-  const items = ALL_SHOP_ITEMS.filter(i =>
-    category === 'all' || i.category === category
-  );
-
-  const owned       = (id) => wardrobe.includes(id) || ownedDefaults.includes(id);
-  const canBuy      = (item) => !owned(item.id) && (user?.coins ?? 0) >= item.cost;
-  const isEquipped  = (item) => equipped[CATEGORY_SLOT[item.category]] === item.id;
+  const items      = ALL_SHOP_ITEMS.filter(i => category === 'all' || i.category === category);
+  const owned      = (id) => wardrobe.includes(id) || ownedDefaults.includes(id);
+  const canBuy     = (item) => !owned(item.id) && (user?.coins ?? 0) >= item.cost;
+  const isEquipped = (item) => equipped[CATEGORY_SLOT[item.category]] === item.id;
 
   if (loading) return (
     <div className="flex items-center justify-center h-48">
@@ -109,7 +107,7 @@ export default function ShopPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in space-y-5">
+    <div className="max-w-5xl mx-auto animate-fade-in space-y-4">
 
       {/* ── Toast ─────────────────────────────────────────── */}
       {toast && (
@@ -121,21 +119,98 @@ export default function ShopPage() {
       )}
 
       {/* ── Header ───────────────────────────────────────── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl md:text-3xl text-gray-800 dark:text-gray-100 flex items-center gap-2">
-            <ShoppingBag size={28} className="text-sky"/> Shop
+            <ShoppingBag size={26} className="text-sky"/> Shop
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">Spend coins to dress up your Buddy!</p>
+          <p className="text-xs text-gray-400 mt-0.5">Spend coins to dress up your Buddy!</p>
         </div>
         <CoinBadge coins={user?.coins}/>
       </div>
 
-      {/* ── Main layout: Preview + Items ──────────────────── */}
+      {/* ══════════════════════════════════════════════════════
+          MOBILE: Collapsible buddy preview
+      ══════════════════════════════════════════════════════ */}
+      <div className="md:hidden rounded-3xl border overflow-hidden"
+        style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
+
+        {/* Toggle header */}
+        <button
+          onClick={() => setPreviewOpen(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            {/* Tiny avatar thumbnail */}
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+              <CharacterAvatar equipped={equipped} size={40}/>
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-sm text-gray-800 dark:text-gray-200">Your Buddy</p>
+              <p className="text-xs text-gray-400">
+                {itemById(equipped.hat)?.name !== 'No Hat' ? itemById(equipped.hat)?.name : ''}
+                {itemById(equipped.top)?.name ? ` · ${itemById(equipped.top)?.name}` : ''}
+              </p>
+            </div>
+          </div>
+          {previewOpen
+            ? <ChevronUp size={18} className="text-gray-400 flex-shrink-0"/>
+            : <ChevronDown size={18} className="text-gray-400 flex-shrink-0"/>}
+        </button>
+
+        {/* Expandable preview body */}
+        {previewOpen && (
+          <div className="px-4 pb-4 border-t" style={{ borderColor:'var(--border-color)' }}>
+            <div className="flex items-start gap-4 pt-4">
+              {/* Character */}
+              <div className="flex-shrink-0">
+                <CharacterAvatar equipped={equipped} size={120}/>
+              </div>
+              {/* Controls */}
+              <div className="flex-1 min-w-0 space-y-3">
+                {/* Skin tones */}
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Skin Tone</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {SKIN_TONES.map(st => (
+                      <button key={st.id}
+                        onClick={() => {
+                          setEquipped(prev => ({ ...prev, skin: st.id }));
+                          api.post('/users/equip-item', { category:'skin', itemId: st.id }).catch(()=>{});
+                        }}
+                        title={st.name}
+                        className={`w-7 h-7 rounded-full border-2 transition-all flex-shrink-0
+                          ${equipped.skin === st.id ? 'border-sky scale-110 shadow-sm' : 'border-transparent hover:border-gray-300'}`}
+                        style={{ backgroundColor: st.fill }}/>
+                    ))}
+                  </div>
+                </div>
+                {/* Equipped summary */}
+                <div className="space-y-1">
+                  {['hat','top','accessory','background'].map(slot => {
+                    const itm = itemById(equipped[slot]);
+                    return itm ? (
+                      <div key={slot} className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-gray-400 capitalize w-20 flex-shrink-0">{slot}</span>
+                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 truncate">
+                          {itm.preview} {itm.name}
+                        </span>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════
+          MAIN LAYOUT
+      ══════════════════════════════════════════════════════ */}
       <div className="grid md:grid-cols-[220px_1fr] gap-5">
 
-        {/* ── Character preview ────────────────────────── */}
-        <div className="sticky top-4 self-start">
+        {/* ── Desktop sidebar preview ──────────────────── */}
+        <div className="hidden md:block sticky top-4 self-start">
           <div className="rounded-3xl p-5 border flex flex-col items-center gap-4"
             style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
             <h3 className="font-display text-base text-gray-700 dark:text-gray-200">Your Buddy</h3>
@@ -150,7 +225,7 @@ export default function ShopPage() {
                     onClick={() => {
                       const next = { ...equipped, skin: st.id };
                       setEquipped(next);
-                      api.post('/users/equip-item', { category: 'skin', itemId: st.id }).catch(()=>{});
+                      api.post('/users/equip-item', { category:'skin', itemId: st.id }).catch(()=>{});
                     }}
                     title={st.name}
                     className={`w-7 h-7 rounded-full border-2 transition-all
@@ -177,27 +252,31 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* ── Items grid ───────────────────────────────── */}
+        {/* ── Items panel ──────────────────────────────── */}
         <div>
-          {/* Category filter */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none mb-4">
+          {/* Category filter pills — scrollable */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
             {CATEGORIES.map(c => (
               <button key={c.key} onClick={() => setCategory(c.key)}
-                className={`px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap flex-shrink-0 transition-all
-                  ${category === c.key ? 'bg-sky text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-sky/10 hover:text-sky'}`}>
-                {c.label}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl text-sm font-bold
+                            whitespace-nowrap flex-shrink-0 transition-all
+                  ${category === c.key
+                    ? 'bg-sky text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-sky/10 hover:text-sky'
+                  }`}>
+                <span>{c.emoji}</span>
+                <span>{c.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Items */}
+          {/* Items grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {items.map(item => {
               const isOwned   = owned(item.id);
               const isEq      = isEquipped(item);
-              const unlockAch = item.earnedBy;
               const hasAch    = user?.achievements?.includes(item.earnedBy);
-              const freeByAch = unlockAch && !isOwned && hasAch;
+              const freeByAch = item.earnedBy && !isOwned && hasAch;
 
               return (
                 <div key={item.id}
@@ -210,20 +289,21 @@ export default function ShopPage() {
                     }`}
                   style={{ background: isEq || isOwned ? undefined : 'var(--bg-card-grad)' }}>
 
-                  {/* Preview */}
-                  <div className="text-3xl">{item.preview}</div>
+                  {/* Preview emoji */}
+                  <div className="text-3xl leading-none">{item.preview}</div>
 
                   {/* Name */}
-                  <p className="font-bold text-xs text-center text-gray-700 dark:text-gray-200 leading-tight">
+                  <p className="font-bold text-xs text-center text-gray-700 dark:text-gray-200 leading-tight w-full">
                     {item.name}
                   </p>
 
-                  {/* Achievement unlock badge */}
+                  {/* Achievement badge */}
                   {item.earnedBy && (
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold
-                      ${hasAch ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                                : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
-                      🏅 {hasAch ? 'Achievement' : 'Locked'}
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold leading-tight text-center
+                      ${hasAch
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
+                      {hasAch ? '🏅 Achievement' : '🔒 Locked'}
                     </span>
                   )}
 
@@ -232,32 +312,28 @@ export default function ShopPage() {
                     <button
                       onClick={() => handleEquip(item)}
                       disabled={!!equipping}
-                      className={`w-full py-1.5 rounded-xl text-xs font-bold transition-all
+                      className={`w-full py-2 rounded-xl text-xs font-bold transition-all
                         ${isEq
-                          ? 'bg-sky text-white hover:bg-sky/80'
+                          ? 'bg-sky text-white'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-sky/10 hover:text-sky'
                         }`}>
-                      {equipping === item.id ? '...' : isEq ? '✓ Equipped' : 'Equip'}
+                      {equipping === item.id ? '…' : isEq ? '✓ Equipped' : 'Equip'}
                     </button>
                   ) : freeByAch ? (
-                    <button onClick={() => handleBuy({ ...item, cost: 0 })}
-                      disabled={!!buying}
-                      className="w-full py-1.5 rounded-xl text-xs font-bold bg-amber-400 text-white hover:bg-amber-500 transition-all">
-                      {buying === item.id ? '...' : '🎁 Claim Free!'}
+                    <button onClick={() => handleBuy({ ...item, cost: 0 })} disabled={!!buying}
+                      className="w-full py-2 rounded-xl text-xs font-bold bg-amber-400 text-white hover:bg-amber-500 transition-all">
+                      {buying === item.id ? '…' : '🎁 Claim Free'}
                     </button>
                   ) : (
                     <button
                       onClick={() => handleBuy(item)}
                       disabled={!!buying || !canBuy(item)}
-                      className={`w-full py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all
+                      className={`w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all
                         ${canBuy(item)
                           ? 'bg-amber-400 text-white hover:bg-amber-500'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                         }`}>
-                      {buying === item.id
-                        ? '...'
-                        : <><span>🪙</span><span>{item.cost}</span></>
-                      }
+                      {buying === item.id ? '…' : <><span>🪙</span><span>{item.cost}</span></>}
                     </button>
                   )}
                 </div>
@@ -268,23 +344,23 @@ export default function ShopPage() {
       </div>
 
       {/* ── How to earn coins ─────────────────────────────── */}
-      <div className="rounded-3xl p-5 border mt-2"
+      <div className="rounded-3xl p-4 md:p-5 border"
         style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
-        <h3 className="font-display text-lg text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
-          <span>🪙</span> How to Earn Coins
+        <h3 className="font-display text-base md:text-lg text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+          🪙 How to Earn Coins
         </h3>
         <div className="grid sm:grid-cols-3 gap-3">
           {[
-            { icon:'🎮', title:'Play Activities',  desc:'Earn coins equal to 1.5× your XP reward' },
+            { icon:'🎮', title:'Play Activities',     desc:'Earn coins equal to 1.5× your XP reward' },
             { icon:'🏆', title:'Unlock Achievements', desc:'Bonus coins for each achievement unlocked' },
-            { icon:'🎀', title:'Achievement Items', desc:'Some items are free when you earn their achievement' },
+            { icon:'🎀', title:'Achievement Items',   desc:'Some items are free when you earn their achievement' },
           ].map(({ icon, title, desc }) => (
             <div key={title} className="flex items-start gap-3 p-3 rounded-2xl"
               style={{ background:'var(--bg-primary)', border:'1px solid var(--border-color)' }}>
-              <span className="text-2xl flex-shrink-0">{icon}</span>
+              <span className="text-xl flex-shrink-0">{icon}</span>
               <div>
                 <p className="font-bold text-sm text-gray-700 dark:text-gray-200">{title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                <p className="text-xs text-gray-400 mt-0.5 leading-snug">{desc}</p>
               </div>
             </div>
           ))}
