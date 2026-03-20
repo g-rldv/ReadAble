@@ -1,5 +1,5 @@
 // ============================================================
-// Settings & Users Routes
+// Settings & Users Routes — includes wardrobe & shop endpoints
 // ============================================================
 const settingsRouter  = require('express').Router();
 const usersRouter     = require('express').Router();
@@ -80,12 +80,85 @@ usersRouter.get('/leaderboard', async (req, res) => {
   }
 });
 
-// ── GET /api/users/:username/stats — public profile for leaderboard modal ──
+// ── GET /api/users/wardrobe — fetch wardrobe + equipped ───────
+usersRouter.get('/wardrobe', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT wardrobe, equipped FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    const { wardrobe, equipped } = result.rows[0] || {};
+    res.json({ wardrobe: wardrobe || [], equipped: equipped || {} });
+  } catch (err) {
+    console.error('[Users/Wardrobe]', err.message);
+    res.status(500).json({ error: 'Failed to fetch wardrobe' });
+  }
+});
+
+// ── POST /api/users/buy-item ──────────────────────────────────
+usersRouter.post('/buy-item', requireAuth, async (req, res) => {
+  try {
+    const { itemId, cost } = req.body;
+    if (!itemId) return res.status(400).json({ error: 'itemId required' });
+
+    const userResult = await pool.query(
+      'SELECT coins, wardrobe FROM users WHERE id=$1', [req.user.id]
+    );
+    const user = userResult.rows[0];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const itemCost = parseInt(cost) || 0;
+    const owned    = user.wardrobe || [];
+
+    if (owned.includes(itemId)) {
+      return res.status(409).json({ error: 'Item already owned' });
+    }
+    if ((user.coins || 0) < itemCost) {
+      return res.status(402).json({ error: 'Not enough coins' });
+    }
+
+    await pool.query(
+      `UPDATE users
+         SET coins    = COALESCE(coins,0) - $1,
+             wardrobe = wardrobe || $2::jsonb
+       WHERE id=$3`,
+      [itemCost, JSON.stringify([itemId]), req.user.id]
+    );
+
+    const updated = await pool.query('SELECT coins FROM users WHERE id=$1', [req.user.id]);
+    res.json({ success: true, itemId, coins: updated.rows[0].coins });
+  } catch (err) {
+    console.error('[Users/BuyItem]', err.message);
+    res.status(500).json({ error: 'Purchase failed' });
+  }
+});
+
+// ── POST /api/users/equip-item ────────────────────────────────
+usersRouter.post('/equip-item', requireAuth, async (req, res) => {
+  try {
+    const { category, itemId } = req.body;
+    if (!category || !itemId) return res.status(400).json({ error: 'category and itemId required' });
+
+    // Merge into existing equipped JSONB
+    await pool.query(
+      `UPDATE users
+         SET equipped = COALESCE(equipped, '{}'::jsonb) || jsonb_build_object($1::text, $2::text)
+       WHERE id=$3`,
+      [category, itemId, req.user.id]
+    );
+    res.json({ success: true, category, itemId });
+  } catch (err) {
+    console.error('[Users/EquipItem]', err.message);
+    res.status(500).json({ error: 'Failed to equip item' });
+  }
+});
+
+// ── GET /api/users/:username/stats ───────────────────────────
 usersRouter.get('/:username/stats', async (req, res) => {
   try {
     const { username } = req.params;
     const userResult = await pool.query(
-      `SELECT id, username, level, xp, streak, achievements, avatar, created_at
+      `SELECT id, username, level, xp, streak, achievements, avatar, equipped, created_at
        FROM users WHERE username = $1`,
       [username]
     );
