@@ -101,6 +101,66 @@ function AuthInput({ label, type='text', value, onChange, placeholder, name, ico
   );
 }
 
+// ── Sign-In loading overlay ───────────────────────────────────
+// Shown inside the modal card while the login request is in-flight.
+// Three bouncing dots + a cycling tip keep it feeling alive.
+const SIGN_IN_TIPS = [
+  '📚 Loading your books…',
+  '🏆 Fetching your achievements…',
+  '⭐ Counting your XP…',
+  '🎮 Warming up your games…',
+];
+function SignInLoadingOverlay() {
+  const [tipIdx, setTipIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTipIdx(i => (i + 1) % SIGN_IN_TIPS.length), 1100);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="flex flex-col items-center justify-center py-10 px-4 animate-fade-in">
+      {/* Bouncing dots */}
+      <div className="flex items-end gap-2 mb-6 h-8">
+        {[0, 1, 2].map(i => (
+          <span
+            key={i}
+            className="block w-3 h-3 rounded-full bg-sky"
+            style={{
+              animation: `signInBounce 0.9s ease-in-out infinite`,
+              animationDelay: `${i * 0.18}s`,
+            }}
+          />
+        ))}
+      </div>
+      {/* Animated progress bar */}
+      <div className="w-full max-w-[180px] h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden mb-5">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-sky to-indigo-400"
+          style={{ animation: 'signInBar 1.8s ease-in-out infinite' }}
+        />
+      </div>
+      {/* Cycling tip */}
+      <p
+        key={tipIdx}
+        className="text-sm font-semibold text-gray-500 dark:text-gray-400 animate-fade-in text-center"
+      >
+        {SIGN_IN_TIPS[tipIdx]}
+      </p>
+      {/* Inline keyframes injected once */}
+      <style>{`
+        @keyframes signInBounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+          40%            { transform: translateY(-14px); opacity: 1; }
+        }
+        @keyframes signInBar {
+          0%   { width: 0%;    margin-left: 0; }
+          50%  { width: 70%;   margin-left: 0; }
+          100% { width: 0%;    margin-left: 100%; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ── Sign-In Modal ─────────────────────────────────────────────
 function SignInModal({ onClose, onSwitchToRegister }) {
   const { login } = useAuth();
@@ -140,25 +200,30 @@ function SignInModal({ onClose, onSwitchToRegister }) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onClick={e => { if (e.target === e.currentTarget && !loading) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-1">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
-              <BookOpen size={16} className="text-white" />
+        {/* Header — hidden while loading so overlay gets full space */}
+        {!loading && (
+          <div className="flex items-center justify-between px-5 pt-5 pb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
+                <BookOpen size={16} className="text-white" />
+              </div>
+              <span className="font-display text-lg text-sky">ReadAble</span>
             </div>
-            <span className="font-display text-lg text-sky">ReadAble</span>
+            <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <X size={18} className="text-gray-400" />
+            </button>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-            <X size={18} className="text-gray-400" />
-          </button>
-        </div>
+        )}
 
         <div className="px-6 pb-6 pt-3">
-          {showForgot ? (
+          {/* ── Loading overlay replaces form content ── */}
+          {loading ? (
+            <SignInLoadingOverlay />
+          ) : showForgot ? (
             <div className="animate-fade-in">
               <button onClick={() => { setShowForgot(false); setForgotSent(false); }}
                 className="text-xs font-semibold text-gray-400 hover:text-sky mb-4 flex items-center gap-1 transition-colors">
@@ -209,7 +274,7 @@ function SignInModal({ onClose, onSwitchToRegister }) {
                 </div>
                 <button type="submit" disabled={loading}
                   className="btn-game w-full bg-sky text-white text-sm disabled:opacity-60">
-                  {loading ? 'Signing in…' : 'Sign In'}
+                  Sign In
                 </button>
               </form>
               <p className="text-center text-xs text-gray-500 mt-4">
