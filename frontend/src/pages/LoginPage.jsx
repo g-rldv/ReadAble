@@ -1,25 +1,25 @@
 // ============================================================
 // LoginPage + RegisterPage
-// • Registration:     form → email OTP → account created
-// • Forgot password:  email → OTP → new password → done
+// LoginPage   — sign in + forgot password (email→OTP→new pass)
+// RegisterPage — fill form → verify email OTP → account created
 // ============================================================
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import {
-  Eye, EyeOff, ArrowLeft, BookOpen, Mail, Lock, User,
-  Check, RefreshCw, ShieldCheck,
+  Eye, EyeOff, ArrowLeft, BookOpen,
+  Mail, Lock, User, Check, RefreshCw, ShieldCheck,
 } from 'lucide-react';
 
-// ── Shared layout wrapper ─────────────────────────────────────
+// ── Shared layout ─────────────────────────────────────────────
 function AuthLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-primary)' }}>
       <div className="flex-shrink-0 px-6 pt-5 pb-2">
         <Link to="/"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400
-                     hover:text-sky transition-colors group">
+          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500
+                     dark:text-gray-400 hover:text-sky transition-colors group">
           <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
           Back to Home
         </Link>
@@ -42,10 +42,10 @@ function AuthLayout({ children }) {
   );
 }
 
-// ── Reusable input ────────────────────────────────────────────
+// ── Text input ────────────────────────────────────────────────
 function Input({ label, type = 'text', value, onChange, placeholder, name, required, icon: Icon, error }) {
   const [show, setShow] = useState(false);
-  const isPassword = type === 'password';
+  const isPwd = type === 'password';
   return (
     <div className="mb-4">
       <label className="block text-sm font-bold mb-1.5 text-gray-700 dark:text-gray-300">{label}</label>
@@ -57,7 +57,7 @@ function Input({ label, type = 'text', value, onChange, placeholder, name, requi
         )}
         <input
           name={name}
-          type={isPassword ? (show ? 'text' : 'password') : type}
+          type={isPwd ? (show ? 'text' : 'password') : type}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
@@ -66,9 +66,11 @@ function Input({ label, type = 'text', value, onChange, placeholder, name, requi
                       bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white
                       focus:bg-white dark:focus:bg-gray-700
                       ${Icon ? 'pl-9' : ''}
-                      ${error ? 'border-rose-400' : 'border-gray-200 dark:border-gray-600 focus:border-sky'}`}
+                      ${error
+                        ? 'border-rose-400'
+                        : 'border-gray-200 dark:border-gray-600 focus:border-sky'}`}
         />
-        {isPassword && (
+        {isPwd && (
           <button type="button" onClick={() => setShow(s => !s)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
             {show ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -80,15 +82,14 @@ function Input({ label, type = 'text', value, onChange, placeholder, name, requi
   );
 }
 
-// ── OTP Input — 6 individual digit boxes ─────────────────────
+// ── OTP — 6 individual digit boxes ───────────────────────────
 function OTPInput({ value, onChange }) {
   const inputs = useRef([]);
   const digits = Array.from({ length: 6 }, (_, i) => value[i] || '');
 
   const handleChange = (e, idx) => {
     const char = e.target.value.replace(/\D/g, '').slice(-1);
-    const next = [...digits];
-    next[idx]  = char;
+    const next = [...digits]; next[idx] = char;
     onChange(next.join(''));
     if (char && idx < 5) inputs.current[idx + 1]?.focus();
   };
@@ -96,10 +97,10 @@ function OTPInput({ value, onChange }) {
   const handleKey = (e, idx) => {
     if (e.key === 'Backspace') {
       if (digits[idx]) {
-        const next = [...digits]; next[idx] = ''; onChange(next.join(''));
+        const n = [...digits]; n[idx] = ''; onChange(n.join(''));
       } else if (idx > 0) {
         inputs.current[idx - 1]?.focus();
-        const next = [...digits]; next[idx - 1] = ''; onChange(next.join(''));
+        const n = [...digits]; n[idx - 1] = ''; onChange(n.join(''));
       }
     }
     if (e.key === 'ArrowLeft'  && idx > 0) inputs.current[idx - 1]?.focus();
@@ -107,10 +108,10 @@ function OTPInput({ value, onChange }) {
   };
 
   const handlePaste = (e) => {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!pasted) return;
-    onChange(pasted.padEnd(6, '').slice(0, 6));
-    inputs.current[Math.min(pasted.length, 5)]?.focus();
+    const p = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!p) return;
+    onChange(p.padEnd(6, '').slice(0, 6));
+    inputs.current[Math.min(p.length, 5)]?.focus();
   };
 
   return (
@@ -127,8 +128,7 @@ function OTPInput({ value, onChange }) {
           onKeyDown={e => handleKey(e, i)}
           onPaste={i === 0 ? handlePaste : undefined}
           className="w-11 h-14 text-center text-2xl font-bold rounded-2xl border-2 outline-none
-                     transition-all select-none
-                     bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white
+                     transition-all bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white
                      focus:border-sky focus:bg-white dark:focus:bg-gray-700 focus:scale-105
                      border-gray-200 dark:border-gray-600"
         />
@@ -137,59 +137,59 @@ function OTPInput({ value, onChange }) {
   );
 }
 
-// ── Forgot / Reset Password View ──────────────────────────────
+// ── Resend cooldown hook ──────────────────────────────────────
+function useResendCooldown() {
+  const [cd, setCd] = useState(0);
+  const start = () => {
+    setCd(60);
+    const iv = setInterval(() => setCd(c => { if (c <= 1) { clearInterval(iv); return 0; } return c - 1; }), 1000);
+  };
+  return [cd, start];
+}
+
+// ── Forgot Password ───────────────────────────────────────────
 // Steps: 'email' → 'otp' → 'newpass' → 'done'
 function ForgotPasswordView({ onBack }) {
-  const [step,        setStep]        = useState('email');
-  const [email,       setEmail]       = useState('');
-  const [otp,         setOtp]         = useState('');
-  const [otpError,    setOtpError]    = useState('');
-  const [newPass,     setNewPass]     = useState('');
-  const [confirmPass, setConfirmPass] = useState('');
-  const [passError,   setPassError]   = useState('');
-  const [loading,     setLoading]     = useState(false);
-  const [resendCd,    setResendCd]    = useState(0);
+  const [step,     setStep]     = useState('email');
+  const [email,    setEmail]    = useState('');
+  const [otp,      setOtp]      = useState('');
+  const [otpErr,   setOtpErr]   = useState('');
+  const [newPass,  setNewPass]  = useState('');
+  const [confirm,  setConfirm]  = useState('');
+  const [passErr,  setPassErr]  = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [resendCd, startResend] = useResendCooldown();
 
-  // ── Step 1: send OTP ─────────────────────────────────────
+  // Step 1 — send OTP
   const sendOTP = async (e) => {
     e?.preventDefault();
     if (!email.trim()) return;
     setLoading(true);
     try {
       await api.post('/auth/send-otp', { email: email.trim(), type: 'reset' });
-      setStep('otp');
-      startResendCooldown();
-    } catch (err) {
-      // Even on error we show the same neutral message
-      setStep('otp');
-      startResendCooldown();
+    } catch (_) {
+      // always advance — prevents account enumeration
     } finally {
       setLoading(false);
+      setStep('otp');
+      startResend();
     }
   };
 
-  const startResendCooldown = () => {
-    setResendCd(60);
-    const iv = setInterval(() => {
-      setResendCd(c => { if (c <= 1) { clearInterval(iv); return 0; } return c - 1; });
-    }, 1000);
-  };
-
-  // ── Step 2: proceed after OTP entered ───────────────────
-  const submitOTP = (e) => {
+  // Step 2 — verify digits
+  const verifyOTP = (e) => {
     e.preventDefault();
-    if (otp.length < 6) { setOtpError('Please enter all 6 digits.'); return; }
-    setOtpError('');
+    if (otp.length < 6) { setOtpErr('Please enter all 6 digits.'); return; }
+    setOtpErr('');
     setStep('newpass');
   };
 
-  // ── Step 3: reset password ───────────────────────────────
-  const submitNewPass = async (e) => {
+  // Step 3 — set new password
+  const resetPassword = async (e) => {
     e.preventDefault();
-    if (newPass.length < 6) { setPassError('Password must be at least 6 characters.'); return; }
-    if (newPass !== confirmPass) { setPassError('Passwords do not match.'); return; }
-    setPassError('');
-    setLoading(true);
+    if (newPass.length < 6)      { setPassErr('Password must be at least 6 characters.'); return; }
+    if (newPass !== confirm)      { setPassErr('Passwords do not match.'); return; }
+    setPassErr(''); setLoading(true);
     try {
       await api.post('/auth/reset-password', {
         email: email.trim(), otp_code: otp, new_password: newPass,
@@ -198,25 +198,24 @@ function ForgotPasswordView({ onBack }) {
     } catch (err) {
       const msg = err.message || '';
       if (/invalid|expired|code/i.test(msg)) {
-        setPassError('');
-        setOtpError(msg);
-        setStep('otp');       // send user back to re-enter OTP
+        setOtpErr(msg);
+        setStep('otp');
       } else {
-        setPassError(msg || 'Something went wrong. Please try again.');
+        setPassErr(msg || 'Something went wrong. Please try again.');
       }
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
     <div className="animate-fade-in">
       <button onClick={onBack}
-        className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-sky mb-5 transition-colors group">
-        <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" /> Back to Sign In
+        className="flex items-center gap-1.5 text-xs font-semibold text-gray-400
+                   hover:text-sky mb-5 transition-colors group">
+        <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
+        Back to Sign In
       </button>
 
-      {/* ── Step 1: email ────────────────────────────────── */}
+      {/* ── Step 1: email ─────────────────────────────── */}
       {step === 'email' && (
         <>
           <h2 className="font-display text-2xl text-gray-900 dark:text-white mb-1">Forgot Password</h2>
@@ -227,7 +226,7 @@ function ForgotPasswordView({ onBack }) {
             <Input label="Email address" type="email" name="email" value={email}
               onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
               icon={Mail} required />
-            <button type="submit" disabled={loading}
+            <button type="submit" disabled={loading || !email.trim()}
               className="btn-game w-full bg-sky text-white text-base mt-2 disabled:opacity-60">
               {loading ? 'Sending…' : 'Send Reset Code'}
             </button>
@@ -235,23 +234,22 @@ function ForgotPasswordView({ onBack }) {
         </>
       )}
 
-      {/* ── Step 2: OTP entry ────────────────────────────── */}
+      {/* ── Step 2: OTP ───────────────────────────────── */}
       {step === 'otp' && (
         <>
           <div className="flex items-center gap-2 mb-1">
-            <ShieldCheck size={20} className="text-sky" />
+            <ShieldCheck size={20} className="text-sky flex-shrink-0" />
             <h2 className="font-display text-2xl text-gray-900 dark:text-white">Check your email</h2>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            We sent a 6-digit code to <strong className="text-gray-700 dark:text-gray-200">{email}</strong>.
+            We sent a 6-digit code to{' '}
+            <strong className="text-gray-700 dark:text-gray-200">{email}</strong>.
             It expires in 10 minutes.
           </p>
-          <form onSubmit={submitOTP}>
-            <div className="mb-4">
-              <OTPInput value={otp} onChange={v => { setOtp(v); setOtpError(''); }} />
-              {otpError && (
-                <p className="text-xs text-rose-500 mt-2 text-center">{otpError}</p>
-              )}
+          <form onSubmit={verifyOTP}>
+            <div className="mb-5">
+              <OTPInput value={otp} onChange={v => { setOtp(v); setOtpErr(''); }} />
+              {otpErr && <p className="text-xs text-rose-500 mt-2 text-center">{otpErr}</p>}
             </div>
             <button type="submit" disabled={otp.length < 6}
               className="btn-game w-full bg-sky text-white text-base disabled:opacity-50">
@@ -259,33 +257,32 @@ function ForgotPasswordView({ onBack }) {
             </button>
           </form>
           <div className="text-center mt-4">
-            {resendCd > 0 ? (
-              <p className="text-xs text-gray-400">Resend available in {resendCd}s</p>
-            ) : (
-              <button onClick={sendOTP}
-                className="text-xs font-semibold text-sky hover:underline flex items-center gap-1 mx-auto">
-                <RefreshCw size={11} /> Resend code
-              </button>
-            )}
+            {resendCd > 0
+              ? <p className="text-xs text-gray-400">Resend available in {resendCd}s</p>
+              : <button onClick={sendOTP}
+                  className="text-xs font-semibold text-sky hover:underline inline-flex items-center gap-1">
+                  <RefreshCw size={11} /> Resend code
+                </button>
+            }
           </div>
         </>
       )}
 
-      {/* ── Step 3: new password ─────────────────────────── */}
+      {/* ── Step 3: new password ──────────────────────── */}
       {step === 'newpass' && (
         <>
           <h2 className="font-display text-2xl text-gray-900 dark:text-white mb-1">New Password</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Choose a new password for your account.
           </p>
-          <form onSubmit={submitNewPass}>
-            <Input label="New password" type="password" name="newpass" value={newPass}
+          <form onSubmit={resetPassword}>
+            <Input label="New password" type="password" name="np" value={newPass}
               onChange={e => setNewPass(e.target.value)}
               placeholder="At least 6 characters" icon={Lock} required />
-            <Input label="Confirm new password" type="password" name="confirm" value={confirmPass}
-              onChange={e => setConfirmPass(e.target.value)}
+            <Input label="Confirm new password" type="password" name="cp" value={confirm}
+              onChange={e => setConfirm(e.target.value)}
               placeholder="Repeat your new password" icon={Lock} required
-              error={passError} />
+              error={passErr} />
             <button type="submit" disabled={loading}
               className="btn-game w-full bg-sky text-white text-base mt-2 disabled:opacity-60">
               {loading ? 'Resetting…' : 'Reset Password'}
@@ -294,15 +291,15 @@ function ForgotPasswordView({ onBack }) {
         </>
       )}
 
-      {/* ── Step 4: done ─────────────────────────────────── */}
+      {/* ── Step 4: done ──────────────────────────────── */}
       {step === 'done' && (
-        <div className="text-center py-4">
-          <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30
+        <div className="text-center py-6">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30
                           flex items-center justify-center mx-auto mb-4">
-            <Check size={28} className="text-emerald-500" />
+            <Check size={32} className="text-emerald-500" />
           </div>
-          <h3 className="font-display text-xl text-gray-800 dark:text-gray-100 mb-2">Password reset!</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          <h3 className="font-display text-2xl text-gray-800 dark:text-gray-100 mb-2">Password reset!</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Your password has been updated. You can now sign in.
           </p>
           <button onClick={onBack} className="text-sm font-bold text-sky hover:underline">
@@ -382,18 +379,18 @@ export function LoginPage() {
 }
 
 // ── Register Page ─────────────────────────────────────────────
-// Step 'form' → validate → send OTP → step 'otp' → register
+// Step 'form' → send OTP → step 'otp' → create account
 export function RegisterPage() {
   const { register } = useAuth();
   const navigate     = useNavigate();
 
-  const [step,    setStep]    = useState('form'); // 'form' | 'otp'
-  const [form,    setForm]    = useState({ username: '', email: '', password: '', confirm: '' });
-  const [errors,  setErrors]  = useState({});
-  const [loading, setLoading] = useState(false);
-  const [otp,     setOtp]     = useState('');
-  const [otpErr,  setOtpErr]  = useState('');
-  const [resendCd,setResendCd]= useState(0);
+  const [step,     setStep]     = useState('form');
+  const [form,     setForm]     = useState({ username: '', email: '', password: '', confirm: '' });
+  const [errors,   setErrors]   = useState({});
+  const [loading,  setLoading]  = useState(false);
+  const [otp,      setOtp]      = useState('');
+  const [otpErr,   setOtpErr]   = useState('');
+  const [resendCd, startResend] = useResendCooldown();
 
   const handle = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -409,7 +406,7 @@ export function RegisterPage() {
     return e;
   };
 
-  // ── Step 1: validate then send OTP ───────────────────────
+  // Step 1: validate then send OTP
   const submitForm = async (e) => {
     e.preventDefault();
     const errs = validate();
@@ -418,7 +415,7 @@ export function RegisterPage() {
     try {
       await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' });
       setStep('otp');
-      startResendCooldown();
+      startResend();
     } catch (err) {
       const msg = err.message || '';
       if (/already exists/i.test(msg)) setErrors({ email: 'An account with that email already exists.' });
@@ -426,24 +423,17 @@ export function RegisterPage() {
     } finally { setLoading(false); }
   };
 
-  const startResendCooldown = () => {
-    setResendCd(60);
-    const iv = setInterval(() => {
-      setResendCd(c => { if (c <= 1) { clearInterval(iv); return 0; } return c - 1; });
-    }, 1000);
-  };
-
   const resendOTP = async () => {
     setLoading(true);
     try {
       await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' });
-      startResendCooldown();
+      startResend();
       setOtpErr('');
     } catch (_) {}
     finally { setLoading(false); }
   };
 
-  // ── Step 2: verify OTP + create account ──────────────────
+  // Step 2: verify OTP then create account
   const submitOTP = async (e) => {
     e.preventDefault();
     if (otp.length < 6) { setOtpErr('Please enter all 6 digits.'); return; }
@@ -453,9 +443,10 @@ export function RegisterPage() {
       navigate('/dashboard', { replace: true });
     } catch (err) {
       const msg = err.message || '';
-      if (/invalid|expired|code/i.test(msg)) setOtpErr(msg || 'Invalid or expired code.');
-      else if (/username.*taken/i.test(msg))  setErrors({ username: 'That username is already taken.' });
-      else                                   setOtpErr(msg || 'Something went wrong. Please try again.');
+      if (/invalid|expired|code/i.test(msg))   setOtpErr(msg || 'Invalid or expired code.');
+      else if (/username.*taken/i.test(msg))    setErrors({ username: 'That username is already taken.' });
+      else if (/email.*taken/i.test(msg))       setErrors({ email: 'An account with that email already exists.' });
+      else                                      setOtpErr(msg || 'Something went wrong. Please try again.');
     } finally { setLoading(false); }
   };
 
@@ -465,7 +456,9 @@ export function RegisterPage() {
         <>
           <div className="text-center mb-6">
             <h1 className="font-display text-2xl text-gray-900 dark:text-white">Join ReadAble!</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Create your free account in 30 seconds</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Create your free account in 30 seconds
+            </p>
           </div>
           <form onSubmit={submitForm}>
             <Input label="Username" name="username" value={form.username} onChange={handle}
@@ -497,12 +490,14 @@ export function RegisterPage() {
       {step === 'otp' && (
         <div className="animate-fade-in">
           <button onClick={() => { setStep('form'); setOtp(''); setOtpErr(''); }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-sky mb-5 transition-colors group">
-            <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" /> Edit details
+            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400
+                       hover:text-sky mb-5 transition-colors group">
+            <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
+            Edit details
           </button>
 
           <div className="flex items-center gap-2 mb-1">
-            <ShieldCheck size={20} className="text-coral" />
+            <ShieldCheck size={20} className="text-coral flex-shrink-0" />
             <h2 className="font-display text-2xl text-gray-900 dark:text-white">Verify your email</h2>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
@@ -514,9 +509,7 @@ export function RegisterPage() {
           <form onSubmit={submitOTP}>
             <div className="mb-5">
               <OTPInput value={otp} onChange={v => { setOtp(v); setOtpErr(''); }} />
-              {otpErr && (
-                <p className="text-xs text-rose-500 mt-2 text-center">{otpErr}</p>
-              )}
+              {otpErr && <p className="text-xs text-rose-500 mt-2 text-center">{otpErr}</p>}
             </div>
             <button type="submit" disabled={otp.length < 6 || loading}
               className="btn-game w-full bg-coral text-white text-base disabled:opacity-50">
@@ -525,14 +518,13 @@ export function RegisterPage() {
           </form>
 
           <div className="text-center mt-4">
-            {resendCd > 0 ? (
-              <p className="text-xs text-gray-400">Resend available in {resendCd}s</p>
-            ) : (
-              <button onClick={resendOTP} disabled={loading}
-                className="text-xs font-semibold text-sky hover:underline flex items-center gap-1 mx-auto">
-                <RefreshCw size={11} /> Resend code
-              </button>
-            )}
+            {resendCd > 0
+              ? <p className="text-xs text-gray-400">Resend available in {resendCd}s</p>
+              : <button onClick={resendOTP} disabled={loading}
+                  className="text-xs font-semibold text-sky hover:underline inline-flex items-center gap-1">
+                  <RefreshCw size={11} /> Resend code
+                </button>
+            }
           </div>
         </div>
       )}
