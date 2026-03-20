@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { to:'/leaderboard', icon:Trophy,          label:'Leaderboard' },
   { to:'/profile',     icon:User,            label:'My Profile'  },
   { to:'/settings',    icon:Settings,        label:'Settings'    },
+  { to:'/shop', icon:ShoppingBag, label:'Shop' }
 ];
 
 function SidebarAvatar({ avatar, username }) {
@@ -307,6 +308,10 @@ export default function AppLayout() {
             isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen}
             onLogoutClick={() => { closeDrawer(); setShowLogoutModal(true); }}
             onClose={closeDrawer}
+        <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-1 flex-shrink-0">
+            <span className="text-xs">🪙</span>
+            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.coins || 0}</span>
+            </div>
           />
         </div>
       </div>
