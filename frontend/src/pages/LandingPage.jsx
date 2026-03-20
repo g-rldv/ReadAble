@@ -483,10 +483,10 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)', overflowX: 'hidden' }}>
 
       {/* ── Nav ─────────────────────────────────────────── */}
-      <nav className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto">
+      <nav className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto w-full">
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
@@ -530,8 +530,8 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-8 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-        <div className="animate-slide-up">
+      <section className="max-w-6xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-8 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center" style={{ overflowX: 'hidden' }}>
+        <div className="animate-slide-up w-full min-w-0">
           <div className="inline-flex items-center gap-2 bg-sunny/20 text-yellow-700 dark:text-yellow-300 px-4 py-1.5 rounded-full text-sm font-bold mb-5">
             <Zap size={14} className="fill-current" /> Made for everyone
           </div>
@@ -574,8 +574,8 @@ export default function LandingPage() {
         </div>
 
         {/* ── Trial game ──────────────────────────────────── */}
-        <div className="animate-pop">
-          <div className="rounded-3xl p-4 md:p-6 shadow-xl border-2 border-sky/20"
+        <div className="animate-pop w-full min-w-0">
+          <div className="rounded-3xl p-4 md:p-6 shadow-xl border-2 border-sky/20 overflow-hidden w-full"
             style={{ background: 'var(--bg-card-grad)' }}>
 
             {/* FIX: header row — tighter text sizing & proper alignment */}
@@ -680,7 +680,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
+      <section className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16" style={{ overflowX: 'hidden' }}>
         <h2 className="font-display text-3xl md:text-4xl text-center mb-8 md:mb-12 text-gray-800 dark:text-gray-200">
           Why learners love ReadAble
         </h2>
@@ -699,7 +699,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ─────────────────────────────────────────── */}
-      <section className="max-w-2xl mx-auto px-6 pb-20 text-center">
+      <section className="max-w-2xl mx-auto px-4 pb-20 text-center">
         <div className="rounded-3xl p-10 bg-gradient-to-br from-sky to-mint text-white">
           <h2 className="font-display text-4xl mb-3">Ready to start reading?</h2>
           <p className="mb-6 opacity-90">Join thousands of learners improving every day!</p>
