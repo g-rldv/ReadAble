@@ -125,10 +125,22 @@ async function setupDatabase() {
         condition   JSONB NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS otps (
+          id         SERIAL PRIMARY KEY,
+          email      VARCHAR(255) NOT NULL,
+          otp_code   VARCHAR(6)   NOT NULL,
+          type       VARCHAR(20)  NOT NULL,   -- 'register' | 'reset'
+          expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+          used       BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+
       CREATE INDEX IF NOT EXISTS idx_up_user     ON user_progress(user_id);
       CREATE INDEX IF NOT EXISTS idx_up_activity ON user_progress(activity_id);
       CREATE INDEX IF NOT EXISTS idx_act_diff    ON activities(difficulty);
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_otps_email ON otps(email, type);
+
     `);
 
     console.log('[DB] ✅ Tables ready');
