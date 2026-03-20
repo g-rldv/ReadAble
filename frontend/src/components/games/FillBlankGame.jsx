@@ -1,6 +1,7 @@
 // ============================================================
 // FillBlankGame — tap options to fill sentence blanks
-// Fully responsive — large tap targets for mobile
+// FIX: options come from content.sentences[activeIdx].options
+//      (each sentence has its own option set in the seed data)
 // ============================================================
 import React, { useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -12,11 +13,14 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
   const [answers,   setAnswers]   = useState(new Array(content.sentences.length).fill(''));
   const [activeIdx, setActiveIdx] = useState(0);
 
+  // Options for the currently active sentence
+  const activeOptions = content.sentences[activeIdx]?.options || [];
+
   const pickAnswer = (opt) => {
     const next = [...answers];
     next[activeIdx] = opt;
     setAnswers(next);
-    // Move to next unfilled
+    // Auto-advance to next unfilled blank
     const nextEmpty = next.findIndex((a, i) => i > activeIdx && !a);
     if (nextEmpty !== -1) setActiveIdx(nextEmpty);
   };
@@ -32,7 +36,9 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
     <div>
       {/* Instruction */}
       <div className="flex items-start justify-between gap-2 mb-4">
-        <p className="font-bold text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{content.instruction}</p>
+        <p className="font-bold text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+          {content.instruction}
+        </p>
         <button onClick={() => speak(content.instruction)}
           className="p-2 rounded-xl text-sky hover:bg-sky/10 flex-shrink-0">
           <Volume2 size={16}/>
@@ -80,16 +86,17 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
         })}
       </div>
 
-      {/* Option chips */}
+      {/* Option chips — from the ACTIVE sentence's options */}
       <div className="mb-5">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Choose a word:</p>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+          Choose a word for sentence {activeIdx + 1}:
+        </p>
         <div className="flex flex-wrap gap-2">
-          {content.options.map(opt => {
+          {activeOptions.map(opt => {
             const isChosen = answers[activeIdx] === opt;
             return (
               <button key={opt} onClick={() => pickAnswer(opt)}
                 className={`px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all min-h-[48px]
-                            
                   ${isChosen
                     ? 'bg-sky text-white border-sky'
                     : 'border-sky/40 text-sky hover:bg-sky/10 hover:border-sky'}`}>
