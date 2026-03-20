@@ -23,7 +23,7 @@ async function setupDatabase() {
   try {
     console.log('[DB] Running migrations…');
 
-    // Core tables
+    // ── Users ─────────────────────────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id            SERIAL PRIMARY KEY,
@@ -40,7 +40,7 @@ async function setupDatabase() {
       );
     `);
 
-    // Ensure avatar column is TEXT (migrates VARCHAR installations)
+    // Ensure avatar column is TEXT (migrates VARCHAR installs)
     await client.query(`
       DO $$ BEGIN
         IF EXISTS (
@@ -65,7 +65,52 @@ async function setupDatabase() {
       END $$;
     `);
 
-    // Add background music settings columns (idempotent)
+    // ── Activities ────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS activities (
+        id            SERIAL PRIMARY KEY,
+        title         VARCHAR(255) NOT NULL,
+        description   TEXT,
+        type          VARCHAR(50) NOT NULL,
+        difficulty    VARCHAR(20) DEFAULT 'easy',
+        content       JSONB NOT NULL,
+        correct_answer JSONB NOT NULL,
+        xp_reward     INTEGER DEFAULT 10,
+        created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    // ── User Progress ─────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_progress (
+        id          SERIAL PRIMARY KEY,
+        user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
+        score       INTEGER DEFAULT 0,
+        attempts    INTEGER DEFAULT 0,
+        completed   BOOLEAN DEFAULT FALSE,
+        feedback    TEXT,
+        last_played TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(user_id, activity_id)
+      );
+    `);
+
+    // ── Settings ──────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id          SERIAL PRIMARY KEY,
+        user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+        text_size   VARCHAR(20) DEFAULT 'medium',
+        theme       VARCHAR(20) DEFAULT 'light',
+        tts_enabled BOOLEAN DEFAULT TRUE,
+        tts_voice   VARCHAR(100) DEFAULT '',
+        tts_rate    FLOAT DEFAULT 0.9,
+        tts_pitch   FLOAT DEFAULT 1.0,
+        updated_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    // Add background music columns (idempotent)
     await client.query(`
       DO $$ BEGIN
         IF NOT EXISTS (
@@ -79,43 +124,8 @@ async function setupDatabase() {
       END $$;
     `);
 
+    // ── Achievements ──────────────────────────────────────────
     await client.query(`
-      CREATE TABLE IF NOT EXISTS activities (
-        id            SERIAL PRIMARY KEY,
-        title         VARCHAR(255) NOT NULL,
-        description   TEXT,
-        type          VARCHAR(50) NOT NULL,
-        difficulty    VARCHAR(20) DEFAULT 'easy',
-        content       JSONB NOT NULL,
-        correct_answer JSONB NOT NULL,
-        xp_reward     INTEGER DEFAULT 10,
-        created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-
-      CREATE TABLE IF NOT EXISTS user_progress (
-        id          SERIAL PRIMARY KEY,
-        user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
-        score       INTEGER DEFAULT 0,
-        attempts    INTEGER DEFAULT 0,
-        completed   BOOLEAN DEFAULT FALSE,
-        feedback    TEXT,
-        last_played TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        UNIQUE(user_id, activity_id)
-      );
-
-      CREATE TABLE IF NOT EXISTS settings (
-        id          SERIAL PRIMARY KEY,
-        user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
-        text_size   VARCHAR(20) DEFAULT 'medium',
-        theme       VARCHAR(20) DEFAULT 'light',
-        tts_enabled BOOLEAN DEFAULT TRUE,
-        tts_voice   VARCHAR(100) DEFAULT '',
-        tts_rate    FLOAT DEFAULT 0.9,
-        tts_pitch   FLOAT DEFAULT 1.0,
-        updated_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-
       CREATE TABLE IF NOT EXISTS achievements (
         id          SERIAL PRIMARY KEY,
         key         VARCHAR(50) UNIQUE NOT NULL,
@@ -124,28 +134,34 @@ async function setupDatabase() {
         icon        VARCHAR(10) NOT NULL,
         condition   JSONB NOT NULL
       );
+    `);
 
+    // ── OTPs — email verification for register & reset ────────
+    // This table is required for the OTP system to work.
+    await client.query(`
       CREATE TABLE IF NOT EXISTS otps (
-          id         SERIAL PRIMARY KEY,
-          email      VARCHAR(255) NOT NULL,
-          otp_code   VARCHAR(6)   NOT NULL,
-          type       VARCHAR(20)  NOT NULL,   -- 'register' | 'reset'
-          expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-          used       BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        id         SERIAL PRIMARY KEY,
+        email      VARCHAR(255) NOT NULL,
+        otp_code   VARCHAR(6)   NOT NULL,
+        type       VARCHAR(20)  NOT NULL,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        used       BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+      CREATE INDEX IF NOT EXISTS idx_otps_email ON otps(email, type);
+    `);
 
+    // ── Indexes ───────────────────────────────────────────────
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_up_user     ON user_progress(user_id);
       CREATE INDEX IF NOT EXISTS idx_up_activity ON user_progress(activity_id);
       CREATE INDEX IF NOT EXISTS idx_act_diff    ON activities(difficulty);
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-      CREATE INDEX IF NOT EXISTS idx_otps_email ON otps(email, type);
-
     `);
 
     console.log('[DB] ✅ Tables ready');
 
-    // ── 16 Achievements ──────────────────────────────────────
+    // ── Achievements seed ─────────────────────────────────────
     const ach = [
       { key:'first_star',   title:'First Star',        desc:'Complete your first activity',  icon:'⭐', cond:{type:'activity_count',threshold:1   }},
       { key:'complete_5',   title:'Getting Started',   desc:'Complete 5 activities',         icon:'✅', cond:{type:'activity_count',threshold:5   }},
@@ -173,12 +189,10 @@ async function setupDatabase() {
     }
     console.log(`[DB] ✅ ${ach.length} achievements ready`);
 
-    // ── 48 Activities (4 per difficulty per type) ────────────
+    // ── Activities seed (48 activities) ──────────────────────
     const acts = [
 
       /* ===== WORD MATCH ===== */
-
-      // easy
       {t:'Animals & Their Sounds',d:'Match each animal to the sound it makes.',type:'word_match',diff:'easy',xp:10,
         content:{instruction:'Match each animal on the left to its sound on the right.',pairs:[{left:'Dog',right:'Woof'},{left:'Cat',right:'Meow'},{left:'Cow',right:'Moo'},{left:'Frog',right:'Ribbit'},{left:'Bee',right:'Buzz'}]},
         ans:{Dog:'Woof',Cat:'Meow',Cow:'Moo',Frog:'Ribbit',Bee:'Buzz'}},
@@ -191,8 +205,6 @@ async function setupDatabase() {
       {t:'Fruits & Their Colours',d:'Match each fruit to the colour it is when ripe.',type:'word_match',diff:'easy',xp:10,
         content:{instruction:'Match each fruit on the left to its ripe colour on the right.',pairs:[{left:'Apple',right:'Red'},{left:'Banana',right:'Yellow'},{left:'Grapes',right:'Purple'},{left:'Lime',right:'Green'},{left:'Tangerine',right:'Orange'}]},
         ans:{Apple:'Red',Banana:'Yellow',Grapes:'Purple',Lime:'Green',Tangerine:'Orange'}},
-
-      // medium
       {t:'Opposite Words',d:'Match each word to its exact opposite.',type:'word_match',diff:'medium',xp:20,
         content:{instruction:'Drag each word on the left to its opposite on the right.',pairs:[{left:'Hot',right:'Cold'},{left:'Fast',right:'Slow'},{left:'Big',right:'Small'},{left:'Happy',right:'Sad'},{left:'Light',right:'Dark'},{left:'Up',right:'Down'}]},
         ans:{Hot:'Cold',Fast:'Slow',Big:'Small',Happy:'Sad',Light:'Dark',Up:'Down'}},
@@ -205,8 +217,6 @@ async function setupDatabase() {
       {t:'Jobs & What They Do',d:'Match each job title to what that person does.',type:'word_match',diff:'medium',xp:20,
         content:{instruction:'Match each job on the left to its description on the right.',pairs:[{left:'Doctor',right:'Treats sick people'},{left:'Teacher',right:'Educates students'},{left:'Chef',right:'Cooks food'},{left:'Pilot',right:'Flies aircraft'},{left:'Architect',right:'Designs buildings'}]},
         ans:{Doctor:'Treats sick people',Teacher:'Educates students',Chef:'Cooks food',Pilot:'Flies aircraft',Architect:'Designs buildings'}},
-
-      // hard
       {t:'Body Parts & Their Jobs',d:'Match each body part to what it does.',type:'word_match',diff:'hard',xp:30,
         content:{instruction:'Match each body part on the left to its function on the right.',pairs:[{left:'Heart',right:'Pumps blood'},{left:'Lungs',right:'Breathe air'},{left:'Brain',right:'Controls thinking'},{left:'Stomach',right:'Digests food'},{left:'Eyes',right:'See things'},{left:'Ears',right:'Hear sounds'}]},
         ans:{Heart:'Pumps blood',Lungs:'Breathe air',Brain:'Controls thinking',Stomach:'Digests food',Eyes:'See things',Ears:'Hear sounds'}},
@@ -221,8 +231,6 @@ async function setupDatabase() {
         ans:{'Mount Everest':'Tallest mountain on Earth','Nile River':'Longest river in the world','Cheetah':'Fastest land animal','Blue Whale':'Largest animal on Earth','Vatican City':'Smallest country in the world'}},
 
       /* ===== FILL IN THE BLANK ===== */
-
-      // easy
       {t:'The Hungry Caterpillar',d:'Fill in the missing words from this classic story.',type:'fill_blank',diff:'easy',xp:15,
         content:{instruction:'Pick the right word to fill each blank.',sentences:[
           {text:'The caterpillar was very ___.',options:['hungry','tired','cold','fast'],answer:'hungry'},
@@ -255,8 +263,6 @@ async function setupDatabase() {
           {text:'Snow falls during ___.',options:['Winter','Autumn','Spring','Summer'],answer:'Winter'},
           {text:'Children like to swim at the beach in ___.',options:['Summer','Spring','Autumn','Winter'],answer:'Summer'},
         ]},ans:{answers:['Spring','Summer','Autumn','Winter','Summer']}},
-
-      // medium
       {t:'Weather Words',d:'Complete sentences about different kinds of weather.',type:'fill_blank',diff:'medium',xp:20,
         content:{instruction:'Choose the best word to complete each weather sentence.',sentences:[
           {text:'When it rains and is sunny you might see a ___.',options:['rainbow','tornado','blizzard','fog'],answer:'rainbow'},
@@ -289,15 +295,13 @@ async function setupDatabase() {
           {text:'We use our ___ to taste food.',options:['tongue','teeth','lips','nose'],answer:'tongue'},
           {text:'The largest organ in the body is the ___.',options:['skin','liver','brain','lung'],answer:'skin'},
         ]},ans:{answers:['206','heart','skull','tongue','skin']}},
-
-      // hard
       {t:'The Ocean Explorer',d:'Read carefully and fill in the ocean science facts.',type:'fill_blank',diff:'hard',xp:30,
         content:{instruction:'Pick the correct word to complete each ocean fact.',sentences:[
-          {text:'The ocean covers more than ___ of the Earth\'s surface.',options:['70%','50%','30%','90%'],answer:'70%'},
+          {text:"The ocean covers more than ___ of the Earth's surface.",options:['70%','50%','30%','90%'],answer:'70%'},
           {text:'The deepest part of the ocean is the Mariana ___.',options:['Trench','Ridge','Basin','Valley'],answer:'Trench'},
           {text:'Oceans are home to millions of different ___.',options:['species','people','plants','rocks'],answer:'species'},
           {text:'Many deep-sea creatures have never been ___.',options:['discovered','eaten','named','counted'],answer:'discovered'},
-          {text:'Oceans help ___ the temperature of the Earth.',options:['regulate','raise','lower','measure'],answer:'regulate'},
+          {text:"Oceans help ___ the temperature of the Earth.",options:['regulate','raise','lower','measure'],answer:'regulate'},
         ]},ans:{answers:['70%','Trench','species','discovered','regulate']}},
       {t:'History of Inventions',d:'Complete facts about famous inventions throughout history.',type:'fill_blank',diff:'hard',xp:30,
         content:{instruction:'Choose the correct word to complete each invention fact.',sentences:[
@@ -310,9 +314,9 @@ async function setupDatabase() {
       {t:'World Geography',d:'Fill in the blanks to complete these world geography facts.',type:'fill_blank',diff:'hard',xp:30,
         content:{instruction:'Pick the correct word to complete each geography fact.',sentences:[
           {text:'The Amazon rainforest is mostly located in ___.',options:['Brazil','Peru','Colombia','Venezuela'],answer:'Brazil'},
-          {text:'The Sahara is the world\'s largest hot ___.',options:['desert','forest','plain','plateau'],answer:'desert'},
+          {text:"The Sahara is the world's largest hot ___.",options:['desert','forest','plain','plateau'],answer:'desert'},
           {text:'The ___ is the longest mountain range in the world.',options:['Andes','Himalayas','Rockies','Alps'],answer:'Andes'},
-          {text:'Lake Baikal holds about 20% of the world\'s fresh ___.',options:['water','ice','fish','minerals'],answer:'water'},
+          {text:"Lake Baikal holds about 20% of the world's fresh ___.",options:['water','ice','fish','minerals'],answer:'water'},
           {text:'The continent with the most countries is ___.',options:['Africa','Asia','Europe','Americas'],answer:'Africa'},
         ]},ans:{answers:['Brazil','desert','Andes','water','Africa']}},
       {t:'Environmental Science',d:'Complete these sentences about the environment and ecology.',type:'fill_blank',diff:'hard',xp:30,
@@ -325,8 +329,6 @@ async function setupDatabase() {
         ]},ans:{answers:['photosynthesis','ozone','carbon','ecosystem','extinct']}},
 
       /* ===== SENTENCE SORT ===== */
-
-      // easy
       {t:'Making a Sandwich',d:'Put the steps for making a sandwich in the right order.',type:'sentence_sort',diff:'easy',xp:15,
         content:{instruction:'Drag the steps into the correct order to make a sandwich.',
           sentences:['Get two slices of bread from the bag.','Spread butter on one side of each slice.','Place your filling on one slice.','Press the two slices together.','Cut the sandwich in half and enjoy!'],
@@ -347,8 +349,6 @@ async function setupDatabase() {
           sentences:['Wake up when the alarm rings.','Wash your face and brush your teeth.','Get dressed in your school uniform.','Eat a healthy breakfast.','Pack your bag and head to school.'],
           shuffled:['Eat a healthy breakfast.','Wake up when the alarm rings.','Pack your bag and head to school.','Wash your face and brush your teeth.','Get dressed in your school uniform.']},
         ans:{order:['Wake up when the alarm rings.','Wash your face and brush your teeth.','Get dressed in your school uniform.','Eat a healthy breakfast.','Pack your bag and head to school.']}},
-
-      // medium
       {t:"Sam's Rainy Day",d:'Put these story sentences in the right order.',type:'sentence_sort',diff:'medium',xp:20,
         content:{instruction:'Drag the sentences to tell the story in the right order.',
           sentences:['Sam woke up early in the morning.','Outside, big dark clouds filled the sky.','She put on her raincoat and boots.','Sam splashed happily in every puddle she found.','When she got home, her mum made hot chocolate.'],
@@ -369,8 +369,6 @@ async function setupDatabase() {
           sentences:['Leo and his dad arrived at the local library.','They walked through the shelves looking at book covers.','Leo picked out a book about dinosaurs.','He sat at a quiet table and read the first chapter.','They borrowed the book and walked home happy.'],
           shuffled:['He sat at a quiet table and read the first chapter.','Leo and his dad arrived at the local library.','They borrowed the book and walked home happy.','Leo picked out a book about dinosaurs.','They walked through the shelves looking at book covers.']},
         ans:{order:['Leo and his dad arrived at the local library.','They walked through the shelves looking at book covers.','Leo picked out a book about dinosaurs.','He sat at a quiet table and read the first chapter.','They borrowed the book and walked home happy.']}},
-
-      // hard
       {t:'Life of a Star',d:"Arrange the stages of a star's life cycle in the correct order.",type:'sentence_sort',diff:'hard',xp:35,
         content:{instruction:"Put the stages of a star's life cycle in the correct scientific order.",
           sentences:['A cloud of gas and dust called a nebula begins to collapse under gravity.','A protostar forms as the cloud heats up and begins to spin.','Nuclear fusion ignites and the star enters its main sequence phase.','The star expands into a red giant as it runs out of hydrogen fuel.','The outer layers are expelled, leaving behind a dense white dwarf.'],
@@ -393,8 +391,6 @@ async function setupDatabase() {
         ans:{order:['Ancient Sumerians developed cuneiform, one of the earliest writing systems.','Egyptians created hieroglyphics using pictorial symbols.','The Phoenician alphabet was developed, using letters for sounds.','The Greek alphabet was adapted from Phoenician, adding vowel letters.','Johannes Gutenberg invented the printing press, making books widely available.']}},
 
       /* ===== PICTURE & WORD ===== */
-
-      // easy
       {t:'What Do You See?',d:'Look at each picture and pick the correct word.',type:'picture_word',diff:'easy',xp:10,
         content:{instruction:'Tap the word that matches each picture.',items:[
           {picture:'🌞',options:['Sun','Moon','Star','Cloud'],answer:'Sun'},
@@ -431,8 +427,6 @@ async function setupDatabase() {
           {picture:'🦋',options:['Moth','Dragonfly','Butterfly','Bee'],answer:'Butterfly'},
           {picture:'🐬',options:['Shark','Whale','Porpoise','Dolphin'],answer:'Dolphin'},
         ]},ans:{answers:['Elephant','Giraffe','Penguin','Crocodile','Butterfly','Dolphin']}},
-
-      // medium
       {t:'Action Words',d:'Look at each picture and choose the action it shows.',type:'picture_word',diff:'medium',xp:20,
         content:{instruction:'Choose the action word that best matches each picture.',items:[
           {picture:'🏃',options:['Walking','Running','Jumping','Sleeping'],answer:'Running'},
@@ -469,8 +463,6 @@ async function setupDatabase() {
           {picture:'🥊',options:['Karate','Boxing','Wrestling','Judo'],answer:'Boxing'},
           {picture:'🏹',options:['Javelin','Fencing','Archery','Shooting'],answer:'Archery'},
         ]},ans:{answers:['Football','Swimming','Tennis','Cycling','Boxing','Archery']}},
-
-      // hard
       {t:'Science & Nature',d:'Match each nature symbol to the correct scientific term.',type:'picture_word',diff:'hard',xp:30,
         content:{instruction:'Pick the correct scientific word for each picture.',items:[
           {picture:'🌋',options:['Earthquake','Volcano','Geyser','Crater'],answer:'Volcano'},
@@ -521,6 +513,13 @@ async function setupDatabase() {
       );
     }
     console.log(`[DB] ✅ ${acts.length} activities seeded`);
+
+    // ── Clean up expired OTPs on every restart ────────────────
+    const deleted = await client.query(
+      `DELETE FROM otps WHERE expires_at < NOW() - INTERVAL '1 hour'`
+    );
+    if (deleted.rowCount > 0)
+      console.log(`[DB] 🧹 Cleaned ${deleted.rowCount} expired OTPs`);
 
   } catch (err) {
     console.error('[DB] Setup error:', err.message);
