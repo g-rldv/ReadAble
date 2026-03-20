@@ -1,14 +1,7 @@
 // ============================================================
 // Auth Context — stable multi-device session management
-//
-// Key design decisions:
-//  • Token is stored in a ref so polling callbacks never go stale
-//    without recreating the interval.
-//  • Only a genuine HTTP 401 clears the session. Network errors,
-//    timeouts, and Render cold-start 502/503s keep the user logged in.
-//  • Polls /auth/me every 30 s (only while tab is visible) so XP,
-//    level, streak and achievements stay in sync across devices.
-//  • Fires an immediate refresh when the tab regains focus.
+// CHANGE from original: register() now accepts otp_code as 4th
+// argument and forwards it to the backend.
 // ============================================================
 import React, {
   createContext, useContext, useState,
@@ -24,12 +17,9 @@ export function AuthProvider({ children }) {
   const [token,   setToken]   = useState(() => localStorage.getItem('readable_token'));
   const [loading, setLoading] = useState(true);
 
-  // Keep a ref to the latest token so poll/focus handlers
-  // always have the current value without recreating effects.
-  const tokenRef   = useRef(token);
-  const pollRef    = useRef(null);
+  const tokenRef = useRef(token);
+  const pollRef  = useRef(null);
 
-  // ── Merge user — only triggers re-render when something changed ─
   const mergeUser = useCallback((next) => {
     if (!next) return;
     setUser(prev => {
@@ -45,7 +35,6 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  // ── Core fetch — never clears session on network errors ────────
   const fetchUser = useCallback(async () => {
     const t = tokenRef.current;
     if (!t) return;
@@ -54,18 +43,15 @@ export function AuthProvider({ children }) {
       mergeUser(res.data.user);
     } catch (err) {
       if (err.status === 401) {
-        // Genuine invalid/expired token — log out
         localStorage.removeItem('readable_token');
         delete api.defaults.headers.common['Authorization'];
         tokenRef.current = null;
         setToken(null);
         setUser(null);
       }
-      // All other errors (timeout, 502, network) — keep session alive
     }
   }, [mergeUser]);
 
-  // ── Initial load ──────────────────────────────────────────────
   useEffect(() => {
     tokenRef.current = token;
     if (!token) { setLoading(false); return; }
@@ -73,7 +59,6 @@ export function AuthProvider({ children }) {
     fetchUser().finally(() => setLoading(false));
   }, [token, fetchUser]);
 
-  // ── Polling — single stable interval, never recreated ─────────
   useEffect(() => {
     const start = () => {
       clearInterval(pollRef.current);
@@ -90,9 +75,8 @@ export function AuthProvider({ children }) {
       clearInterval(pollRef.current);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [fetchUser]); // fetchUser is stable (useCallback with stable deps)
+  }, [fetchUser]);
 
-  // ── Settings dirty-flag sync ─────────────────────────────────
   const syncLocalSettings = async () => {
     if (localStorage.getItem('readable_settings_dirty') !== 'true') return;
     const stored = localStorage.getItem('readable_settings');
@@ -103,7 +87,6 @@ export function AuthProvider({ children }) {
     } catch (_) {}
   };
 
-  // ── Login ─────────────────────────────────────────────────────
   const login = useCallback(async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
     const { token: t, user: u } = res.data;
@@ -116,9 +99,9 @@ export function AuthProvider({ children }) {
     return u;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Register ──────────────────────────────────────────────────
-  const register = useCallback(async (username, email, password) => {
-    const res = await api.post('/auth/register', { username, email, password });
+  // ── register now accepts otp_code as 4th argument ─────────
+  const register = useCallback(async (username, email, password, otp_code) => {
+    const res = await api.post('/auth/register', { username, email, password, otp_code });
     const { token: t, user: u } = res.data;
     localStorage.setItem('readable_token', t);
     api.defaults.headers.common['Authorization'] = `Bearer ${t}`;
@@ -129,7 +112,6 @@ export function AuthProvider({ children }) {
     return u;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Logout ────────────────────────────────────────────────────
   const logout = useCallback(() => {
     clearInterval(pollRef.current);
     localStorage.removeItem('readable_token');
@@ -139,7 +121,6 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  // ── Manual refresh (after earning XP, changing avatar…) ───────
   const refreshUser = useCallback(() => fetchUser(), [fetchUser]);
 
   return (
