@@ -1,7 +1,6 @@
 // ============================================================
-// Auth Context — stable multi-device session management
-// CHANGE from original: register() now accepts otp_code as 4th
-// argument and forwards it to the backend.
+// Auth Context
+// Change from original: register() accepts otp_code as 4th arg
 // ============================================================
 import React, {
   createContext, useContext, useState,
@@ -97,9 +96,9 @@ export function AuthProvider({ children }) {
     setToken(t);
     setUser(u);
     return u;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line
 
-  // ── register now accepts otp_code as 4th argument ─────────
+  // otp_code is the 4th argument — required for the new registration flow
   const register = useCallback(async (username, email, password, otp_code) => {
     const res = await api.post('/auth/register', { username, email, password, otp_code });
     const { token: t, user: u } = res.data;
@@ -110,7 +109,7 @@ export function AuthProvider({ children }) {
     setToken(t);
     setUser(u);
     return u;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line
 
   const logout = useCallback(() => {
     clearInterval(pollRef.current);
