@@ -1,6 +1,5 @@
 // ============================================================
 // LandingPage — hero, inline auth modals, win effects, quick settings
-// Fix: removed unused 'Waves' import that could crash in some lucide versions
 // ============================================================
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -11,7 +10,8 @@ import {
   Gamepad2, BarChart2, Trophy, Heart, Cloud,
   TrendingUp, Palette, Check, Star, X,
   Eye, EyeOff, Mail, Lock, User, Settings,
-  Sun, Moon, Sparkles, Flame, Leaf,
+  Sun, Moon, Sparkles, Waves, Flame, Leaf,
+  LogIn,
 } from 'lucide-react';
 import { launchConfetti } from '../utils/confetti';
 
@@ -144,6 +144,7 @@ function SignInModal({ onClose, onSwitchToRegister }) {
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
 
+        {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-1">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
@@ -309,7 +310,7 @@ function QuickSettings({ onClose }) {
   const { settings, updateSettings } = useSettings();
   return (
     <>
-      {/* Mobile: full-screen centered modal */}
+      {/* ── Mobile: full-screen centered modal ────────────── */}
       <div className="md:hidden fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/50"
         onClick={onClose}>
         <div className="w-full max-w-xs rounded-2xl shadow-2xl overflow-hidden animate-pop"
@@ -345,7 +346,7 @@ function QuickSettings({ onClose }) {
         </div>
       </div>
 
-      {/* Desktop: anchored dropdown */}
+      {/* ── Desktop: anchored dropdown ─────────────────────── */}
       <div className="hidden md:block absolute right-0 top-12 z-40 w-56 rounded-2xl shadow-2xl border overflow-hidden animate-pop"
         style={{ background: 'var(--bg-card-grad)', borderColor: 'var(--border-color)' }}>
         <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border-color)' }}>
@@ -421,13 +422,17 @@ export default function LandingPage() {
 
       {/* ── Nav ─────────────────────────────────────────── */}
       <nav className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto">
-        <div className="flex items-center gap-2">
+        {/* Logo */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
             <BookOpen size={16} className="text-white" />
           </div>
           <span className="font-display text-2xl text-sky">ReadAble</span>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Right actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Quick settings gear */}
           <div className="relative">
             <button onClick={() => setShowSettings(s => !s)}
               className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -436,13 +441,25 @@ export default function LandingPage() {
             </button>
             {showSettings && <QuickSettings onClose={() => setShowSettings(false)} />}
           </div>
-          <button onClick={() => { setShowSettings(false); setShowLogin(true); }}
-            className="px-3 py-1.5 md:px-5 md:py-2 rounded-2xl font-bold text-sky border-2 border-sky hover:bg-sky/10 transition-colors text-xs md:text-sm">
-            Sign In
+
+          {/* Sign In — icon only on xs (<sm), text on sm+ */}
+          <button
+            onClick={() => { setShowSettings(false); setShowLogin(true); }}
+            className="flex items-center justify-center gap-1.5 rounded-2xl font-bold border-2 border-sky text-sky hover:bg-sky/10 transition-colors
+                       w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2 sm:text-sm"
+            title="Sign In">
+            <LogIn size={16} className="flex-shrink-0" />
+            <span className="hidden sm:inline">Sign In</span>
           </button>
-          <button onClick={() => { setShowSettings(false); setShowRegister(true); }}
-            className="px-3 py-1.5 md:px-5 md:py-2 rounded-2xl font-bold text-white bg-sky hover:bg-sky-dark transition-colors text-xs md:text-sm shadow-md">
-            Join Free
+
+          {/* Join Free — icon only on xs (<sm), text on sm+ */}
+          <button
+            onClick={() => { setShowSettings(false); setShowRegister(true); }}
+            className="flex items-center justify-center gap-1.5 rounded-2xl font-bold bg-sky text-white hover:bg-sky-dark transition-colors shadow-md
+                       w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2 sm:text-sm"
+            title="Join Free">
+            <Star size={16} className="flex-shrink-0" />
+            <span className="hidden sm:inline">Join Free</span>
           </button>
         </div>
       </nav>
@@ -463,16 +480,22 @@ export default function LandingPage() {
             Interactive word games and reading activities designed for all learners.
             Track progress, earn rewards, and grow your reading skills every day!
           </p>
+
+          {/* ── CTA buttons — FIX: centred text, arrow pinned right ── */}
           <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-            <button onClick={() => setShowRegister(true)}
-              className="btn-game bg-coral text-white hover:bg-coral-dark flex items-center gap-2">
-              Start for Free <ArrowRight size={18} />
+            {/* Start for Free: full-width on mobile, centred label, arrow on the right */}
+            <button
+              onClick={() => setShowRegister(true)}
+              className="btn-game bg-coral text-white relative flex items-center justify-center w-full sm:w-auto sm:min-w-[200px]">
+              <span>Start for Free</span>
+              <ArrowRight size={18} className="absolute right-5" />
             </button>
             <button onClick={() => setShowLogin(true)}
               className="btn-game bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-600">
               I have an account
             </button>
           </div>
+
           <div className="flex flex-wrap gap-2 mt-6">
             {FEATURE_PILLS.map(({ Icon, label }) => (
               <span key={label}
@@ -489,11 +512,16 @@ export default function LandingPage() {
         <div className="animate-pop">
           <div className="rounded-3xl p-4 md:p-6 shadow-xl border-2 border-sky/20"
             style={{ background: 'var(--bg-card-grad)' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-xl text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <Gamepad2 size={20} className="text-sky" /> Try a Quick Game!
+
+            {/* FIX: header row — tighter text sizing & proper alignment */}
+            <div className="flex items-center justify-between mb-4 gap-2">
+              <h3 className="font-display text-lg sm:text-xl text-gray-800 dark:text-gray-200 flex items-center gap-1.5 min-w-0">
+                <Gamepad2 size={18} className="text-sky flex-shrink-0" />
+                <span className="truncate">Try a Quick Game!</span>
               </h3>
-              <span className="text-sm font-bold text-sky bg-sky/10 px-3 py-1 rounded-full">No sign-up</span>
+              <span className="text-xs font-bold bg-sky/10 text-sky px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0">
+                No sign-up
+              </span>
             </div>
 
             {!trialDone ? (
@@ -527,10 +555,13 @@ export default function LandingPage() {
               </>
             ) : (
               <div className="text-center py-4 animate-result-reveal">
+
+                {/* ── Icon with glow ring ─────────────────── */}
                 <div className="relative w-20 h-20 mx-auto mb-4">
                   <div className={`absolute inset-0 rounded-full animate-glow-ring
                     ${isPerfect ? 'bg-amber-400/40' : trialScore >= 2 ? 'bg-yellow-400/30' : 'bg-emerald-400/30'}`}/>
-                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center animate-icon-spin shadow-lg
+                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center
+                                   animate-icon-spin shadow-lg
                     ${isPerfect
                       ? 'bg-gradient-to-br from-amber-300 to-amber-500'
                       : trialScore >= 2
@@ -544,6 +575,8 @@ export default function LandingPage() {
                     }
                   </div>
                 </div>
+
+                {/* ── Score label ─────────────────────────── */}
                 <div className="animate-score-sweep">
                   {isPerfect && (
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-500 mb-1">
@@ -567,6 +600,8 @@ export default function LandingPage() {
                       : 'Sign up to access more games and see how you improve!'}
                   </p>
                 </div>
+
+                {/* ── CTA button ─────────────────────────── */}
                 <button onClick={() => setShowRegister(true)}
                   className={`mt-5 btn-game inline-flex items-center gap-2 mx-auto text-white
                     ${isPerfect ? 'animate-shimmer' : 'bg-coral'}`}>
@@ -586,8 +621,8 @@ export default function LandingPage() {
         </h2>
         <div className="grid md:grid-cols-3 gap-6">
           {FEATURES.map(({ Icon, color, title, desc }) => (
-            <div key={title} className={`rounded-3xl p-6 border border-gray-100 dark:border-gray-700`}
-              style={{ background: 'var(--bg-card-grad)' }}>
+            <div key={title} className={`rounded-3xl p-6 bg-gradient-to-br ${color} border border-gray-100 dark:border-gray-700`}
+              style={{ background: undefined, backgroundColor: 'var(--bg-card-grad)' }}>
               <div className="w-11 h-11 rounded-2xl bg-sky/10 dark:bg-sky/20 flex items-center justify-center mb-3 shadow-sm">
                 <Icon size={22} className="text-sky" />
               </div>
@@ -614,6 +649,7 @@ export default function LandingPage() {
       {showLogin    && <SignInModal    onClose={() => setShowLogin(false)}    onSwitchToRegister={() => { setShowLogin(false); setShowRegister(true); }} />}
       {showRegister && <RegisterModal onClose={() => setShowRegister(false)} onSwitchToLogin={() => { setShowRegister(false); setShowLogin(true); }} />}
 
+      {/* Close settings dropdown when clicking outside */}
       {showSettings && <div className="fixed inset-0 z-30" onClick={() => setShowSettings(false)} />}
     </div>
   );
