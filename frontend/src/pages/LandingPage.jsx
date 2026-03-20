@@ -1,20 +1,17 @@
 // ============================================================
 // LandingPage — hero, inline auth modals, win effects, quick settings
-// Updated: RegisterModal has email OTP step, SignInModal has
-//          real forgot-password flow (email → OTP → new password)
+// Fix: removed unused 'Waves' import that could crash in some lucide versions
 // ============================================================
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import api from '../utils/api';
 import {
   BookOpen, Zap, ArrowRight, Volume2,
   Gamepad2, BarChart2, Trophy, Heart, Cloud,
   TrendingUp, Palette, Check, Star, X,
   Eye, EyeOff, Mail, Lock, User, Settings,
-  Sun, Moon, Sparkles, Waves, Flame, Leaf,
-  ShieldCheck, RefreshCw,
+  Sun, Moon, Sparkles, Flame, Leaf,
 } from 'lucide-react';
 import { launchConfetti } from '../utils/confetti';
 
@@ -42,6 +39,7 @@ const FEATURE_PILLS = [
   { Icon: Heart,     label: 'Accessible'        },
 ];
 
+// Quick theme swatches in the nav settings dropdown
 const QUICK_THEMES = [
   { key: 'cotton',    Icon: Sun,      label: 'Light'    },
   { key: 'sky',       Icon: Heart,    label: 'Berry'    },
@@ -103,84 +101,17 @@ function AuthInput({ label, type='text', value, onChange, placeholder, name, ico
   );
 }
 
-// ── OTP Input — 6 individual digit boxes ─────────────────────
-function OTPInput({ value, onChange }) {
-  const inputs = useRef([]);
-  const digits = Array.from({ length: 6 }, (_, i) => value[i] || '');
-
-  const handleChange = (e, idx) => {
-    const char = e.target.value.replace(/\D/g, '').slice(-1);
-    const next = [...digits];
-    next[idx]  = char;
-    onChange(next.join(''));
-    if (char && idx < 5) inputs.current[idx + 1]?.focus();
-  };
-
-  const handleKey = (e, idx) => {
-    if (e.key === 'Backspace') {
-      if (digits[idx]) {
-        const next = [...digits]; next[idx] = ''; onChange(next.join(''));
-      } else if (idx > 0) {
-        inputs.current[idx - 1]?.focus();
-        const next = [...digits]; next[idx - 1] = ''; onChange(next.join(''));
-      }
-    }
-    if (e.key === 'ArrowLeft'  && idx > 0) inputs.current[idx - 1]?.focus();
-    if (e.key === 'ArrowRight' && idx < 5) inputs.current[idx + 1]?.focus();
-  };
-
-  const handlePaste = (e) => {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!pasted) return;
-    onChange(pasted.padEnd(6, '').slice(0, 6));
-    inputs.current[Math.min(pasted.length, 5)]?.focus();
-  };
-
-  return (
-    <div className="flex gap-1.5 justify-center">
-      {digits.map((d, i) => (
-        <input
-          key={i}
-          ref={el => inputs.current[i] = el}
-          type="text"
-          inputMode="numeric"
-          maxLength={1}
-          value={d}
-          onChange={e => handleChange(e, i)}
-          onKeyDown={e => handleKey(e, i)}
-          onPaste={i === 0 ? handlePaste : undefined}
-          className="w-10 h-12 text-center text-xl font-bold rounded-xl border-2 outline-none
-                     transition-all select-none
-                     bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white
-                     focus:border-sky focus:bg-white dark:focus:bg-gray-700 focus:scale-105
-                     border-gray-200 dark:border-gray-600"
-        />
-      ))}
-    </div>
-  );
-}
-
 // ── Sign-In Modal ─────────────────────────────────────────────
 function SignInModal({ onClose, onSwitchToRegister }) {
   const { login } = useAuth();
   const navigate  = useNavigate();
-
-  // Login form state
   const [form,       setForm]       = useState({ email: '', password: '' });
   const [error,      setError]      = useState('');
   const [loading,    setLoading]    = useState(false);
   const [showForgot, setShowForgot] = useState(false);
-
-  // Forgot password sub-state
-  // steps: 'email' → 'otp' → 'newpass' → 'done'
-  const [fStep,     setFStep]     = useState('email');
-  const [fEmail,    setFEmail]    = useState('');
-  const [fOtp,      setFOtp]      = useState('');
-  const [fOtpErr,   setFOtpErr]   = useState('');
-  const [fNewPass,  setFNewPass]  = useState('');
-  const [fConfirm,  setFConfirm]  = useState('');
-  const [fPassErr,  setFPassErr]  = useState('');
-  const [fResendCd, setFResendCd] = useState(0);
+  const [forgotEmail,setForgotEmail]= useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoad, setForgotLoad] = useState(false);
 
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -198,62 +129,13 @@ function SignInModal({ onClose, onSwitchToRegister }) {
     } finally { setLoading(false); }
   };
 
-  // ── Forgot password helpers ───────────────────────────────
-  const startResendCd = () => {
-    setFResendCd(60);
-    const iv = setInterval(() => {
-      setFResendCd(c => { if (c <= 1) { clearInterval(iv); return 0; } return c - 1; });
-    }, 1000);
-  };
-
-  const sendResetOTP = async (e) => {
-    e?.preventDefault();
-    if (!fEmail.trim()) return;
-    setLoading(true);
-    try {
-      await api.post('/auth/send-otp', { email: fEmail.trim(), type: 'reset' });
-    } catch (_) {
-      // Always advance — avoids account enumeration
-    } finally {
-      setLoading(false);
-      setFStep('otp');
-      startResendCd();
-    }
-  };
-
-  const submitForgotOTP = (e) => {
+  const submitForgot = async (e) => {
     e.preventDefault();
-    if (fOtp.length < 6) { setFOtpErr('Please enter all 6 digits.'); return; }
-    setFOtpErr('');
-    setFStep('newpass');
-  };
-
-  const submitNewPass = async (e) => {
-    e.preventDefault();
-    if (fNewPass.length < 6) { setFPassErr('At least 6 characters.'); return; }
-    if (fNewPass !== fConfirm) { setFPassErr('Passwords do not match.'); return; }
-    setFPassErr(''); setLoading(true);
-    try {
-      await api.post('/auth/reset-password', {
-        email: fEmail.trim(), otp_code: fOtp, new_password: fNewPass,
-      });
-      setFStep('done');
-    } catch (err) {
-      const msg = err.message || '';
-      if (/invalid|expired|code/i.test(msg)) {
-        setFOtpErr(msg);
-        setFStep('otp');
-      } else {
-        setFPassErr(msg || 'Something went wrong.');
-      }
-    } finally { setLoading(false); }
-  };
-
-  const resetForgot = () => {
-    setShowForgot(false);
-    setFStep('email'); setFEmail(''); setFOtp('');
-    setFNewPass(''); setFConfirm('');
-    setFOtpErr(''); setFPassErr('');
+    if (!forgotEmail.trim()) return;
+    setForgotLoad(true);
+    await new Promise(r => setTimeout(r, 700));
+    setForgotLoad(false);
+    setForgotSent(true);
   };
 
   return (
@@ -262,7 +144,6 @@ function SignInModal({ onClose, onSwitchToRegister }) {
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
 
-        {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-1">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
@@ -277,115 +158,47 @@ function SignInModal({ onClose, onSwitchToRegister }) {
 
         <div className="px-6 pb-6 pt-3">
           {showForgot ? (
-            /* ── Forgot password flow ──────────────────────── */
             <div className="animate-fade-in">
-              <button onClick={resetForgot}
+              <button onClick={() => { setShowForgot(false); setForgotSent(false); }}
                 className="text-xs font-semibold text-gray-400 hover:text-sky mb-4 flex items-center gap-1 transition-colors">
                 ← Back to Sign In
               </button>
-
-              {/* Step 1 — email */}
-              {fStep === 'email' && (
+              {!forgotSent ? (
                 <>
                   <h2 className="font-display text-xl mb-1 text-gray-900 dark:text-white">Forgot Password</h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    We will send a 6-digit reset code to your email.
-                  </p>
-                  <form onSubmit={sendResetOTP}>
-                    <AuthInput label="Email" type="email" name="fe" value={fEmail}
-                      onChange={e => setFEmail(e.target.value)} placeholder="you@example.com" icon={Mail} />
-                    <button type="submit" disabled={loading || !fEmail.trim()}
+                  <p className="text-xs text-gray-500 mb-4">We will send a reset link to your email.</p>
+                  <form onSubmit={submitForgot}>
+                    <AuthInput label="Email" type="email" name="fe" value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)} placeholder="you@example.com" icon={Mail} />
+                    <button type="submit" disabled={forgotLoad}
                       className="btn-game w-full bg-sky text-white text-sm mt-2 disabled:opacity-60">
-                      {loading ? 'Sending…' : 'Send Reset Code'}
+                      {forgotLoad ? 'Sending…' : 'Send Reset Link'}
                     </button>
                   </form>
                 </>
-              )}
-
-              {/* Step 2 — OTP */}
-              {fStep === 'otp' && (
-                <>
-                  <div className="flex items-center gap-2 mb-1">
-                    <ShieldCheck size={16} className="text-sky flex-shrink-0" />
-                    <h2 className="font-display text-xl text-gray-900 dark:text-white">Enter the code</h2>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    Sent to <strong className="text-gray-700 dark:text-gray-200">{fEmail}</strong>. Expires in 10 minutes.
-                  </p>
-                  <form onSubmit={submitForgotOTP}>
-                    <div className="mb-4">
-                      <OTPInput value={fOtp} onChange={v => { setFOtp(v); setFOtpErr(''); }} />
-                      {fOtpErr && <p className="text-xs text-rose-500 mt-2 text-center">{fOtpErr}</p>}
-                    </div>
-                    <button type="submit" disabled={fOtp.length < 6}
-                      className="btn-game w-full bg-sky text-white text-sm disabled:opacity-50">
-                      Verify Code
-                    </button>
-                  </form>
-                  <div className="text-center mt-3">
-                    {fResendCd > 0
-                      ? <p className="text-xs text-gray-400">Resend available in {fResendCd}s</p>
-                      : <button onClick={sendResetOTP}
-                          className="text-xs font-semibold text-sky hover:underline flex items-center gap-1 mx-auto">
-                          <RefreshCw size={10}/> Resend code
-                        </button>
-                    }
-                  </div>
-                </>
-              )}
-
-              {/* Step 3 — new password */}
-              {fStep === 'newpass' && (
-                <>
-                  <h2 className="font-display text-xl mb-1 text-gray-900 dark:text-white">New Password</h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    Choose a new password for your account.
-                  </p>
-                  <form onSubmit={submitNewPass}>
-                    <AuthInput label="New password" type="password" name="np" value={fNewPass}
-                      onChange={e => setFNewPass(e.target.value)}
-                      placeholder="At least 6 characters" icon={Lock} />
-                    <AuthInput label="Confirm password" type="password" name="cp" value={fConfirm}
-                      onChange={e => setFConfirm(e.target.value)}
-                      placeholder="Repeat password" icon={Lock} error={fPassErr} />
-                    <button type="submit" disabled={loading}
-                      className="btn-game w-full bg-sky text-white text-sm mt-2 disabled:opacity-60">
-                      {loading ? 'Resetting…' : 'Reset Password'}
-                    </button>
-                  </form>
-                </>
-              )}
-
-              {/* Step 4 — done */}
-              {fStep === 'done' && (
+              ) : (
                 <div className="text-center py-3">
-                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30
-                                  flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-3">
                     <Check size={24} className="text-emerald-500" />
                   </div>
-                  <p className="font-bold text-gray-800 dark:text-gray-200 mb-1">Password reset!</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Your password has been updated. You can now sign in.
-                  </p>
-                  <button onClick={resetForgot} className="mt-4 text-sm font-bold text-sky hover:underline">
-                    Back to Sign In
-                  </button>
+                  <p className="font-bold text-gray-800 dark:text-gray-200 mb-1">Check your inbox</p>
+                  <p className="text-xs text-gray-500">If <strong>{forgotEmail}</strong> has an account, a link was sent.</p>
+                  <button onClick={() => { setShowForgot(false); setForgotSent(false); }}
+                    className="mt-4 text-sm font-bold text-sky hover:underline">Back to Sign In</button>
                 </div>
               )}
             </div>
           ) : (
-            /* ── Normal sign-in form ───────────────────────── */
             <>
               <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Welcome back!</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Sign in to continue your journey</p>
+              <p className="text-xs text-gray-500 mb-4">Sign in to continue your journey</p>
               <form onSubmit={submit}>
                 <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle}
                   placeholder="you@example.com" icon={Mail} />
                 <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle}
                   placeholder="Your password" icon={Lock} />
                 {error && (
-                  <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600
-                                  dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-800">
+                  <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-800">
                     {error}
                   </div>
                 )}
@@ -398,11 +211,9 @@ function SignInModal({ onClose, onSwitchToRegister }) {
                   {loading ? 'Signing in…' : 'Sign In'}
                 </button>
               </form>
-              <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
+              <p className="text-center text-xs text-gray-500 mt-4">
                 No account?{' '}
-                <button onClick={onSwitchToRegister} className="text-sky font-bold hover:underline">
-                  Create one free
-                </button>
+                <button onClick={onSwitchToRegister} className="text-sky font-bold hover:underline">Create one free</button>
               </p>
             </>
           )}
@@ -413,33 +224,19 @@ function SignInModal({ onClose, onSwitchToRegister }) {
 }
 
 // ── Register Modal ────────────────────────────────────────────
-// Step 'form' → send OTP → step 'otp' → create account
 function RegisterModal({ onClose, onSwitchToLogin }) {
   const { register } = useAuth();
   const navigate = useNavigate();
-
-  const [step,     setStep]     = useState('form'); // 'form' | 'otp'
-  const [form,     setForm]     = useState({ username:'', email:'', password:'', confirm:'' });
-  const [errors,   setErrors]   = useState({});
-  const [loading,  setLoading]  = useState(false);
-  const [otp,      setOtp]      = useState('');
-  const [otpErr,   setOtpErr]   = useState('');
-  const [resendCd, setResendCd] = useState(0);
+  const [form,    setForm]    = useState({ username:'', email:'', password:'', confirm:'' });
+  const [errors,  setErrors]  = useState({});
+  const [loading, setLoading] = useState(false);
 
   const handle = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
     setErrors(er => ({ ...er, [e.target.name]: '', general: '' }));
   };
 
-  const startResendCd = () => {
-    setResendCd(60);
-    const iv = setInterval(() => {
-      setResendCd(c => { if (c <= 1) { clearInterval(iv); return 0; } return c - 1; });
-    }, 1000);
-  };
-
-  // ── Step 1: validate form then send OTP ──────────────────
-  const submitForm = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     const errs = {};
     if (form.username.trim().length < 3) errs.username = 'At least 3 characters.';
@@ -447,43 +244,15 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
     if (form.password.length < 6)        errs.password = 'At least 6 characters.';
     if (form.password !== form.confirm)  errs.confirm  = 'Passwords do not match.';
     if (Object.keys(errs).length) { setErrors(errs); return; }
-
     setLoading(true);
     try {
-      await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' });
-      setStep('otp');
-      startResendCd();
-    } catch (err) {
-      const raw = err.response?.data?.error || err.message || '';
-      if (/already exists/i.test(raw)) setErrors({ email: 'An account with that email already exists.' });
-      else                             setErrors({ general: raw || 'Failed to send code. Please try again.' });
-    } finally { setLoading(false); }
-  };
-
-  const resendOTP = async () => {
-    setLoading(true);
-    try {
-      await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' });
-      startResendCd();
-      setOtpErr('');
-    } catch (_) {}
-    finally { setLoading(false); }
-  };
-
-  // ── Step 2: verify OTP + create account ──────────────────
-  const submitOTP = async (e) => {
-    e.preventDefault();
-    if (otp.length < 6) { setOtpErr('Please enter all 6 digits.'); return; }
-    setOtpErr(''); setLoading(true);
-    try {
-      await register(form.username.trim(), form.email.trim(), form.password, otp);
+      await register(form.username.trim(), form.email.trim(), form.password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
       const raw = err.response?.data?.error || err.message || '';
-      if (/invalid|expired|code/i.test(raw))    setOtpErr(raw || 'Invalid or expired code.');
-      else if (/username.*taken/i.test(raw))     setErrors({ username: 'Username already taken.' });
-      else if (/email.*taken/i.test(raw))        setErrors({ email: 'Email already registered.' });
-      else                                       setOtpErr(raw || 'Something went wrong. Please try again.');
+      if (/username.*taken/i.test(raw))  setErrors({ username: 'Username already taken.' });
+      else if (/email.*taken/i.test(raw))setErrors({ email: 'Email already registered.' });
+      else                               setErrors({ general: 'Something went wrong. Please try again.' });
     } finally { setLoading(false); }
   };
 
@@ -492,7 +261,6 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
-
         <div className="flex items-center justify-between px-5 pt-5 pb-1">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-coral flex items-center justify-center">
@@ -504,74 +272,32 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
             <X size={18} className="text-gray-400" />
           </button>
         </div>
-
         <div className="px-6 pb-6 pt-3">
-          {step === 'form' ? (
-            <>
-              <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Join ReadAble!</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Free account — takes 30 seconds</p>
-              <form onSubmit={submitForm}>
-                <AuthInput label="Username" name="username" value={form.username} onChange={handle}
-                  placeholder="SuperReader" icon={User} error={errors.username} />
-                <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle}
-                  placeholder="you@example.com" icon={Mail} error={errors.email} />
-                <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle}
-                  placeholder="At least 6 characters" icon={Lock} error={errors.password} />
-                <AuthInput label="Confirm Password" type="password" name="confirm" value={form.confirm} onChange={handle}
-                  placeholder="Repeat password" icon={Lock} error={errors.confirm} />
-                {errors.general && (
-                  <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600
-                                  text-xs font-semibold border border-rose-200 dark:border-rose-800">
-                    {errors.general}
-                  </div>
-                )}
-                <button type="submit" disabled={loading}
-                  className="btn-game w-full bg-coral text-white text-sm mt-1 disabled:opacity-60">
-                  {loading ? 'Sending code…' : 'Continue →'}
-                </button>
-              </form>
-              <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
-                Already have an account?{' '}
-                <button onClick={onSwitchToLogin} className="text-sky font-bold hover:underline">Sign in</button>
-              </p>
-            </>
-          ) : (
-            /* ── OTP step ──────────────────────────────────── */
-            <div className="animate-fade-in">
-              <button onClick={() => { setStep('form'); setOtp(''); setOtpErr(''); }}
-                className="text-xs font-semibold text-gray-400 hover:text-sky mb-4 flex items-center gap-1 transition-colors">
-                ← Edit details
-              </button>
-              <div className="flex items-center gap-2 mb-1">
-                <ShieldCheck size={16} className="text-coral flex-shrink-0" />
-                <h2 className="font-display text-xl text-gray-900 dark:text-white">Verify your email</h2>
+          <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Join ReadAble!</h2>
+          <p className="text-xs text-gray-500 mb-4">Free account — takes 30 seconds</p>
+          <form onSubmit={submit}>
+            <AuthInput label="Username" name="username" value={form.username} onChange={handle}
+              placeholder="SuperReader" icon={User} error={errors.username} />
+            <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle}
+              placeholder="you@example.com" icon={Mail} error={errors.email} />
+            <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle}
+              placeholder="At least 6 characters" icon={Lock} error={errors.password} />
+            <AuthInput label="Confirm Password" type="password" name="confirm" value={form.confirm} onChange={handle}
+              placeholder="Repeat password" icon={Lock} error={errors.confirm} />
+            {errors.general && (
+              <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-xs font-semibold border border-rose-200 dark:border-rose-800">
+                {errors.general}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Code sent to{' '}
-                <strong className="text-gray-700 dark:text-gray-200">{form.email}</strong>.
-                Enter it below to confirm your account.
-              </p>
-              <form onSubmit={submitOTP}>
-                <div className="mb-4">
-                  <OTPInput value={otp} onChange={v => { setOtp(v); setOtpErr(''); }} />
-                  {otpErr && <p className="text-xs text-rose-500 mt-2 text-center">{otpErr}</p>}
-                </div>
-                <button type="submit" disabled={otp.length < 6 || loading}
-                  className="btn-game w-full bg-coral text-white text-sm disabled:opacity-50">
-                  {loading ? 'Creating account…' : 'Start Learning! 🎉'}
-                </button>
-              </form>
-              <div className="text-center mt-3">
-                {resendCd > 0
-                  ? <p className="text-xs text-gray-400">Resend available in {resendCd}s</p>
-                  : <button onClick={resendOTP} disabled={loading}
-                      className="text-xs font-semibold text-sky hover:underline flex items-center gap-1 mx-auto">
-                      <RefreshCw size={10}/> Resend code
-                    </button>
-                }
-              </div>
-            </div>
-          )}
+            )}
+            <button type="submit" disabled={loading}
+              className="btn-game w-full bg-coral text-white text-sm mt-1 disabled:opacity-60">
+              {loading ? 'Creating account…' : 'Start Learning!'}
+            </button>
+          </form>
+          <p className="text-center text-xs text-gray-500 mt-4">
+            Already have an account?{' '}
+            <button onClick={onSwitchToLogin} className="text-sky font-bold hover:underline">Sign in</button>
+          </p>
         </div>
       </div>
     </div>
@@ -583,7 +309,7 @@ function QuickSettings({ onClose }) {
   const { settings, updateSettings } = useSettings();
   return (
     <>
-      {/* ── Mobile: full-screen centered modal ────────────── */}
+      {/* Mobile: full-screen centered modal */}
       <div className="md:hidden fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/50"
         onClick={onClose}>
         <div className="w-full max-w-xs rounded-2xl shadow-2xl overflow-hidden animate-pop"
@@ -619,7 +345,7 @@ function QuickSettings({ onClose }) {
         </div>
       </div>
 
-      {/* ── Desktop: anchored dropdown ─────────────────────── */}
+      {/* Desktop: anchored dropdown */}
       <div className="hidden md:block absolute right-0 top-12 z-40 w-56 rounded-2xl shadow-2xl border overflow-hidden animate-pop"
         style={{ background: 'var(--bg-card-grad)', borderColor: 'var(--border-color)' }}>
         <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border-color)' }}>
@@ -667,7 +393,7 @@ export default function LandingPage() {
 
   if (user) return null;
 
-  const current   = TRIAL_ITEMS[trialStep];
+  const current = TRIAL_ITEMS[trialStep];
   const isPerfect = trialDone && trialScore === TRIAL_ITEMS.length;
 
   const handlePick = (opt) => {
@@ -804,8 +530,7 @@ export default function LandingPage() {
                 <div className="relative w-20 h-20 mx-auto mb-4">
                   <div className={`absolute inset-0 rounded-full animate-glow-ring
                     ${isPerfect ? 'bg-amber-400/40' : trialScore >= 2 ? 'bg-yellow-400/30' : 'bg-emerald-400/30'}`}/>
-                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center
-                                   animate-icon-spin shadow-lg
+                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center animate-icon-spin shadow-lg
                     ${isPerfect
                       ? 'bg-gradient-to-br from-amber-300 to-amber-500'
                       : trialScore >= 2
@@ -861,8 +586,8 @@ export default function LandingPage() {
         </h2>
         <div className="grid md:grid-cols-3 gap-6">
           {FEATURES.map(({ Icon, color, title, desc }) => (
-            <div key={title} className={`rounded-3xl p-6 bg-gradient-to-br ${color} border border-gray-100 dark:border-gray-700`}
-              style={{ background: undefined, backgroundColor: 'var(--bg-card-grad)' }}>
+            <div key={title} className={`rounded-3xl p-6 border border-gray-100 dark:border-gray-700`}
+              style={{ background: 'var(--bg-card-grad)' }}>
               <div className="w-11 h-11 rounded-2xl bg-sky/10 dark:bg-sky/20 flex items-center justify-center mb-3 shadow-sm">
                 <Icon size={22} className="text-sky" />
               </div>
@@ -886,20 +611,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── Modals ──────────────────────────────────────── */}
-      {showLogin    && (
-        <SignInModal
-          onClose={() => setShowLogin(false)}
-          onSwitchToRegister={() => { setShowLogin(false); setShowRegister(true); }}
-        />
-      )}
-      {showRegister && (
-        <RegisterModal
-          onClose={() => setShowRegister(false)}
-          onSwitchToLogin={() => { setShowRegister(false); setShowLogin(true); }}
-        />
-      )}
+      {showLogin    && <SignInModal    onClose={() => setShowLogin(false)}    onSwitchToRegister={() => { setShowLogin(false); setShowRegister(true); }} />}
+      {showRegister && <RegisterModal onClose={() => setShowRegister(false)} onSwitchToLogin={() => { setShowRegister(false); setShowLogin(true); }} />}
 
-      {/* Close settings dropdown when clicking outside */}
       {showSettings && <div className="fixed inset-0 z-30" onClick={() => setShowSettings(false)} />}
     </div>
   );
