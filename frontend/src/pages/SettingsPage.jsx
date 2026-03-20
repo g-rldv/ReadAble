@@ -255,34 +255,41 @@ export default function SettingsPage() {
       {/* ── Text Size ──────────────────────────────────────── */}
       <Section title="Text Size" icon={<Type size={22} className="text-sky"/>}>
         {/* Instruction — uses a fixed base font size so it never looks weird */}
-        <p className="text-xs text-gray-400 mb-3" style={{ fontSize: 12 }}>
-          Pick a reading size. The preview shows exactly how large text will appear.
+        <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12 }}>
+          Pick a reading size. The preview below shows exactly how large that size looks.
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3" style={{ fontSize: '16px' }}>
           {TEXT_SIZES.map(s => {
             const isActive = settings.text_size === s.key;
             return (
               <button key={s.key} onClick={() => save({ text_size: s.key })}
                 className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all
                   ${isActive ? 'border-coral bg-coral/10' : 'hover:border-coral/40'}`}
-                style={{ borderColor: isActive ? undefined : 'var(--border-color)' }}>
+                style={{ borderColor: isActive ? undefined : 'var(--border-color)', fontSize: '16px' }}>
 
                 {/* Sample "Aa" — fixed pixel size, never inherits global scaling */}
                 <span
-                  className="font-bold flex-shrink-0 leading-none"
                   style={{
                     fontSize: s.previewPx,
-                    color: isActive ? '#F97B6B' : undefined,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    lineHeight: 1,
+                    display: 'inline-block',
+                    color: isActive ? '#F97B6B' : 'var(--text-primary)',
+                    fontFamily: 'inherit',
+                    /* px value — never scales with html font-size */
                   }}>
                   Aa
                 </span>
 
                 {/* Label — always 13px so it's readable at any setting */}
                 <span
-                  className="font-bold leading-tight"
                   style={{
                     fontSize: 13,
-                    color: isActive ? '#F97B6B' : undefined,
+                    fontWeight: 700,
+                    lineHeight: 1.3,
+                    color: isActive ? '#F97B6B' : 'var(--text-primary)',
+                    display: 'inline-block',
                   }}>
                   {s.label}
                 </span>
