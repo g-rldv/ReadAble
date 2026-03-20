@@ -254,52 +254,88 @@ export default function SettingsPage() {
 
       {/* ── Text Size ──────────────────────────────────────── */}
       <Section title="Text Size" icon={<Type size={22} className="text-sky"/>}>
-        {/* Instruction — uses a fixed base font size so it never looks weird */}
-        <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12 }}>
-          Pick a reading size. The preview below shows exactly how large that size looks.
+        {/*
+          IMPORTANT: Every element inside the tiles uses ONLY inline px styles.
+          No Tailwind classes inside the tiles — rem-based classes scale with
+          the html font-size and would defeat the purpose of a fixed preview.
+        */}
+        <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12, lineHeight: 1.5 }}>
+          Pick a reading size. Each tile shows that size as a fixed reference — they never change.
         </p>
-        <div className="grid grid-cols-2 gap-3" style={{ fontSize: '16px' }}>
+
+        {/* Wrapper resets font-size so no rem value can leak in */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 12,
+          fontSize: '16px',   /* hard reset — children using em will base off 16px */
+        }}>
           {TEXT_SIZES.map(s => {
             const isActive = settings.text_size === s.key;
             return (
-              <button key={s.key} onClick={() => save({ text_size: s.key })}
-                className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all
-                  ${isActive ? 'border-coral bg-coral/10' : 'hover:border-coral/40'}`}
-                style={{ borderColor: isActive ? undefined : 'var(--border-color)', fontSize: '16px' }}>
+              <button
+                key={s.key}
+                onClick={() => save({ text_size: s.key })}
+                style={{
+                  /* Fixed physical dimensions — never scale with global setting */
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,                       /* px, not rem */
+                  padding: '14px 16px',          /* px, not rem */
+                  borderRadius: 16,              /* px */
+                  border: `2px solid ${isActive ? '#F97B6B' : 'var(--border-color)'}`,
+                  background: isActive ? 'rgba(249,123,107,0.10)' : 'var(--bg-card-grad)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.15s, background 0.15s',
+                  /* Reset font — nothing inside will inherit html font-size */
+                  fontSize: '16px',
+                  fontFamily: 'inherit',
+                }}>
 
-                {/* Sample "Aa" — fixed pixel size, never inherits global scaling */}
-                <span
-                  style={{
-                    fontSize: s.previewPx,
-                    fontWeight: 700,
-                    flexShrink: 0,
-                    lineHeight: 1,
-                    display: 'inline-block',
-                    color: isActive ? '#F97B6B' : 'var(--text-primary)',
-                    fontFamily: 'inherit',
-                    /* px value — never scales with html font-size */
-                  }}>
+                {/* Aa preview — FIXED px size, represents the actual size for that setting */}
+                <span style={{
+                  fontSize: s.previewPx,   /* 13 | 16 | 20 | 26 — absolute px, never changes */
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  flexShrink: 0,
+                  color: isActive ? '#F97B6B' : 'var(--text-primary)',
+                  display: 'inline-block',
+                  minWidth: s.previewPx + 4,
+                }}>
                   Aa
                 </span>
 
-                {/* Label — always 13px so it's readable at any setting */}
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    lineHeight: 1.3,
-                    color: isActive ? '#F97B6B' : 'var(--text-primary)',
-                    display: 'inline-block',
-                  }}>
+                {/* Label — always 13px regardless of selected size */}
+                <span style={{
+                  fontSize: 13,            /* absolute px — never changes */
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                  color: isActive ? '#F97B6B' : 'var(--text-primary)',
+                  display: 'inline-block',
+                }}>
                   {s.label}
                 </span>
 
-                {isActive && <Check size={16} className="text-coral ml-auto flex-shrink-0" strokeWidth={3}/>}
+                {/* Active checkmark */}
+                {isActive && (
+                  <span style={{
+                    marginLeft: 'auto',
+                    flexShrink: 0,
+                    color: '#F97B6B',
+                    fontSize: 14,
+                    fontWeight: 900,
+                    lineHeight: 1,
+                  }}>✓</span>
+                )}
               </button>
             );
           })}
         </div>
       </Section>
+
 
       {/* ── Background Music ───────────────────────────────── */}
       <Section title="Background Music" icon={<Music size={22} className="text-purple-500"/>}>
