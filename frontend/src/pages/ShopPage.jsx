@@ -270,99 +270,140 @@ export default function ShopPage() {
             ))}
           </div>
 
-          {/* Items — slim rows on mobile, grid on sm+ */}
-          <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-3">
+          {/* Items — always horizontal rows, button always visible */}
+          <div className="flex flex-col gap-2">
             {items.map(item => {
               const isOwned   = owned(item.id);
               const isEq      = isEquipped(item);
               const hasAch    = user?.achievements?.includes(item.earnedBy);
               const freeByAch = item.earnedBy && !isOwned && hasAch;
-              const borderCls = isEq
-                ? 'border-sky bg-sky/5'
-                : isOwned
-                ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/40 dark:bg-emerald-900/10'
-                : 'border-gray-200 dark:border-gray-700';
 
-              // Inline mobile action button — do NOT extract as component inside map()
-              const mobileBtn = isOwned || item.isDefault ? (
-                <button onClick={() => handleEquip(item)} disabled={!!equipping}
-                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap flex-shrink-0 transition-all
-                    ${isEq ? 'bg-sky text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-                  {equipping === item.id ? '…' : isEq ? '✓ On' : 'Equip'}
-                </button>
-              ) : freeByAch ? (
-                <button onClick={() => handleBuy({ ...item, cost: 0 })} disabled={!!buying}
-                  className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-amber-400 text-white whitespace-nowrap flex-shrink-0">
-                  {buying === item.id ? '…' : '🎁 Free'}
-                </button>
-              ) : (
-                <button onClick={() => handleBuy(item)} disabled={!!buying || !canBuy(item)}
-                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1 whitespace-nowrap flex-shrink-0 transition-all
-                    ${canBuy(item) ? 'bg-amber-400 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'}`}>
-                  {buying === item.id ? '…' : <><span>🪙</span><span>{item.cost}</span></>}
-                </button>
-              );
+              // Border colour
+              const borderColor = isEq ? '#60B8F5'
+                : isOwned ? '#6ee7b7'
+                : undefined;
+
+              // Action button — always inline, never extracted as component
+              let btn;
+              if (isOwned || item.isDefault) {
+                btn = (
+                  <button
+                    onClick={() => handleEquip(item)}
+                    disabled={!!equipping}
+                    style={{
+                      background: isEq ? '#60B8F5' : '#f3f4f6',
+                      color: isEq ? '#fff' : '#4b5563',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '6px 10px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      cursor: 'pointer',
+                      minWidth: 52,
+                    }}>
+                    {equipping === item.id ? '…' : isEq ? '✓ On' : 'Equip'}
+                  </button>
+                );
+              } else if (freeByAch) {
+                btn = (
+                  <button
+                    onClick={() => handleBuy({ ...item, cost: 0 })}
+                    disabled={!!buying}
+                    style={{
+                      background: '#fbbf24',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '6px 10px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      cursor: 'pointer',
+                      minWidth: 52,
+                    }}>
+                    {buying === item.id ? '…' : '🎁 Free'}
+                  </button>
+                );
+              } else {
+                const affordable = canBuy(item);
+                btn = (
+                  <button
+                    onClick={() => affordable && handleBuy(item)}
+                    disabled={!!buying || !affordable}
+                    style={{
+                      background: affordable ? '#fbbf24' : '#e5e7eb',
+                      color: affordable ? '#fff' : '#9ca3af',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '6px 10px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      cursor: affordable ? 'pointer' : 'not-allowed',
+                      minWidth: 52,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                    }}>
+                    {buying === item.id ? '…' : <><span>🪙</span><span>{item.cost}</span></>}
+                  </button>
+                );
+              }
 
               return (
-                <div key={item.id}>
-                  {/* Mobile: slim horizontal row */}
-                  <div className={`sm:hidden flex items-center gap-2 px-3 py-2.5 rounded-2xl border-2 transition-all ${borderCls}`}
-                    style={{ background: isEq || isOwned ? undefined : 'var(--bg-card-grad)' }}>
-                    {/* Emoji */}
-                    <span className="text-xl w-7 text-center flex-shrink-0 leading-none">{item.preview}</span>
-                    {/* Info — fills space, truncates */}
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <p className="font-bold text-sm text-gray-800 dark:text-gray-100 leading-tight truncate">{item.name}</p>
-                      <p className="text-[10px] font-semibold leading-none mt-0.5 truncate">
-                        {item.earnedBy
-                          ? <span className={hasAch ? 'text-amber-500' : 'text-gray-400'}>{hasAch ? '🏅 Achievement' : '🔒 Locked'}</span>
-                          : isOwned && !item.isDefault
-                          ? <span className="text-emerald-500">Owned</span>
-                          : item.cost > 0
-                          ? <span className="text-gray-400">🪙 {item.cost}</span>
-                          : null
-                        }
-                      </p>
-                    </div>
-                    {/* Action button — pinned right */}
-                    {mobileBtn}
+                <div key={item.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 12px',
+                    borderRadius: 16,
+                    border: `2px solid ${borderColor || '#e5e7eb'}`,
+                    background: isEq ? 'rgba(96,184,245,0.06)'
+                      : isOwned ? 'rgba(110,231,183,0.06)'
+                      : 'var(--bg-card-grad)',
+                  }}>
+                  {/* Emoji */}
+                  <span style={{ fontSize: 22, width: 28, textAlign: 'center', flexShrink: 0, lineHeight: 1 }}>
+                    {item.preview}
+                  </span>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                    <p style={{
+                      fontWeight: 700,
+                      fontSize: 14,
+                      color: 'var(--text-primary)',
+                      lineHeight: 1.2,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      margin: 0,
+                    }}>
+                      {item.name}
+                    </p>
+                    <p style={{ fontSize: 10, fontWeight: 600, margin: '2px 0 0', lineHeight: 1 }}>
+                      {item.earnedBy
+                        ? <span style={{ color: hasAch ? '#f59e0b' : '#9ca3af' }}>
+                            {hasAch ? '🏅 Achievement' : '🔒 Locked'}
+                          </span>
+                        : isOwned && !item.isDefault
+                        ? <span style={{ color: '#10b981' }}>Owned</span>
+                        : item.cost > 0
+                        ? <span style={{ color: '#9ca3af' }}>🪙 {item.cost}</span>
+                        : null
+                      }
+                    </p>
                   </div>
-
-                  {/* Desktop: vertical card */}
-                  <div className={`hidden sm:flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${borderCls}`}
-                    style={{ background: isEq || isOwned ? undefined : 'var(--bg-card-grad)' }}>
-                    <div className="text-3xl leading-none">{item.preview}</div>
-                    <p className="font-bold text-xs text-center text-gray-700 dark:text-gray-200 leading-tight w-full">{item.name}</p>
-                    {item.earnedBy && (
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold
-                        ${hasAch ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
-                        {hasAch ? '🏅 Achievement' : '🔒 Locked'}
-                      </span>
-                    )}
-                    {isOwned || item.isDefault ? (
-                      <button onClick={() => handleEquip(item)} disabled={!!equipping}
-                        className={`w-full py-1.5 rounded-xl text-xs font-bold transition-all
-                          ${isEq ? 'bg-sky text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-sky/10 hover:text-sky'}`}>
-                        {equipping === item.id ? '…' : isEq ? '✓ Equipped' : 'Equip'}
-                      </button>
-                    ) : freeByAch ? (
-                      <button onClick={() => handleBuy({ ...item, cost: 0 })} disabled={!!buying}
-                        className="w-full py-1.5 rounded-xl text-xs font-bold bg-amber-400 text-white hover:bg-amber-500">
-                        {buying === item.id ? '…' : '🎁 Claim Free'}
-                      </button>
-                    ) : (
-                      <button onClick={() => handleBuy(item)} disabled={!!buying || !canBuy(item)}
-                        className={`w-full py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all
-                          ${canBuy(item) ? 'bg-amber-400 text-white hover:bg-amber-500' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'}`}>
-                        {buying === item.id ? '…' : <><span>🪙</span><span>{item.cost}</span></>}
-                      </button>
-                    )}
-                  </div>
+                  {/* Button — always visible */}
+                  {btn}
                 </div>
               );
             })}
-          </div>
-        </div>
+          </div>        </div>
       </div>
 
       {/* ── How to earn coins ─────────────────────────────── */}
