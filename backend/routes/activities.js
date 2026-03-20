@@ -61,8 +61,8 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Activity not found' });
     }
-    const activity          = actResult.rows[0];
-    const { score, feedback, isCorrect } = evaluateAnswer(activity, answer);
+    const activity = actResult.rows[0];
+    const { score, feedback, isCorrect, details } = evaluateAnswer(activity, answer);
 
     // 2. Upsert progress
     const existingProg = await client.query(
@@ -86,13 +86,13 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       );
     }
 
-    // 3. Streak — update every time user submits (regardless of score)
+    // 3. Streak — update every time user submits
     const userRow = await client.query(
-      'SELECT xp, level, achievements, streak, last_activity_date FROM users WHERE id=$1',
+      'SELECT xp, level, achievements, streak, last_activity_date, coins FROM users WHERE id=$1',
       [userId]
     );
     const userData  = userRow.rows[0];
-    const todayDate = new Date().toISOString().split('T')[0];            // YYYY-MM-DD
+    const todayDate = new Date().toISOString().split('T')[0];
     const yday      = new Date(Date.now() - 86_400_000).toISOString().split('T')[0];
     const lastDate  = userData.last_activity_date
       ? new Date(userData.last_activity_date).toISOString().split('T')[0]
@@ -100,31 +100,31 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
 
     let newStreak = userData.streak || 0;
     if (lastDate === todayDate) {
-      // Already played today — streak unchanged
+      // no change
     } else if (lastDate === yday) {
-      // Consecutive day — increment
       newStreak = (userData.streak || 0) + 1;
     } else {
-      // First ever, or broke the chain
       newStreak = 1;
     }
 
-    // 4. XP & level
+    // 4. XP & coins
     let xpAwarded    = 0;
-    let newAchievements = [];
+    let coinsAwarded = 0;
     if (score > 0) {
-      xpAwarded = Math.round((score / 100) * activity.xp_reward);
+      xpAwarded    = Math.round((score / 100) * activity.xp_reward);
+      coinsAwarded = Math.round(xpAwarded * 1.5);  // coins = 1.5× XP
     }
 
-    // 5. Single UPDATE for XP + streak + last_activity_date
+    // 5. Update XP + streak + coins
     const updateResult = await client.query(
       `UPDATE users
          SET xp                 = xp + $1,
              streak             = $2,
-             last_activity_date = $3
-       WHERE id = $4
-       RETURNING id, xp, level, achievements, streak`,
-      [xpAwarded, newStreak, todayDate, userId]
+             last_activity_date = $3,
+             coins              = COALESCE(coins,0) + $4
+       WHERE id = $5
+       RETURNING id, xp, level, achievements, streak, coins`,
+      [xpAwarded, newStreak, todayDate, coinsAwarded, userId]
     );
     const updatedUser = updateResult.rows[0];
 
@@ -136,7 +136,49 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
     }
 
     // 7. Achievement checks
-    newAchievements = await checkAchievements(client, userId, updatedUser);
+    const newAchievements = await checkAchievements(client, userId, updatedUser);
+
+    // 8. Bonus coins for new achievements
+    if (newAchievements.length > 0) {
+      const achBonus = newAchievements.length * 25;
+      await client.query('UPDATE users SET coins = COALESCE(coins,0) + $1 WHERE id=$2',
+        [achBonus, userId]);
+      coinsAwarded += achBonus;
+    }
+
+    // 9. Auto-unlock wardrobe items from new achievements
+    if (newAchievements.length > 0) {
+      const achKeys = newAchievements.map(a => a.key);
+      const currentWardrobe = await client.query(
+        'SELECT wardrobe FROM users WHERE id=$1', [userId]
+      );
+      const owned = currentWardrobe.rows[0]?.wardrobe || [];
+      // Items that are earned by these achievements
+      const ACHIEVEMENT_ITEMS = {
+        first_star: ['hat_bow','acc_star'],
+        level_5:    ['hat_wizard'],
+        level_10:   ['hat_crown'],
+        completionist: ['hat_grad'],
+        five_streak: ['top_rainbow','bg_night'],
+        ten_streak:  ['acc_fire','top_fire'],
+        xp_100:     ['top_star','acc_medal'],
+        xp_500:     ['top_cosmic'],
+        xp_1000:    ['bg_galaxy'],
+        complete_10: ['acc_trophy'],
+      };
+      const toUnlock = [];
+      achKeys.forEach(k => {
+        (ACHIEVEMENT_ITEMS[k] || []).forEach(itemId => {
+          if (!owned.includes(itemId)) toUnlock.push(itemId);
+        });
+      });
+      if (toUnlock.length > 0) {
+        await client.query(
+          `UPDATE users SET wardrobe = wardrobe || $1::jsonb WHERE id=$2`,
+          [JSON.stringify(toUnlock), userId]
+        );
+      }
+    }
 
     await client.query('COMMIT');
 
@@ -144,7 +186,9 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       score,
       feedback,
       isCorrect,
+      details,          // per-answer breakdown for UI
       xpAwarded,
+      coinsAwarded,
       newAchievements,
       streak: newStreak,
     });
@@ -160,7 +204,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
 // ── Evaluate Answer ───────────────────────────────────────────
 function evaluateAnswer(activity, answer) {
   const correct = activity.correct_answer;
-  let score = 0, isCorrect = false, feedback = '';
+  let score = 0, isCorrect = false, feedback = '', details = [];
 
   switch (activity.type) {
     case 'word_match': {
@@ -173,11 +217,16 @@ function evaluateAnswer(activity, answer) {
         : score >= 60
         ? `Good effort! You got ${correctCount}/${pairs.length} pairs right.`
         : `Keep practising! You got ${correctCount}/${pairs.length}.`;
+      details   = pairs.map(([k, v]) => ({
+        label: k, correct: v,
+        given: answer?.[k] || '', ok: answer?.[k] === v,
+      }));
       break;
     }
     case 'fill_blank': {
       const expected     = correct.answers;
       const given        = answer?.answers || [];
+      const sentences    = activity.content?.sentences || [];
       const correctCount = expected.filter((a, i) => a?.toLowerCase() === given[i]?.toLowerCase()).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
@@ -186,6 +235,10 @@ function evaluateAnswer(activity, answer) {
         : score >= 60
         ? `Well done! ${correctCount}/${expected.length} correct.`
         : `You got ${correctCount}/${expected.length}. Read each sentence carefully!`;
+      details   = expected.map((a, i) => ({
+        label: `Blank ${i+1}`, correct: a,
+        given: given[i] || '', ok: a?.toLowerCase() === given[i]?.toLowerCase(),
+      }));
       break;
     }
     case 'sentence_sort': {
@@ -199,11 +252,16 @@ function evaluateAnswer(activity, answer) {
         : score >= 60
         ? `Good thinking! ${correctCount}/${expected.length} in the right place.`
         : `${correctCount}/${expected.length} correct. Think about beginning, middle, end!`;
+      details   = expected.map((s, i) => ({
+        label: `Step ${i+1}`, correct: s,
+        given: given[i] || '', ok: s === given[i],
+      }));
       break;
     }
     case 'picture_word': {
       const expected     = correct.answers;
       const given        = answer?.answers || [];
+      const items        = activity.content?.items || [];
       const correctCount = expected.filter((a, i) => a === given[i]).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
@@ -212,13 +270,41 @@ function evaluateAnswer(activity, answer) {
         : score >= 60
         ? `Great job! ${correctCount}/${expected.length} correct.`
         : `You got ${correctCount}/${expected.length}. Look carefully at each picture!`;
+      details   = expected.map((a, i) => ({
+        label: items[i]?.picture || `Q${i+1}`, correct: a,
+        given: given[i] || '', ok: a === given[i],
+      }));
+      break;
+    }
+    case 'picture_choice': {
+      const expected     = correct.answers;
+      const given        = answer?.answers || [];
+      const questions    = activity.content?.questions || [];
+      const correctCount = expected.filter((a, i) => a === given[i]).length;
+      score     = Math.round((correctCount / expected.length) * 100);
+      isCorrect = score === 100;
+      feedback  = isCorrect
+        ? 'Excellent! You chose every correct picture!'
+        : score >= 60
+        ? `Nice work! ${correctCount}/${expected.length} pictures correct.`
+        : `You got ${correctCount}/${expected.length}. Read each question carefully!`;
+      details   = expected.map((a, i) => {
+        const q       = questions[i];
+        const correct_opt = q?.options?.find(o => o.emoji === a);
+        const given_opt   = q?.options?.find(o => o.emoji === given[i]);
+        return {
+          label: `Q${i+1}`, correct: `${a} ${correct_opt?.label || ''}`,
+          given: given[i] ? `${given[i]} ${given_opt?.label || ''}` : '',
+          ok: a === given[i],
+        };
+      });
       break;
     }
     default:
       score    = 0;
       feedback = 'Unknown activity type.';
   }
-  return { score, feedback, isCorrect };
+  return { score, feedback, isCorrect, details };
 }
 
 // ── Achievement checks ────────────────────────────────────────
@@ -227,14 +313,12 @@ async function checkAchievements(client, userId, user) {
   try {
     const unlocked = user.achievements || [];
 
-    // Count completed activities
     const countRes = await client.query(
       'SELECT COUNT(*) AS cnt FROM user_progress WHERE user_id=$1 AND completed=TRUE',
       [userId]
     );
     const completedCount = parseInt(countRes.rows[0]?.cnt || 0);
 
-    // Count perfect scores (score = 100)
     const perfectRes = await client.query(
       'SELECT COUNT(*) AS cnt FROM user_progress WHERE user_id=$1 AND score=100',
       [userId]
@@ -242,28 +326,22 @@ async function checkAchievements(client, userId, user) {
     const perfectCount = parseInt(perfectRes.rows[0]?.cnt || 0);
 
     const checks = [
-      // ── First activity ─────────────────────────────────────
       { key: 'first_star',   cond: () => true,                    title: 'First Star',       icon: '⭐' },
-      // ── XP milestones ──────────────────────────────────────
       { key: 'xp_100',       cond: () => user.xp >= 100,          title: 'Century Club',     icon: '💯' },
       { key: 'xp_500',       cond: () => user.xp >= 500,          title: 'XP Legend',        icon: '🌟' },
       { key: 'xp_1000',      cond: () => user.xp >= 1000,         title: 'XP Master',        icon: '🏅' },
-      // ── Level milestones ───────────────────────────────────
       { key: 'level_3',      cond: () => user.level >= 3,         title: 'Rising Reader',    icon: '📖' },
       { key: 'level_5',      cond: () => user.level >= 5,         title: 'Word Wizard',      icon: '🧙' },
       { key: 'level_10',     cond: () => user.level >= 10,        title: 'Reading Champion', icon: '🏆' },
       { key: 'level_20',     cond: () => user.level >= 20,        title: 'Scholar',          icon: '🎓' },
-      // ── Streak milestones ──────────────────────────────────
       { key: 'streak_3',     cond: () => user.streak >= 3,        title: 'Consistent!',      icon: '📅' },
       { key: 'five_streak',  cond: () => user.streak >= 5,        title: 'On Fire!',         icon: '🔥' },
       { key: 'streak_7',     cond: () => user.streak >= 7,        title: 'Weekly Warrior',   icon: '⚡' },
       { key: 'ten_streak',   cond: () => user.streak >= 10,       title: 'Unstoppable',      icon: '💪' },
-      // ── Activity completion milestones ─────────────────────
       { key: 'complete_5',   cond: () => completedCount >= 5,     title: 'Getting Started',  icon: '✅' },
       { key: 'complete_10',  cond: () => completedCount >= 10,    title: 'On a Roll',        icon: '🎯' },
       { key: 'complete_25',  cond: () => completedCount >= 25,    title: 'Dedicated Learner',icon: '📚' },
-      { key: 'completionist',cond: () => completedCount >= 48,    title: 'Completionist',    icon: '🌈' },
-      // ── Perfect score milestone ────────────────────────────
+      { key: 'completionist',cond: () => completedCount >= 52,    title: 'Completionist',    icon: '🌈' },
       { key: 'perfect_3',    cond: () => perfectCount >= 3,       title: 'Perfectionist',    icon: '💎' },
     ];
 
