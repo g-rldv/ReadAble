@@ -1,7 +1,8 @@
 // ============================================================
 // Auth Routes — /api/auth
-// New endpoints: POST /send-otp, POST /reset-password
-// Modified:      POST /register  (now requires otp_code)
+// KEY FIX: sendOTPEmail is fire-and-forget (not awaited).
+// The OTP is saved to DB and the response is sent immediately.
+// Email delivery happens in the background — no more timeouts.
 // ============================================================
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
@@ -10,9 +11,9 @@ const pool   = require('../db');
 const { requireAuth }              = require('../middleware/auth');
 const { generateOTP, sendOTPEmail } = require('../utils/email');
 
-const JWT_SECRET          = process.env.JWT_SECRET || 'readable-dev-secret-change-in-production';
-const JWT_EXPIRES         = '7d';
-const OTP_EXPIRY_MINUTES  = 10;
+const JWT_SECRET         = process.env.JWT_SECRET || 'readable-dev-secret-change-in-production';
+const JWT_EXPIRES        = '7d';
+const OTP_EXPIRY_MINUTES = 10;
 
 function signToken(user) {
   return jwt.sign(
@@ -23,9 +24,8 @@ function signToken(user) {
 }
 
 // ── POST /api/auth/send-otp ──────────────────────────────────
-// Generates and emails a 6-digit OTP.
+// Saves OTP to DB → responds immediately → emails in background.
 // type = 'register' | 'reset'
-// Rate-limited: max 3 sends per email per 15 minutes.
 router.post('/send-otp', async (req, res) => {
   try {
     const { email, type } = req.body;
@@ -33,11 +33,11 @@ router.post('/send-otp', async (req, res) => {
     if (!email || !type)
       return res.status(400).json({ error: 'Email and type are required.' });
     if (!['register', 'reset'].includes(type))
-      return res.status(400).json({ error: 'Invalid type. Use "register" or "reset".' });
+      return res.status(400).json({ error: 'Invalid type.' });
 
     const normalEmail = email.toLowerCase().trim();
 
-    // ── Type-specific pre-checks ─────────────────────────────
+    // ── Pre-checks ───────────────────────────────────────────
     if (type === 'register') {
       const taken = await pool.query(
         'SELECT id FROM users WHERE email=$1', [normalEmail]
@@ -50,35 +50,32 @@ router.post('/send-otp', async (req, res) => {
       const exists = await pool.query(
         'SELECT id FROM users WHERE email=$1', [normalEmail]
       );
-      // Intentionally vague to avoid account enumeration
       if (exists.rows.length === 0) {
-        return res.json({
-          message: 'If an account with that email exists, a reset code has been sent.',
-        });
+        // Vague on purpose — don't reveal whether account exists
+        return res.json({ message: 'If an account with that email exists, a code has been sent.' });
       }
     }
 
-    // ── Rate limit: max 3 sends per email per 15 min ─────────
+    // ── Rate limit: max 5 sends per email per 15 min ─────────
     const rateRow = await pool.query(
       `SELECT COUNT(*) AS cnt FROM otps
        WHERE email=$1 AND type=$2
          AND created_at > NOW() - INTERVAL '15 minutes'`,
       [normalEmail, type]
     );
-    if (parseInt(rateRow.rows[0].cnt, 10) >= 3) {
+    if (parseInt(rateRow.rows[0].cnt, 10) >= 5) {
       return res.status(429).json({
-        error: 'Too many codes sent. Please wait 15 minutes before trying again.',
+        error: 'Too many codes requested. Please wait 15 minutes before trying again.',
       });
     }
 
-    // ── Invalidate old unused OTPs for this email + type ─────
+    // ── Invalidate old unused OTPs ───────────────────────────
     await pool.query(
-      `UPDATE otps SET used=TRUE
-       WHERE email=$1 AND type=$2 AND used=FALSE`,
+      `UPDATE otps SET used=TRUE WHERE email=$1 AND type=$2 AND used=FALSE`,
       [normalEmail, type]
     );
 
-    // ── Generate and store ───────────────────────────────────
+    // ── Generate + store OTP ─────────────────────────────────
     const otp       = generateOTP();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
@@ -88,39 +85,46 @@ router.post('/send-otp', async (req, res) => {
       [normalEmail, otp, type, expiresAt.toISOString()]
     );
 
-    // ── Send email ───────────────────────────────────────────
-    await sendOTPEmail(normalEmail, otp, type);
-
+    // ── Respond IMMEDIATELY — do NOT await email ─────────────
+    // This is the critical fix. The OTP is in the DB. The client
+    // gets a response in < 200ms regardless of SMTP speed.
     res.json({
       message: type === 'reset'
-        ? 'If an account with that email exists, a reset code has been sent.'
+        ? 'If an account with that email exists, a code has been sent.'
         : 'Verification code sent to your email.',
     });
+
+    // ── Send email in background (fire-and-forget) ───────────
+    sendOTPEmail(normalEmail, otp, type).catch(err =>
+      console.error('[Auth/SendOTP] Background email error:', err.message)
+    );
+
   } catch (err) {
     console.error('[Auth/SendOTP]', err);
-    res.status(500).json({ error: 'Failed to send verification code. Please try again.' });
+    // Don't send if already responded
+    if (!res.headersSent)
+      res.status(500).json({ error: 'Failed to generate verification code. Please try again.' });
   }
 });
 
 // ── POST /api/auth/register ──────────────────────────────────
-// Modified: requires otp_code — verifies email ownership before
-// creating the account.
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password, otp_code } = req.body;
 
     if (!username || !email || !password || !otp_code)
       return res.status(400).json({
-        error: 'Username, email, password and verification code are all required.',
+        error: 'Username, email, password, and verification code are all required.',
       });
 
     if (password.length < 6)
       return res.status(400).json({ error: 'Password must be at least 6 characters.' });
 
-    if (username.length < 3 || username.length > 30)
+    if (username.trim().length < 3 || username.trim().length > 30)
       return res.status(400).json({ error: 'Username must be 3–30 characters.' });
 
     const normalEmail = email.toLowerCase().trim();
+    const cleanCode   = String(otp_code).trim();
 
     // ── Verify OTP ───────────────────────────────────────────
     const otpRow = await pool.query(
@@ -128,7 +132,7 @@ router.post('/register', async (req, res) => {
        WHERE email=$1 AND type='register' AND otp_code=$2
          AND used=FALSE AND expires_at > NOW()
        ORDER BY created_at DESC LIMIT 1`,
-      [normalEmail, otp_code.trim()]
+      [normalEmail, cleanCode]
     );
 
     if (!otpRow.rows[0])
@@ -136,13 +140,13 @@ router.post('/register', async (req, res) => {
         error: 'Invalid or expired verification code. Please request a new one.',
       });
 
-    // Mark OTP as used (prevents replay)
+    // Mark used immediately to prevent replay
     await pool.query('UPDATE otps SET used=TRUE WHERE id=$1', [otpRow.rows[0].id]);
 
-    // ── Check for existing user (second safety check) ────────
+    // ── Check no duplicate user ──────────────────────────────
     const existing = await pool.query(
       'SELECT id FROM users WHERE email=$1 OR username=$2',
-      [normalEmail, username]
+      [normalEmail, username.trim()]
     );
     if (existing.rows.length > 0)
       return res.status(409).json({ error: 'Username or email already taken.' });
@@ -153,7 +157,7 @@ router.post('/register', async (req, res) => {
       `INSERT INTO users (username, email, password_hash)
        VALUES ($1, $2, $3)
        RETURNING id, username, email, level, xp, streak, achievements, avatar`,
-      [username, normalEmail, password_hash]
+      [username.trim(), normalEmail, password_hash]
     );
     const user = result.rows[0];
 
@@ -178,7 +182,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required.' });
 
     const result = await pool.query(
-      'SELECT * FROM users WHERE email=$1', [email.toLowerCase()]
+      'SELECT * FROM users WHERE email=$1', [email.toLowerCase().trim()]
     );
     const user = result.rows[0];
 
@@ -197,20 +201,20 @@ router.post('/login', async (req, res) => {
 });
 
 // ── POST /api/auth/reset-password ────────────────────────────
-// Verifies the reset OTP and updates the password in one step.
 router.post('/reset-password', async (req, res) => {
   try {
     const { email, otp_code, new_password } = req.body;
 
     if (!email || !otp_code || !new_password)
       return res.status(400).json({
-        error: 'Email, verification code, and new password are required.',
+        error: 'Email, verification code, and new password are all required.',
       });
 
     if (new_password.length < 6)
       return res.status(400).json({ error: 'Password must be at least 6 characters.' });
 
     const normalEmail = email.toLowerCase().trim();
+    const cleanCode   = String(otp_code).trim();
 
     // ── Verify OTP ───────────────────────────────────────────
     const otpRow = await pool.query(
@@ -218,7 +222,7 @@ router.post('/reset-password', async (req, res) => {
        WHERE email=$1 AND type='reset' AND otp_code=$2
          AND used=FALSE AND expires_at > NOW()
        ORDER BY created_at DESC LIMIT 1`,
-      [normalEmail, otp_code.trim()]
+      [normalEmail, cleanCode]
     );
 
     if (!otpRow.rows[0])
@@ -226,7 +230,7 @@ router.post('/reset-password', async (req, res) => {
         error: 'Invalid or expired code. Please go back and request a new one.',
       });
 
-    // ── Look up user ─────────────────────────────────────────
+    // ── Find user ────────────────────────────────────────────
     const userRow = await pool.query(
       'SELECT id FROM users WHERE email=$1', [normalEmail]
     );
