@@ -1,7 +1,5 @@
 // ============================================================
 // AppLayout — fixed left sidebar + scrollable main content
-// Desktop-focused. SidebarContent lives outside AppLayout so
-// React never remounts it when AppLayout re-renders.
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
@@ -11,6 +9,7 @@ import {
   LayoutDashboard, BookOpen, Trophy, User, Settings,
   LogOut, Volume2, VolumeX, Star, Menu, X,
   Music, Music2, SlidersHorizontal, Sparkles, Maximize2, Minimize,
+  ShoppingBag,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -18,8 +17,8 @@ const NAV_ITEMS = [
   { to:'/activities',  icon:BookOpen,        label:'Activities'  },
   { to:'/leaderboard', icon:Trophy,          label:'Leaderboard' },
   { to:'/profile',     icon:User,            label:'My Profile'  },
+  { to:'/shop',        icon:ShoppingBag,     label:'Shop'        },
   { to:'/settings',    icon:Settings,        label:'Settings'    },
-  { to:'/shop', icon:ShoppingBag, label:'Shop' }
 ];
 
 function SidebarAvatar({ avatar, username }) {
@@ -101,9 +100,15 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
             <p className="font-bold text-sm truncate text-gray-800 dark:text-gray-200">{user?.username}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
           </div>
-          <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-1 flex-shrink-0">
-            <Star size={11} className="text-amber-500 fill-amber-500"/>
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-0.5">
+              <Star size={11} className="text-amber-500 fill-amber-500"/>
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 rounded-full px-2 py-0.5">
+              <span className="text-xs">🪙</span>
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{user?.coins || 0}</span>
+            </div>
           </div>
         </div>
         <div className="mt-3">
@@ -152,10 +157,9 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
           </div>
         </button>
 
-        {/* Music theme quick-picker — visible when sound is on */}
+        {/* Music theme quick-picker */}
         {soundOn && (
           <div className="px-1 pb-1">
-            {/* Music on/off toggle */}
             <div className="flex items-center justify-between px-3 py-2 rounded-xl
                             bg-gray-50 dark:bg-gray-800/60 mb-1.5">
               <div className="flex items-center gap-2">
@@ -170,7 +174,6 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
               </button>
             </div>
 
-            {/* Music theme chips — only when music is enabled */}
             {settings.bg_music_enabled && (
               <div className="grid grid-cols-4 gap-1">
                 {[
@@ -198,6 +201,7 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
             )}
           </div>
         )}
+
         {/* Fullscreen toggle */}
         <button onClick={toggleFullscreen}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
@@ -236,7 +240,6 @@ export default function AppLayout() {
   const [drawerOpen,   setDrawerOpen]   = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Keep isFullscreen in sync with actual browser fullscreen state
   useEffect(() => {
     const onChange = () => setIsFullscreen(
       !!(document.fullscreenElement ||
@@ -262,8 +265,7 @@ export default function AppLayout() {
         document.mozFullScreenElement
       );
       if (!isFs) {
-        // Try standard then vendor-prefixed
-        if (el.requestFullscreen)       await el.requestFullscreen();
+        if (el.requestFullscreen)            await el.requestFullscreen();
         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
         else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
       } else {
@@ -273,12 +275,13 @@ export default function AppLayout() {
       }
     } catch (_) {}
   }, []);
+
   const closeDrawer = () => setDrawerOpen(false);
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* ── Desktop sidebar (always visible ≥ lg) ─────────── */}
+      {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col shadow-card"
         style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-color)' }}>
         <SidebarContent
@@ -290,14 +293,12 @@ export default function AppLayout() {
         />
       </aside>
 
-      {/* ── Mobile full-screen sidebar — CSS slide transition ── */}
+      {/* Mobile full-screen sidebar */}
       <div className={`lg:hidden fixed inset-0 z-[9998] transition-all duration-300
                        ${drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-        {/* Dark backdrop fades in */}
         <div className={`absolute inset-0 bg-black/20 transition-opacity duration-300
                          ${drawerOpen ? 'opacity-100' : 'opacity-0'}`}
           onClick={closeDrawer}/>
-        {/* Sidebar slides in from left */}
         <div className={`absolute inset-0 flex flex-col transition-transform duration-300 ease-out
                          ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}`}
           style={{ background: 'var(--bg-sidebar)' }}>
@@ -308,16 +309,11 @@ export default function AppLayout() {
             isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen}
             onLogoutClick={() => { closeDrawer(); setShowLogoutModal(true); }}
             onClose={closeDrawer}
-            />
-          
-        <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-1 flex-shrink-0">
-            <span className="text-xs">🪙</span>
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.coins || 0}</span>
-            </div>
+          />
         </div>
       </div>
 
-      {/* ── Main column ─────────────────────────────────────── */}
+      {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* Mobile top bar */}
@@ -337,6 +333,10 @@ export default function AppLayout() {
             <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2.5 py-1">
               <Star size={12} className="text-amber-500 fill-amber-500"/>
               <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 rounded-full px-2 py-1">
+              <span className="text-xs">🪙</span>
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{user?.coins || 0}</span>
             </div>
             <button onClick={toggleFullscreen}
               className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
