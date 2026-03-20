@@ -1,6 +1,7 @@
 // ============================================================
-// GamePage — loads activity, renders correct game, shows
-// detailed answer summary after submission
+// GamePage — loads activity, renders correct game, shows result
+// Fixed: picture_choice added, safe result.details guard,
+//        coinsAwarded display, content string-parse guard
 // ============================================================
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -12,13 +13,15 @@ import WordMatchGame    from '../components/games/WordMatchGame';
 import FillBlankGame    from '../components/games/FillBlankGame';
 import SentenceSortGame from '../components/games/SentenceSortGame';
 import PictureWordGame  from '../components/games/PictureWordGame';
+import PictureChoiceGame from '../components/games/PictureChoiceGame';
 import { ArrowLeft, Volume2, RotateCcw, Home, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
 
 const GAME_COMPONENTS = {
-  word_match:    WordMatchGame,
-  fill_blank:    FillBlankGame,
-  sentence_sort: SentenceSortGame,
-  picture_word:  PictureWordGame,
+  word_match:     WordMatchGame,
+  fill_blank:     FillBlankGame,
+  sentence_sort:  SentenceSortGame,
+  picture_word:   PictureWordGame,
+  picture_choice: PictureChoiceGame,
 };
 
 const DIFF_STYLE = {
@@ -27,10 +30,25 @@ const DIFF_STYLE = {
   hard:   'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
 };
 
-// ── Collapsible answer summary shown after submitting ────────
+// ── Safe content parser ───────────────────────────────────────
+// Guard against content being returned as a string instead of object
+function parseContent(activity) {
+  if (!activity) return activity;
+  if (typeof activity.content === 'string') {
+    try { activity.content = JSON.parse(activity.content); } catch (_) {}
+  }
+  if (typeof activity.correct_answer === 'string') {
+    try { activity.correct_answer = JSON.parse(activity.correct_answer); } catch (_) {}
+  }
+  return activity;
+}
+
+// ── Collapsible answer summary ────────────────────────────────
 function AnswerSummary({ details, type }) {
   const [open, setOpen] = React.useState(false);
-  if (!details?.length) return null;
+
+  // Safe guard — details may be undefined if using old backend
+  if (!details || details.length === 0) return null;
 
   const wrongCount = details.filter(d => !d.ok).length;
 
@@ -60,7 +78,6 @@ function AnswerSummary({ details, type }) {
   return (
     <div className="w-full mt-4 text-left border rounded-2xl overflow-hidden"
       style={{ borderColor:'var(--border-color)' }}>
-      {/* Toggle header */}
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3 text-left
@@ -86,7 +103,6 @@ function AnswerSummary({ details, type }) {
           className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}/>
       </button>
 
-      {/* Expandable content */}
       {open && (
         <div className="px-4 pb-4 pt-2" style={{ background:'var(--bg-card-grad)' }}>
           {type === 'sentence_sort' ? (
@@ -123,10 +139,11 @@ export default function GamePage() {
     setResult(null);
     api.get(`/activities/${id}`)
       .then(res => {
-        setActivity(res.data.activity);
+        const act = parseContent(res.data.activity);
+        setActivity(act);
         setUserProg(res.data.userProgress);
         if (settings.tts_enabled)
-          setTimeout(() => speak(res.data.activity.content?.instruction || res.data.activity.title), 600);
+          setTimeout(() => speak(act.content?.instruction || act.title), 600);
       })
       .catch(() => navigate('/activities'))
       .finally(() => setLoading(false));
@@ -156,12 +173,29 @@ export default function GamePage() {
     </div>
   );
 
+  // If activity type isn't in our map, show a friendly error instead of blank
   const GameComponent = GAME_COMPONENTS[activity?.type];
+  if (!GameComponent && activity) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-20">
+        <p className="text-4xl mb-3">🎮</p>
+        <h2 className="font-display text-xl text-gray-700 dark:text-gray-200 mb-2">
+          Game type not supported
+        </h2>
+        <p className="text-sm text-gray-400 mb-5">
+          Activity type <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{activity.type}</code> is not recognised.
+        </p>
+        <Link to="/activities" className="btn-game bg-sky text-white inline-flex items-center gap-2">
+          <Home size={16}/> Back to Activities
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in px-1">
 
-      {/* ── Header ──────────────────────────────────────── */}
+      {/* Header */}
       <div className="flex items-start gap-2 mb-4">
         <Link to="/activities"
           className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 mt-0.5">
@@ -195,7 +229,7 @@ export default function GamePage() {
         </div>
       </div>
 
-      {/* ── Game ────────────────────────────────────────── */}
+      {/* Game */}
       {GameComponent && !result && (
         <div className="rounded-3xl p-6 shadow-card border border-gray-100 dark:border-gray-700 animate-pop"
           style={{ background:'var(--bg-card-grad)' }}>
@@ -208,7 +242,7 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* ── Result ──────────────────────────────────────── */}
+      {/* Result */}
       {result && (
         <div ref={resultRef}
           className="rounded-3xl p-4 md:p-6 shadow-xl border-2 animate-pop"
@@ -228,14 +262,21 @@ export default function GamePage() {
             </p>
           </div>
 
-          {/* XP + Achievements */}
-          {result.xpAwarded > 0 && (
-            <div className="flex justify-center mb-3">
+          {/* Rewards row */}
+          <div className="flex flex-wrap justify-center gap-2 mb-3">
+            {(result.xpAwarded ?? 0) > 0 && (
               <span className="inline-flex items-center gap-2 bg-sky/15 text-sky px-4 py-1.5 rounded-full font-bold text-sm">
                 ✨ +{result.xpAwarded} XP earned!
               </span>
-            </div>
-          )}
+            )}
+            {(result.coinsAwarded ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-2 bg-amber-400/15 text-amber-700 dark:text-amber-400 px-4 py-1.5 rounded-full font-bold text-sm">
+                🪙 +{result.coinsAwarded} coins!
+              </span>
+            )}
+          </div>
+
+          {/* New achievements */}
           {result.newAchievements?.length > 0 && (
             <div className="mb-3 space-y-1.5">
               {result.newAchievements.map(ach => (
@@ -249,7 +290,7 @@ export default function GamePage() {
             </div>
           )}
 
-          {/* ── Per-answer summary ──────────────────────── */}
+          {/* Per-answer breakdown — safe guard on details */}
           <AnswerSummary details={result.details} type={activity?.type}/>
 
           {/* Action buttons */}
