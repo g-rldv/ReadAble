@@ -1,7 +1,5 @@
 // ============================================================
 // SettingsPage — themes, music, TTS, text size, delete account
-// Delete confirmation is GitHub-style:
-//   type your username → enter password → confirm
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useState } from 'react';
@@ -36,11 +34,13 @@ const MUSIC_THEMES = [
   { key:'fantasy', label:'Fantasy', desc:'Mystical minor scales',     Icon:Sparkles          },
 ];
 
+// ── Text sizes — fixed px preview so the sample "Aa" never
+//    inherits the global font-size scaling from <html>
 const TEXT_SIZES = [
-  { key:'small',  label:'Small',       sample:'text-sm'   },
-  { key:'medium', label:'Medium',      sample:'text-base' },
-  { key:'large',  label:'Large',       sample:'text-lg'   },
-  { key:'xlarge', label:'Extra Large', sample:'text-2xl'  },
+  { key:'small',  label:'Small',       previewPx: 13 },
+  { key:'medium', label:'Medium',      previewPx: 16 },
+  { key:'large',  label:'Large',       previewPx: 20 },
+  { key:'xlarge', label:'Extra Large', previewPx: 26 },
 ];
 
 // ── Reusable components ───────────────────────────────────────
@@ -107,9 +107,7 @@ function ThemeCard({ theme, active, onSelect }) {
   );
 }
 
-// ── Delete Account Modal — GitHub-style ───────────────────────
-// User must type their exact username AND enter their password.
-// No multi-step: everything on one clean screen.
+// ── Delete Account Modal ──────────────────────────────────────
 function DeleteAccountModal({ username, onClose, onDeleted }) {
   const [typedName, setTypedName] = useState('');
   const [password,  setPassword]  = useState('');
@@ -122,16 +120,13 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
 
   const handleDelete = async () => {
     if (!canSubmit) return;
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       await api.delete('/users/me', { data: { password } });
       onDeleted();
     } catch (err) {
       setError(err.message || 'Failed to delete account. Check your password.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return ReactDOM.createPortal(
@@ -139,8 +134,6 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
         style={{ background:'var(--bg-card-grad)', border:'2px solid #f43f5e40' }}>
-
-        {/* Red header bar */}
         <div className="bg-rose-500 px-5 py-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
             <AlertTriangle size={20} className="text-white" />
@@ -150,85 +143,55 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
             <p className="text-xs text-white/75 leading-tight">This action is permanent and irreversible</p>
           </div>
         </div>
-
         <div className="px-5 py-5 space-y-4">
-          {/* Warning bullets */}
           <ul className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
-            {[
-              'All your progress and XP will be deleted',
-              'Your achievements will be permanently lost',
-              'Your account cannot be recovered',
-            ].map(t => (
+            {['All your progress and XP will be deleted','Your achievements will be permanently lost','Your account cannot be recovered'].map(t => (
               <li key={t} className="flex items-start gap-2">
-                <span className="text-rose-400 flex-shrink-0 mt-px">✕</span>
-                {t}
+                <span className="text-rose-400 flex-shrink-0 mt-px">✕</span>{t}
               </li>
             ))}
           </ul>
-
           <div className="h-px" style={{ background:'var(--border-color)' }} />
-
-          {/* Type username */}
           <div>
-            <label className="block text-xs font-bold mb-1.5 text-gray-600 dark:text-gray-400 flex items-center gap-1">
-              <AtSign size={11} />
-              Type your username to confirm:
+            <label className="block text-xs font-bold mb-1.5 text-gray-600 dark:text-gray-400">
+              <AtSign size={11} className="inline mr-1"/>
+              Type your username to confirm:{' '}
               <code className="ml-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-rose-600 dark:text-rose-400 font-mono text-[11px]">
                 {username}
               </code>
             </label>
-            <input
-              value={typedName}
-              onChange={e => { setTypedName(e.target.value); setError(''); }}
-              placeholder={username}
-              autoComplete="off"
+            <input value={typedName} onChange={e => { setTypedName(e.target.value); setError(''); }}
+              placeholder={username} autoComplete="off"
               className="w-full px-4 py-2.5 rounded-xl border-2 text-sm font-mono outline-none
                          bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-100 transition-colors"
-              style={{ borderColor: typedName.length > 0 ? (nameMatches ? '#34d399' : '#f43f5e') : 'var(--border-color)' }}
-            />
-            {typedName.length > 0 && !nameMatches && (
-              <p className="text-[11px] text-rose-500 mt-1">Username doesn't match</p>
-            )}
-            {nameMatches && (
-              <p className="text-[11px] text-emerald-500 mt-1 flex items-center gap-1">
-                <Check size={10} strokeWidth={3} /> Username confirmed
-              </p>
-            )}
+              style={{ borderColor: typedName.length > 0 ? (nameMatches ? '#34d399' : '#f43f5e') : 'var(--border-color)' }}/>
+            {typedName.length > 0 && !nameMatches && <p className="text-[11px] text-rose-500 mt-1">Username doesn't match</p>}
+            {nameMatches && <p className="text-[11px] text-emerald-500 mt-1 flex items-center gap-1"><Check size={10} strokeWidth={3}/> Username confirmed</p>}
           </div>
-
-          {/* Password */}
           <div>
-            <label className="block text-xs font-bold mb-1.5 text-gray-600 dark:text-gray-400 flex items-center gap-1">
-              <Lock size={11} /> Confirm your password
+            <label className="block text-xs font-bold mb-1.5 text-gray-600 dark:text-gray-400">
+              <Lock size={11} className="inline mr-1"/>Confirm your password
             </label>
             <div className="relative">
-              <input
-                type={showPass ? 'text' : 'password'}
-                value={password}
+              <input type={showPass ? 'text' : 'password'} value={password}
                 onChange={e => { setPassword(e.target.value); setError(''); }}
                 placeholder="Enter your password"
                 className="w-full px-4 py-2.5 rounded-xl border-2 text-sm outline-none pr-10
                            bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-100"
                 style={{ borderColor:'var(--border-color)' }}
-                onKeyDown={e => e.key === 'Enter' && canSubmit && handleDelete()}
-              />
-              <button type="button"
-                onClick={() => setShowPass(v => !v)}
+                onKeyDown={e => e.key === 'Enter' && canSubmit && handleDelete()}/>
+              <button type="button" onClick={() => setShowPass(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
                 {showPass ? 'Hide' : 'Show'}
               </button>
             </div>
           </div>
-
-          {/* Error */}
           {error && (
             <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800">
-              <AlertTriangle size={14} className="text-rose-500 flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={14} className="text-rose-500 flex-shrink-0 mt-0.5"/>
               <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{error}</p>
             </div>
           )}
-
-          {/* Buttons */}
           <div className="flex gap-3 pt-1">
             <button onClick={onClose}
               className="flex-1 py-2.5 rounded-2xl border text-sm font-semibold
@@ -240,9 +203,7 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
               className="flex-1 py-2.5 rounded-2xl bg-rose-500 text-white text-sm font-bold
                          hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed
                          transition-colors flex items-center justify-center gap-2">
-              {loading
-                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : <Trash2 size={15} />}
+              {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Trash2 size={15}/>}
               {loading ? 'Deleting…' : 'Delete Forever'}
             </button>
           </div>
@@ -267,10 +228,7 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 1500);
   };
 
-  const handleDeleted = () => {
-    logout();
-    navigate('/');
-  };
+  const handleDeleted = () => { logout(); navigate('/'); };
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 md:space-y-6 animate-fade-in">
@@ -280,62 +238,87 @@ export default function SettingsPage() {
         {saved && (
           <div className="flex items-center gap-2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400
                           px-4 py-2 rounded-full text-sm font-bold">
-            <Check size={16} /> Saved!
+            <Check size={16}/> Saved!
           </div>
         )}
       </div>
 
       {/* ── Appearance ─────────────────────────────────────── */}
-      <Section title="Appearance" icon={<Sun size={22} className="text-amber-400" />}>
+      <Section title="Appearance" icon={<Sun size={22} className="text-amber-400"/>}>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {THEMES.map(t => (
-            <ThemeCard key={t.key} theme={t} active={settings.theme === t.key} onSelect={k => save({ theme:k })} />
+            <ThemeCard key={t.key} theme={t} active={settings.theme === t.key} onSelect={k => save({ theme:k })}/>
           ))}
         </div>
       </Section>
 
       {/* ── Text Size ──────────────────────────────────────── */}
-      <Section title="Text Size" icon={<Type size={22} className="text-sky" />}>
+      <Section title="Text Size" icon={<Type size={22} className="text-sky"/>}>
+        {/* Instruction — uses a fixed base font size so it never looks weird */}
+        <p className="text-xs text-gray-400 mb-3" style={{ fontSize: 12 }}>
+          Pick a reading size. The preview shows exactly how large text will appear.
+        </p>
         <div className="grid grid-cols-2 gap-3">
-          {TEXT_SIZES.map(s => (
-            <button key={s.key} onClick={() => save({ text_size:s.key })}
-              className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all
-                ${settings.text_size === s.key ? 'border-coral bg-coral/10' : 'hover:border-coral/40'}`}
-              style={{ borderColor: settings.text_size === s.key ? undefined : 'var(--border-color)' }}>
-              <span className={`font-bold ${s.sample} ${settings.text_size === s.key ? 'text-coral' : 'text-gray-700 dark:text-gray-300'}`}>Aa</span>
-              <p className={`font-bold text-sm ${settings.text_size === s.key ? 'text-coral' : 'text-gray-700 dark:text-gray-300'}`}>{s.label}</p>
-              {settings.text_size === s.key && <Check size={16} className="text-coral ml-auto" strokeWidth={3} />}
-            </button>
-          ))}
+          {TEXT_SIZES.map(s => {
+            const isActive = settings.text_size === s.key;
+            return (
+              <button key={s.key} onClick={() => save({ text_size: s.key })}
+                className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all
+                  ${isActive ? 'border-coral bg-coral/10' : 'hover:border-coral/40'}`}
+                style={{ borderColor: isActive ? undefined : 'var(--border-color)' }}>
+
+                {/* Sample "Aa" — fixed pixel size, never inherits global scaling */}
+                <span
+                  className="font-bold flex-shrink-0 leading-none"
+                  style={{
+                    fontSize: s.previewPx,
+                    color: isActive ? '#F97B6B' : undefined,
+                  }}>
+                  Aa
+                </span>
+
+                {/* Label — always 13px so it's readable at any setting */}
+                <span
+                  className="font-bold leading-tight"
+                  style={{
+                    fontSize: 13,
+                    color: isActive ? '#F97B6B' : undefined,
+                  }}>
+                  {s.label}
+                </span>
+
+                {isActive && <Check size={16} className="text-coral ml-auto flex-shrink-0" strokeWidth={3}/>}
+              </button>
+            );
+          })}
         </div>
       </Section>
 
       {/* ── Background Music ───────────────────────────────── */}
-      <Section title="Background Music" icon={<Music size={22} className="text-purple-500" />}>
+      <Section title="Background Music" icon={<Music size={22} className="text-purple-500"/>}>
         <Toggle on={settings.bg_music_enabled}
           onToggle={() => save({ bg_music_enabled: !settings.bg_music_enabled })}
           label="Background Music"
-          sub="Ambient music while you study — starts on first interaction" />
-
+          sub="Ambient music while you study — starts on first interaction"/>
         {settings.bg_music_enabled && (
           <div className="mt-4 space-y-4">
             <div>
               <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Music Style</p>
               <div className="grid grid-cols-2 gap-2">
                 {MUSIC_THEMES.map(m => (
-                  <button key={m.key} onClick={() => save({ bg_music_theme:m.key })}
+                  <button key={m.key} onClick={() => save({ bg_music_theme: m.key })}
                     className={`flex items-center gap-2.5 p-3 rounded-2xl border-2 transition-all text-left
                       ${settings.bg_music_theme === m.key ? 'border-purple-400 bg-purple-500/10' : 'hover:border-purple-400/40'}`}
                     style={{ borderColor: settings.bg_music_theme === m.key ? undefined : 'var(--border-color)' }}>
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
                       ${settings.bg_music_theme === m.key ? 'bg-purple-500/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                      <m.Icon size={16} className={settings.bg_music_theme === m.key ? 'text-purple-500' : 'text-gray-400'} />
+                      <m.Icon size={16} className={settings.bg_music_theme === m.key ? 'text-purple-500' : 'text-gray-400'}/>
                     </div>
                     <div>
                       <p className={`font-bold text-xs ${settings.bg_music_theme === m.key ? 'text-purple-500 dark:text-purple-400' : 'text-gray-700 dark:text-gray-200'}`}>{m.label}</p>
                       <p className="text-[10px] text-gray-400">{m.desc}</p>
                     </div>
-                    {settings.bg_music_theme === m.key && <Check size={12} className="text-purple-500 ml-auto" strokeWidth={3} />}
+                    {settings.bg_music_theme === m.key && <Check size={12} className="text-purple-500 ml-auto" strokeWidth={3}/>}
                   </button>
                 ))}
               </div>
@@ -347,7 +330,7 @@ export default function SettingsPage() {
               <input type="range" min="0.1" max="1" step="0.05"
                 value={settings.bg_music_volume || 0.7}
                 onChange={e => save({ bg_music_volume: parseFloat(e.target.value) })}
-                className="w-full accent-purple-500" />
+                className="w-full accent-purple-500"/>
             </div>
             <p className="text-[11px] text-gray-400 text-center italic">Music is generated in-browser — no downloads needed</p>
           </div>
@@ -355,17 +338,16 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── Text-to-Speech ─────────────────────────────────── */}
-      <Section title="Text-to-Speech" icon={<Volume2 size={22} className="text-emerald-500" />}>
+      <Section title="Text-to-Speech" icon={<Volume2 size={22} className="text-emerald-500"/>}>
         <Toggle on={settings.tts_enabled}
           onToggle={() => save({ tts_enabled: !settings.tts_enabled })}
           label="Read Aloud"
-          sub="Read game instructions and feedback out loud" />
-
+          sub="Read game instructions and feedback out loud"/>
         {settings.tts_enabled && (
           <div className="mt-4 space-y-4">
             <div>
               <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Voice</label>
-              <select value={settings.tts_voice} onChange={e => save({ tts_voice:e.target.value })}
+              <select value={settings.tts_voice} onChange={e => save({ tts_voice: e.target.value })}
                 className="w-full px-4 py-3 rounded-2xl border-2 text-sm outline-none font-medium
                            bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:border-sky"
                 style={{ borderColor:'var(--border-color)' }}>
@@ -378,7 +360,7 @@ export default function SettingsPage() {
                 Speed <span className="text-sky font-normal">{settings.tts_rate}x</span>
               </label>
               <input type="range" min="0.5" max="1.5" step="0.1" value={settings.tts_rate}
-                onChange={e => save({ tts_rate: parseFloat(e.target.value) })} className="w-full accent-sky" />
+                onChange={e => save({ tts_rate: parseFloat(e.target.value) })} className="w-full accent-sky"/>
               <div className="flex justify-between text-xs text-gray-400 mt-1"><span>Slow</span><span>Normal</span><span>Fast</span></div>
             </div>
             <div>
@@ -386,12 +368,12 @@ export default function SettingsPage() {
                 Pitch <span className="text-sky font-normal">{settings.tts_pitch}</span>
               </label>
               <input type="range" min="0.5" max="1.5" step="0.1" value={settings.tts_pitch}
-                onChange={e => save({ tts_pitch: parseFloat(e.target.value) })} className="w-full accent-sky" />
+                onChange={e => save({ tts_pitch: parseFloat(e.target.value) })} className="w-full accent-sky"/>
               <div className="flex justify-between text-xs text-gray-400 mt-1"><span>Low</span><span>Normal</span><span>High</span></div>
             </div>
             <button onClick={() => speak('Hello! This is how the read-aloud voice sounds. Ready to learn?')}
               className="btn-game bg-sky text-white flex items-center gap-2 w-full justify-center">
-              <Volume2 size={18} /> Test Voice
+              <Volume2 size={18}/> Test Voice
             </button>
           </div>
         )}
@@ -401,7 +383,7 @@ export default function SettingsPage() {
       <div className="rounded-3xl p-6 border-2 border-rose-200 dark:border-rose-900"
         style={{ background:'var(--bg-card-grad)' }}>
         <h3 className="font-display text-xl mb-1 text-rose-600 dark:text-rose-400 flex items-center gap-2">
-          <AlertTriangle size={20} /> Danger Zone
+          <AlertTriangle size={20}/> Danger Zone
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Permanently delete your account and all associated data. This cannot be undone.
@@ -410,7 +392,7 @@ export default function SettingsPage() {
           className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border-2 border-rose-400
                      text-rose-600 dark:text-rose-400 font-bold text-sm
                      hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
-          <Trash2 size={16} /> Delete My Account
+          <Trash2 size={16}/> Delete My Account
         </button>
       </div>
 
