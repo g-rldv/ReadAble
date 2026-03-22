@@ -1,8 +1,7 @@
 // ============================================================
 // AppLayout
 // Desktop : fixed left sidebar
-// Mobile  : top bar + Android-style floating-bubble bottom nav
-//           + slim drawer for sound/settings/logout
+// Mobile  : top bar + floating-bubble bottom nav + full-screen drawer
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -15,7 +14,6 @@ import {
   ShoppingBag,
 } from 'lucide-react';
 
-// ── Nav item lists ────────────────────────────────────────────
 const BOTTOM_NAV = [
   { to:'/dashboard',   Icon:LayoutDashboard, label:'Home'       },
   { to:'/activities',  Icon:BookOpen,        label:'Activities' },
@@ -34,29 +32,19 @@ const SIDEBAR_NAV = [
 ];
 
 // ── Floating-bubble bottom nav ────────────────────────────────
-// Dimensions — all in px, immune to html font-size scaling.
-const BAR_H  = 62;   // height of the flat bar (px)
-const POP_H  = 16;   // px the circle center rises above the bar top
-const CIRC   = 54;   // circle diameter (px)
-const CIRC_R = CIRC / 2; // 27
-
-// SVG viewBox: 100 units per tab, BAR_H units tall.
-// preserveAspectRatio="none" → SVG height unit == 1px vertically.
-// Horizontal units scale with screen width, so we compensate below.
-const NUM  = BOTTOM_NAV.length; // 5
-const VB_W = NUM * 100;         // 500
-const VB_H = BAR_H;             // 62
-
-// Notch in SVG units.
-// nR: notch half-width. Must accommodate the circle at the narrowest
-//     phone (320px → 1 SVG unit = 0.64px), so nR × 0.64 ≥ CIRC_R.
-//     nR = 46 → 46 × 0.64 ≈ 29px > 27 ✓
+const BAR_H  = 62;
+const POP_H  = 16;
+const CIRC   = 54;
+const CIRC_R = CIRC / 2;
+const NUM    = BOTTOM_NAV.length;
+const VB_W   = NUM * 100;
+const VB_H   = BAR_H;
 const NOTCH_R  = 46;
-const NOTCH_D  = 30;  // notch depth — matches circle overlap into bar
-const NOTCH_BV = 26;  // bezier bevel (smoothing)
+const NOTCH_D  = 30;
+const NOTCH_BV = 26;
 
 function buildPath(activeIdx) {
-  const cx = activeIdx * 100 + 50; // SVG center-x of active tab
+  const cx = activeIdx * 100 + 50;
   return [
     `M 0 0`,
     `H ${cx - NOTCH_R - NOTCH_BV}`,
@@ -64,13 +52,24 @@ function buildPath(activeIdx) {
     `C ${cx + NOTCH_R} ${NOTCH_D}, ${cx + NOTCH_R - 9} 0, ${cx + NOTCH_R + NOTCH_BV} 0`,
     `H ${VB_W}`,
     `V ${VB_H}`,
-    `H 0`,
-    `Z`,
+    `H 0 Z`,
   ].join(' ');
 }
 
 function BottomNavBar() {
   const location = useLocation();
+
+  // Detect current theme darkness so we pick a contrasting nav colour
+  // We read the CSS variable at render time; it updates when theme changes
+  // because the component re-renders via the settings context.
+  const isDark = typeof document !== 'undefined' &&
+    document.documentElement.classList.contains('dark');
+
+  // Nav background: always opaque and visually distinct from page bg.
+  // Light themes → white card. Dark theme → deep card colour.
+  const NAV_BG = isDark ? '#1E1840' : '#FFFFFF';
+  // Active bubble gradient adapts too
+  const BUBBLE_GRAD = 'linear-gradient(145deg, #7EC9F7 0%, #4D96FF 100%)';
 
   const activeIdx = (() => {
     const i = BOTTOM_NAV.findIndex(({ to }) =>
@@ -81,18 +80,10 @@ function BottomNavBar() {
   })();
 
   const path = buildPath(activeIdx);
-
-  // Circle horizontal anchor (percentage of full nav width)
   const circlePct = `${(activeIdx * 2 + 1) / (NUM * 2) * 100}%`;
-  // Circle vertical: center sits POP_H above bar top
-  // bar top is at container top (POP_H from container top when circle pops up)
-  // circle bottom from container bottom: BAR_H - CIRC_R = 62 - 27 = 35px
-  const circleFromBottom = BAR_H - CIRC_R; // 35px
-
+  const circleFromBottom = BAR_H - CIRC_R;
   const { Icon: ActiveIcon } = BOTTOM_NAV[activeIdx];
-
-  // Container: bar (BAR_H) + pop-above space (POP_H)
-  const containerH = BAR_H + POP_H; // 78px
+  const containerH = BAR_H + POP_H;
 
   return (
     <nav
@@ -101,15 +92,14 @@ function BottomNavBar() {
         position: 'relative',
         flexShrink: 0,
         height: containerH,
-        // Extra room for iOS home indicator
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        fontSize: '16px',       // hard reset — children must not inherit
+        fontSize: '16px',
         fontFamily: 'inherit',
-        overflow: 'visible',    // circle pops above container top
+        overflow: 'visible',
         zIndex: 50,
       }}>
 
-      {/* ── SVG bar with morphing notch ─────────────────── */}
+      {/* SVG bar with morphing notch */}
       <svg
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="none"
@@ -121,22 +111,18 @@ function BottomNavBar() {
           height: BAR_H,
           display: 'block',
           overflow: 'visible',
-          // Subtle top shadow
-          filter: 'drop-shadow(0 -2px 10px rgba(0,0,0,0.09))',
+          filter: 'drop-shadow(0 -3px 12px rgba(0,0,0,0.18))',
         }}>
         <path
           d={path}
           style={{
-            fill: 'var(--bg-sidebar)',
-            // CSS d-attribute transition — smooth notch morph.
-            // Works in Chrome 93+, Safari 16.4+, Firefox 119+.
-            // Older browsers: notch snaps (still functional).
+            fill: NAV_BG,
             transition: 'd 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         />
       </svg>
 
-      {/* ── Floating active-tab circle ──────────────────── */}
+      {/* Floating active-tab circle */}
       <div style={{
         position: 'absolute',
         left: circlePct,
@@ -145,21 +131,18 @@ function BottomNavBar() {
         width: CIRC,
         height: CIRC,
         borderRadius: '50%',
-        // Gradient bubble
-        background: 'linear-gradient(145deg, #7EC9F7 0%, #4D96FF 100%)',
+        background: BUBBLE_GRAD,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        // Halo ring in bar colour → visually lifts circle off bar
-        boxShadow: `0 0 0 4px var(--bg-sidebar), 0 8px 22px rgba(77,150,255,0.42)`,
-        // Smooth slide when active tab changes
+        boxShadow: `0 0 0 5px ${NAV_BG}, 0 8px 24px rgba(77,150,255,0.45)`,
         transition: 'left 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
         zIndex: 10,
       }}>
         <ActiveIcon size={22} color="white" strokeWidth={2}/>
       </div>
 
-      {/* ── Tab buttons ─────────────────────────────────── */}
+      {/* Tab buttons */}
       <div style={{
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
@@ -169,45 +152,27 @@ function BottomNavBar() {
         {BOTTOM_NAV.map(({ to, Icon, label }, i) => {
           const isActive = i === activeIdx;
           return (
-            <NavLink
-              key={to}
-              to={to}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingBottom: 10,
-                textDecoration: 'none',
-                WebkitTapHighlightColor: 'transparent',
-              }}>
-
-              {/* Inactive: show icon */}
+            <NavLink key={to} to={to} style={{
+              flex: 1,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'flex-end',
+              paddingBottom: 10,
+              textDecoration: 'none',
+              WebkitTapHighlightColor: 'transparent',
+            }}>
               {!isActive && (
-                <Icon
-                  size={20}
-                  strokeWidth={1.8}
-                  style={{
-                    color: '#9ca3af',
-                    marginBottom: 4,
-                    flexShrink: 0,
-                    transition: 'color 0.2s',
-                  }}
-                />
+                <Icon size={20} strokeWidth={1.8} style={{
+                  color: isDark ? '#6b7280' : '#9ca3af',
+                  marginBottom: 4, flexShrink: 0,
+                }}/>
               )}
-
-              {/* Active: spacer so label sits at same Y as inactive */}
               {isActive && <div style={{ height: 24 }}/>}
-
-              {/* Label — always visible */}
               <span style={{
                 fontSize: 10,
                 fontWeight: isActive ? 700 : 500,
                 lineHeight: 1,
                 whiteSpace: 'nowrap',
-                color: isActive ? '#60B8F5' : '#9ca3af',
-                transition: 'color 0.2s, font-weight 0.2s',
+                color: isActive ? '#4D96FF' : (isDark ? '#6b7280' : '#9ca3af'),
               }}>
                 {label}
               </span>
@@ -219,7 +184,7 @@ function BottomNavBar() {
   );
 }
 
-// ── Sidebar helpers ───────────────────────────────────────────
+// ── Shared helpers ────────────────────────────────────────────
 function SidebarAvatar({ avatar, username }) {
   const isImage = avatar && (avatar.startsWith('data:') || avatar.startsWith('http'));
   if (isImage) return (
@@ -263,6 +228,75 @@ function LogoutModal({ onConfirm, onCancel }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Sound picker sub-section (reused in both sidebars) ────────
+function MusicPicker({ settings, updateSettings }) {
+  if (!settings.bg_music_enabled) return null;
+  return (
+    <div className="grid grid-cols-4 gap-1 mt-1.5">
+      {[
+        { key:'calm',    I:Music,             l:'Calm'    },
+        { key:'playful', I:Music2,            l:'Playful' },
+        { key:'focus',   I:SlidersHorizontal, l:'Focus'   },
+        { key:'fantasy', I:Sparkles,          l:'Fantasy' },
+      ].map(({ key, I, l }) => {
+        const a = settings.bg_music_theme === key;
+        return (
+          <button key={key} onClick={() => updateSettings({ bg_music_theme: key })}
+            className={`flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-bold transition-all
+                        ${a ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+            <I size={14}/>{l}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function BottomControls({ soundOn, settings, toggleSound, updateSettings,
+                          isFullscreen, toggleFullscreen, onLogoutClick }) {
+  return (
+    <div className="px-3 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
+      <button onClick={toggleSound}
+        className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
+                   text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+        {soundOn ? <Volume2 size={20} className="text-emerald-500 flex-shrink-0"/> : <VolumeX size={20} className="flex-shrink-0"/>}
+        <span className="text-gray-700 dark:text-gray-300">Sound: {soundOn ? 'On' : 'Off'}</span>
+      </button>
+
+      {soundOn && (
+        <div className="px-1 pb-1">
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/60 mb-1.5">
+            <div className="flex items-center gap-2">
+              <Music size={14} className={settings.bg_music_enabled ? 'text-purple-500' : 'text-gray-400'}/>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Music</span>
+            </div>
+            <button onClick={() => updateSettings({ bg_music_enabled: !settings.bg_music_enabled })}
+              className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0
+                          ${settings.bg_music_enabled ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform
+                               ${settings.bg_music_enabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+            </button>
+          </div>
+          <MusicPicker settings={settings} updateSettings={updateSettings}/>
+        </div>
+      )}
+
+      <button onClick={toggleFullscreen}
+        className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
+                   text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+        {isFullscreen ? <Minimize size={20} className="text-indigo-500 flex-shrink-0"/> : <Maximize2 size={20} className="flex-shrink-0"/>}
+        <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+      </button>
+
+      <button onClick={onLogoutClick}
+        className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
+                   text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+        <LogOut size={20}/>Sign Out
+      </button>
     </div>
   );
 }
@@ -324,188 +358,91 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
         ))}
       </nav>
 
-      <div className="px-3 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
-        <button onClick={toggleSound}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                     text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-          {soundOn ? <Volume2 size={20} className="text-emerald-500 flex-shrink-0"/> : <VolumeX size={20} className="flex-shrink-0"/>}
-          <span className="text-gray-700 dark:text-gray-300">Sound: {soundOn ? 'On' : 'Off'}</span>
-        </button>
-
-        {soundOn && (
-          <div className="px-1 pb-1">
-            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/60 mb-1.5">
-              <div className="flex items-center gap-2">
-                <Music size={14} className={settings.bg_music_enabled ? 'text-purple-500' : 'text-gray-400'}/>
-                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Music</span>
-              </div>
-              <button onClick={() => updateSettings({ bg_music_enabled: !settings.bg_music_enabled })}
-                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0
-                            ${settings.bg_music_enabled ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform
-                                 ${settings.bg_music_enabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
-              </button>
-            </div>
-            {settings.bg_music_enabled && (
-              <div className="grid grid-cols-4 gap-1">
-                {[
-                  { key:'calm',    I:Music,             l:'Calm'    },
-                  { key:'playful', I:Music2,            l:'Playful' },
-                  { key:'focus',   I:SlidersHorizontal, l:'Focus'   },
-                  { key:'fantasy', I:Sparkles,          l:'Fantasy' },
-                ].map(({ key, I, l }) => {
-                  const a = settings.bg_music_theme === key;
-                  return (
-                    <button key={key} onClick={() => updateSettings({ bg_music_theme: key })}
-                      className={`flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-bold transition-all
-                                  ${a ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-                      <I size={14}/>{l}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        <button onClick={toggleFullscreen}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                     text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-          {isFullscreen ? <Minimize size={20} className="text-indigo-500 flex-shrink-0"/> : <Maximize2 size={20} className="flex-shrink-0"/>}
-          <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
-        </button>
-
-        <button onClick={onLogoutClick}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                     text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
-          <LogOut size={20}/>Sign Out
-        </button>
-      </div>
+      <BottomControls
+        soundOn={soundOn} settings={settings}
+        toggleSound={toggleSound} updateSettings={updateSettings}
+        isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen}
+        onLogoutClick={onLogoutClick}
+      />
     </div>
   );
 }
 
-// ── Mobile drawer (settings / sound / logout — no nav) ────────
+// ── Mobile full-screen drawer ─────────────────────────────────
+// Covers the ENTIRE screen — no page content peeking through.
 function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP,
                         toggleSound, updateSettings, onLogoutClick,
                         isFullscreen, toggleFullscreen }) {
   return (
     <div className={`lg:hidden fixed inset-0 z-[9998] transition-all duration-300
-                     ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-      <div className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
-        onClick={onClose}/>
+                     ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
 
-      <div className={`absolute top-0 left-0 bottom-0 w-4/5 max-w-xs flex flex-col
-                       shadow-2xl transition-transform duration-300 ease-out
+      {/* Full-screen panel — slides in from left, covers 100% width */}
+      <div className={`absolute inset-0 flex flex-col transition-transform duration-300 ease-out
                        ${open ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ background: 'var(--bg-sidebar)' }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0"
+          style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center flex-shrink-0">
-              <BookOpen size={16} className="text-white"/>
+            <div className="w-9 h-9 rounded-xl bg-sky flex items-center justify-center flex-shrink-0">
+              <BookOpen size={18} className="text-white"/>
             </div>
             <span className="font-display text-2xl text-sky">ReadAble</span>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-            <X size={20} className="text-gray-500 dark:text-gray-400"/>
+          <button onClick={onClose}
+            className="w-9 h-9 rounded-xl flex items-center justify-center
+                       hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors">
+            <X size={22} className="text-gray-500 dark:text-gray-400"/>
           </button>
         </div>
 
-        {/* Mini user card */}
-        <div className="px-4 py-3 mx-3 mt-3 rounded-2xl border border-sky/20 flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,rgba(77,150,255,0.08),rgba(107,203,119,0.06))' }}>
+        {/* ── User card ── */}
+        <div className="px-4 py-4 mx-4 mt-4 rounded-2xl border border-sky/20 flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg,rgba(77,150,255,0.10),rgba(107,203,119,0.07))' }}>
           <div className="flex items-center gap-3">
             <SidebarAvatar avatar={user?.avatar} username={user?.username}/>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm truncate text-gray-800 dark:text-gray-200">{user?.username}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
+              <p className="font-bold text-base truncate text-gray-800 dark:text-gray-200">{user?.username}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
             </div>
-            <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-0.5 flex-shrink-0">
-              <Star size={11} className="text-amber-500 fill-amber-500"/>
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
+            <div className="flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full px-3 py-1 flex-shrink-0">
+              <Star size={12} className="text-amber-500 fill-amber-500"/>
+              <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0} XP</span>
             </div>
           </div>
-          <div className="mt-2.5">
-            <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-sky to-emerald-400 rounded-full" style={{ width: `${xpPct}%` }}/>
+          <div className="mt-3">
+            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-sky to-emerald-400 rounded-full transition-all duration-700"
+                style={{ width: `${xpPct}%` }}/>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">{currentXP}/50 XP to Level {(user?.level || 1) + 1}</p>
+            <p className="text-xs text-gray-400 mt-1.5">{currentXP}/50 XP to Level {(user?.level || 1) + 1}</p>
           </div>
         </div>
 
-        {/* Settings shortcut */}
-        <div className="px-3 mt-4">
-          <NavLink to="/settings" onClick={onClose}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-sm transition-all ${
-                isActive ? 'bg-sky text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}>
-            <Settings size={20}/>Settings
-          </NavLink>
-        </div>
+        {/* ── Nav links — full size ── */}
+        <nav className="flex-1 px-4 mt-5 space-y-1 overflow-y-auto">
+          {SIDEBAR_NAV.map(({ to, Icon, label }) => (
+            <NavLink key={to} to={to} onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-base transition-all ${
+                  isActive
+                    ? 'bg-sky text-white shadow-md shadow-sky/25'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                }`}>
+              <Icon size={22}/>{label}
+            </NavLink>
+          ))}
+        </nav>
 
-        <div className="flex-1"/>
-
-        {/* Controls */}
-        <div className="px-3 pb-6 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
-          <button onClick={toggleSound}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                       text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-            {soundOn ? <Volume2 size={20} className="text-emerald-500 flex-shrink-0"/> : <VolumeX size={20} className="flex-shrink-0"/>}
-            <span className="text-gray-700 dark:text-gray-300">Sound: {soundOn ? 'On' : 'Off'}</span>
-          </button>
-
-          {soundOn && (
-            <div className="px-1 pb-1">
-              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/60 mb-1.5">
-                <div className="flex items-center gap-2">
-                  <Music size={14} className={settings.bg_music_enabled ? 'text-purple-500' : 'text-gray-400'}/>
-                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Music</span>
-                </div>
-                <button onClick={() => updateSettings({ bg_music_enabled: !settings.bg_music_enabled })}
-                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0
-                              ${settings.bg_music_enabled ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform
-                                   ${settings.bg_music_enabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
-                </button>
-              </div>
-              {settings.bg_music_enabled && (
-                <div className="grid grid-cols-4 gap-1">
-                  {[
-                    { key:'calm',    I:Music,             l:'Calm'    },
-                    { key:'playful', I:Music2,            l:'Playful' },
-                    { key:'focus',   I:SlidersHorizontal, l:'Focus'   },
-                    { key:'fantasy', I:Sparkles,          l:'Fantasy' },
-                  ].map(({ key, I, l }) => {
-                    const a = settings.bg_music_theme === key;
-                    return (
-                      <button key={key} onClick={() => updateSettings({ bg_music_theme: key })}
-                        className={`flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-bold transition-all
-                                    ${a ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-                        <I size={14}/>{l}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          <button onClick={toggleFullscreen}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                       text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-            {isFullscreen ? <Minimize size={20} className="text-indigo-500 flex-shrink-0"/> : <Maximize2 size={20} className="flex-shrink-0"/>}
-            <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
-          </button>
-
-          <button onClick={onLogoutClick}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                       text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
-            <LogOut size={20}/>Sign Out
-          </button>
-        </div>
+        {/* ── Controls ── */}
+        <BottomControls
+          soundOn={soundOn} settings={settings}
+          toggleSound={toggleSound} updateSettings={updateSettings}
+          isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen}
+          onLogoutClick={onLogoutClick}
+        />
       </div>
     </div>
   );
@@ -558,7 +495,7 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Desktop sidebar (lg+) */}
+      {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col shadow-card"
         style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-color)' }}>
         <DesktopSidebar
@@ -569,7 +506,7 @@ export default function AppLayout() {
         />
       </aside>
 
-      {/* Mobile drawer */}
+      {/* Mobile full-screen drawer */}
       <MobileDrawer
         open={drawerOpen} onClose={() => setDrawerOpen(false)}
         user={user} settings={settings} soundOn={soundOn} xpPct={xpPct} currentXP={currentXP}
