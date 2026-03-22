@@ -94,6 +94,55 @@ function AuthInput({ label, type='text', value, onChange, placeholder, name, ico
   );
 }
 
+// ── Sign-In loading overlay (bouncing dots + cycling tip) ─────
+const SIGN_IN_TIPS = [
+  '📚 Loading your books…',
+  '🏆 Fetching your achievements…',
+  '⭐ Counting your XP…',
+  '🎮 Warming up your games…',
+];
+
+function SignInLoadingOverlay() {
+  const [tipIdx, setTipIdx] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setTipIdx(i => (i + 1) % SIGN_IN_TIPS.length), 1100);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="flex flex-col items-center justify-center py-10 px-4 animate-fade-in">
+      {/* Bouncing dots */}
+      <div className="flex items-end gap-2 mb-6 h-8">
+        {[0, 1, 2].map(i => (
+          <span key={i} className="block w-3 h-3 rounded-full bg-sky" style={{
+            animation: 'signInBounce 0.9s ease-in-out infinite',
+            animationDelay: `${i * 0.18}s`,
+          }}/>
+        ))}
+      </div>
+      {/* Animated progress bar */}
+      <div className="w-full max-w-[180px] h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden mb-5">
+        <div className="h-full rounded-full bg-gradient-to-r from-sky to-indigo-400"
+          style={{ animation: 'signInBar 1.8s ease-in-out infinite' }}/>
+      </div>
+      {/* Cycling tip */}
+      <p key={tipIdx} className="text-sm font-semibold text-gray-500 dark:text-gray-400 animate-fade-in text-center">
+        {SIGN_IN_TIPS[tipIdx]}
+      </p>
+      <style>{`
+        @keyframes signInBounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+          40%            { transform: translateY(-14px); opacity: 1; }
+        }
+        @keyframes signInBar {
+          0%   { width: 0%;  margin-left: 0; }
+          50%  { width: 70%; margin-left: 0; }
+          100% { width: 0%;  margin-left: 100%; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ── Sign-In Modal ─────────────────────────────────────────────
 function SignInModal({ onClose, onSwitchToRegister }) {
   const { login } = useAuth();
@@ -121,31 +170,76 @@ function SignInModal({ onClose, onSwitchToRegister }) {
       onClick={e=>{if(e.target===e.currentTarget&&!loading)onClose();}}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
-        <div className="flex items-center justify-between px-5 pt-5 pb-1">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center"><BookOpen size={16} className="text-white"/></div>
-            <span className="font-display text-lg text-sky">ReadAble</span>
+        {/* Header — hidden while loading so overlay fills the space */}
+        {!loading && (
+          <div className="flex items-center justify-between px-5 pt-5 pb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center"><BookOpen size={16} className="text-white"/></div>
+              <span className="font-display text-lg text-sky">ReadAble</span>
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><X size={18} className="text-gray-400"/></button>
           </div>
-          {!loading && <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><X size={18} className="text-gray-400"/></button>}
-        </div>
+        )}
         <div className="px-6 pb-6 pt-3">
-          <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Welcome back!</h2>
-          <p className="text-xs text-gray-500 mb-4">Sign in to continue your journey</p>
-          <form onSubmit={submit}>
-            <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle} placeholder="you@example.com" icon={Mail}/>
-            <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle} placeholder="Your password" icon={Lock}/>
-            {error && <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-800">{error}</div>}
-            <button type="submit" disabled={loading}
-              className="btn-game w-full bg-sky text-white text-sm disabled:opacity-60">
-              {loading ? 'Signing in…' : 'Sign In'}
-            </button>
-          </form>
-          <p className="text-center text-xs text-gray-500 mt-4">
-            No account?{' '}
-            <button onClick={onSwitchToRegister} className="text-sky font-bold hover:underline">Create one free</button>
-          </p>
+          {/* Loading overlay replaces form while signing in */}
+          {loading ? (
+            <SignInLoadingOverlay/>
+          ) : (
+            <>
+              <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Welcome back!</h2>
+              <p className="text-xs text-gray-500 mb-4">Sign in to continue your journey</p>
+              <form onSubmit={submit}>
+                <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle} placeholder="you@example.com" icon={Mail}/>
+                <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle} placeholder="Your password" icon={Lock}/>
+                {error && <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-800">{error}</div>}
+                <button type="submit" disabled={loading}
+                  className="btn-game w-full bg-sky text-white text-sm disabled:opacity-60">
+                  Sign In
+                </button>
+              </form>
+              <p className="text-center text-xs text-gray-500 mt-4">
+                No account?{' '}
+                <button onClick={onSwitchToRegister} className="text-sky font-bold hover:underline">Create one free</button>
+              </p>
+            </>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Register loading overlay ──────────────────────────────────
+const REGISTER_TIPS = [
+  '🎉 Creating your account…',
+  '🏅 Setting up achievements…',
+  '🎨 Picking your theme…',
+  '🚀 Almost ready!',
+];
+
+function RegisterLoadingOverlay() {
+  const [tipIdx, setTipIdx] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setTipIdx(i => (i + 1) % REGISTER_TIPS.length), 1100);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="flex flex-col items-center justify-center py-10 px-4 animate-fade-in">
+      <div className="flex items-end gap-2 mb-6 h-8">
+        {[0, 1, 2].map(i => (
+          <span key={i} className="block w-3 h-3 rounded-full bg-coral" style={{
+            animation: 'signInBounce 0.9s ease-in-out infinite',
+            animationDelay: `${i * 0.18}s`,
+          }}/>
+        ))}
+      </div>
+      <div className="w-full max-w-[180px] h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden mb-5">
+        <div className="h-full rounded-full bg-gradient-to-r from-coral to-sunny"
+          style={{ animation: 'signInBar 1.8s ease-in-out infinite' }}/>
+      </div>
+      <p key={tipIdx} className="text-sm font-semibold text-gray-500 dark:text-gray-400 animate-fade-in text-center">
+        {REGISTER_TIPS[tipIdx]}
+      </p>
     </div>
   );
 }
@@ -185,34 +279,42 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
-      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      onClick={e=>{if(e.target===e.currentTarget&&!loading)onClose();}}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
-        <div className="flex items-center justify-between px-5 pt-5 pb-1">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-coral flex items-center justify-center"><BookOpen size={16} className="text-white"/></div>
-            <span className="font-display text-lg text-coral">ReadAble</span>
+        {!loading && (
+          <div className="flex items-center justify-between px-5 pt-5 pb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-coral flex items-center justify-center"><BookOpen size={16} className="text-white"/></div>
+              <span className="font-display text-lg text-coral">ReadAble</span>
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><X size={18} className="text-gray-400"/></button>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><X size={18} className="text-gray-400"/></button>
-        </div>
+        )}
         <div className="px-6 pb-6 pt-3">
-          <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Join ReadAble!</h2>
-          <p className="text-xs text-gray-500 mb-4">Free account — takes 30 seconds</p>
-          <form onSubmit={submit}>
-            <AuthInput label="Username" name="username" value={form.username} onChange={handle} placeholder="SuperReader" icon={User} error={errors.username}/>
-            <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle} placeholder="you@example.com" icon={Mail} error={errors.email}/>
-            <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle} placeholder="At least 6 characters" icon={Lock} error={errors.password}/>
-            <AuthInput label="Confirm Password" type="password" name="confirm" value={form.confirm} onChange={handle} placeholder="Repeat password" icon={Lock} error={errors.confirm}/>
-            {errors.general && <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-xs font-semibold border border-rose-200 dark:border-rose-800">{errors.general}</div>}
-            <button type="submit" disabled={loading}
-              className="btn-game w-full bg-coral text-white text-sm mt-1 disabled:opacity-60">
-              {loading ? 'Creating account…' : 'Start Learning!'}
-            </button>
-          </form>
-          <p className="text-center text-xs text-gray-500 mt-4">
-            Already have an account?{' '}
-            <button onClick={onSwitchToLogin} className="text-sky font-bold hover:underline">Sign in</button>
-          </p>
+          {loading ? (
+            <RegisterLoadingOverlay/>
+          ) : (
+            <>
+              <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Join ReadAble!</h2>
+              <p className="text-xs text-gray-500 mb-4">Free account — takes 30 seconds</p>
+              <form onSubmit={submit}>
+                <AuthInput label="Username" name="username" value={form.username} onChange={handle} placeholder="SuperReader" icon={User} error={errors.username}/>
+                <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle} placeholder="you@example.com" icon={Mail} error={errors.email}/>
+                <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle} placeholder="At least 6 characters" icon={Lock} error={errors.password}/>
+                <AuthInput label="Confirm Password" type="password" name="confirm" value={form.confirm} onChange={handle} placeholder="Repeat password" icon={Lock} error={errors.confirm}/>
+                {errors.general && <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-xs font-semibold border border-rose-200 dark:border-rose-800">{errors.general}</div>}
+                <button type="submit" disabled={loading}
+                  className="btn-game w-full bg-coral text-white text-sm mt-1 disabled:opacity-60">
+                  Start Learning!
+                </button>
+              </form>
+              <p className="text-center text-xs text-gray-500 mt-4">
+                Already have an account?{' '}
+                <button onClick={onSwitchToLogin} className="text-sky font-bold hover:underline">Sign in</button>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>
