@@ -1,7 +1,7 @@
 // ============================================================
-// ProfilePage
-// Desktop (lg+): two-column layout — profile/stats left, achievements right
-// Mobile (<lg):  single-column stack
+// ProfilePage — robust at all text sizes (small → xlarge)
+// All layout-critical text uses fixed px inline styles so it
+// never inherits the global html font-size scaling.
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useEffect, useState, useRef } from 'react';
@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import {
   Star, Flame, CheckCircle, BookOpen, TrendingUp, User,
-  Camera, Edit2, Check, X, History, Trophy, ChevronDown,
+  Camera, Edit2, Check, X, History, Trophy,
 } from 'lucide-react';
 
 // ── Achievement definitions ───────────────────────────────────
@@ -33,7 +33,7 @@ const ACHIEVEMENTS = [
   { key:'perfect_3',    title:'Perfectionist',      desc:'Score 100% on 3 activities',   group:'skill'     },
 ];
 const ACH_KNOWN_KEYS = new Set(ACHIEVEMENTS.map(a => a.key));
-const GROUP_ICONS    = {
+const GROUP_ICONS = {
   milestone: Star, xp: TrendingUp, level: Trophy,
   streak: Flame, progress: BookOpen, skill: CheckCircle,
 };
@@ -95,9 +95,9 @@ function AvatarModal({ current, onClose, onSave }) {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl p-6 shadow-2xl"
-        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
+        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)', fontSize: 16 }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-xl text-gray-800 dark:text-gray-100">Choose Avatar</h3>
+          <h3 className="font-display" style={{ fontSize: 20 }}>Choose Avatar</h3>
           <button onClick={onClose}><X size={20} className="text-gray-400"/></button>
         </div>
         <div className="flex justify-center mb-4">
@@ -106,28 +106,30 @@ function AvatarModal({ current, onClose, onSave }) {
         <div className="grid grid-cols-8 gap-2 mb-4">
           {EMOJI_AVATARS.map(e => (
             <button key={e} onClick={() => setSelected(e)}
-              className={`text-2xl rounded-xl p-1 transition-all hover:scale-110
+              style={{ fontSize: 22 }}
+              className={`rounded-xl p-1 transition-all hover:scale-110
                 ${selected === e ? 'ring-2 ring-sky bg-sky/10 scale-110' : ''}`}>
               {e}
             </button>
           ))}
         </div>
         <button onClick={() => fileRef.current.click()}
-          className="w-full py-2.5 rounded-2xl border-2 border-dashed text-sm font-semibold
+          className="w-full py-2.5 rounded-2xl border-2 border-dashed
                      text-gray-500 hover:border-sky hover:text-sky transition-colors mb-4
                      flex items-center justify-center gap-2"
-          style={{ borderColor:'var(--border-color)' }}>
+          style={{ fontSize: 13, borderColor:'var(--border-color)' }}>
           <Camera size={16}/> {uploading ? 'Processing…' : 'Upload a Photo'}
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile}/>
         <div className="flex gap-3">
           <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-2xl border text-sm font-semibold text-gray-600 dark:text-gray-300"
-            style={{ borderColor:'var(--border-color)' }}>
+            className="flex-1 py-2.5 rounded-2xl border text-gray-600 dark:text-gray-300"
+            style={{ fontSize: 13, borderColor:'var(--border-color)' }}>
             Cancel
           </button>
           <button onClick={() => onSave(selected)}
-            className="flex-1 py-2.5 rounded-2xl bg-sky text-white text-sm font-bold hover:opacity-90">
+            className="flex-1 py-2.5 rounded-2xl bg-sky text-white font-bold hover:opacity-90"
+            style={{ fontSize: 13 }}>
             Save
           </button>
         </div>
@@ -137,75 +139,61 @@ function AvatarModal({ current, onClose, onSave }) {
   );
 }
 
-// ── All Achievements modal ────────────────────────────────────
+// ── All Achievements Modal ────────────────────────────────────
 function AllAchievementsModal({ unlocked, onClose }) {
   const groups = ['milestone','xp','level','streak','progress','skill'];
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-xl rounded-3xl flex flex-col max-h-[90vh] overflow-hidden shadow-2xl"
-        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
-
-        {/* Header */}
+        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)', fontSize: 16 }}>
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b flex-shrink-0"
           style={{ borderColor:'var(--border-color)' }}>
           <div>
-            <h3 className="font-display text-xl text-gray-800 dark:text-gray-100">All Achievements</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{unlocked.size} of {ACHIEVEMENTS.length} earned</p>
+            <h3 className="font-display" style={{ fontSize: 20 }}>All Achievements</h3>
+            <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{unlocked.size} of {ACHIEVEMENTS.length} earned</p>
           </div>
-          <button onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
             <X size={20} className="text-gray-400"/>
           </button>
         </div>
-
-        {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-4 py-4 space-y-6">
+        <div className="overflow-y-auto flex-1 px-4 py-4 space-y-5">
           {groups.map(g => {
-            const items   = ACHIEVEMENTS.filter(a => a.group === g);
+            const items = ACHIEVEMENTS.filter(a => a.group === g);
             const GrpIcon = GROUP_ICONS[g] || Star;
             return (
               <div key={g}>
-                {/* Group header */}
-                <div className="flex items-center gap-2 mb-3">
-                  <GrpIcon size={13} className="text-gray-400"/>
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                <div className="flex items-center gap-2 mb-2">
+                  <GrpIcon size={12} className="text-gray-400"/>
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9ca3af' }}>
                     {GROUP_LABELS[g]}
                   </span>
-                  <span className="text-xs text-gray-300 dark:text-gray-600">
-                    ({items.filter(a => unlocked.has(a.key)).length}/{items.length})
-                  </span>
                 </div>
-
-                {/* Achievement rows — single column on mobile, 2-col on sm+ */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-2">
                   {items.map(ach => {
-                    const earned  = unlocked.has(ach.key);
+                    const earned = unlocked.has(ach.key);
                     const AchIcon = GROUP_ICONS[ach.group] || Star;
                     return (
                       <div key={ach.key}
-                        className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all
-                          ${earned
+                        className={`flex items-center gap-3 p-3 rounded-2xl border-2 ${
+                          earned
                             ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'
                             : 'border-gray-100 dark:border-gray-700/50 opacity-50'}`}>
-                        {/* Icon circle */}
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
                           ${earned ? 'bg-amber-100 dark:bg-amber-800/40' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                          <AchIcon size={18} className={earned ? 'text-amber-500' : 'text-gray-400'}/>
+                          <AchIcon size={17} className={earned ? 'text-amber-500' : 'text-gray-400'}/>
                         </div>
-                        {/* Text */}
-                        <div className="min-w-0 flex-1">
-                          <p className={`font-bold text-sm leading-tight
-                            ${earned ? 'text-gray-800 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                        <div className="flex-1 min-w-0">
+                          <p style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}
+                            className={earned ? 'text-gray-800 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}>
                             {ach.title}
                           </p>
-                          <p className="text-xs text-gray-400 leading-tight mt-0.5">{ach.desc}</p>
+                          <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{ach.desc}</p>
                         </div>
-                        {/* Earned badge */}
                         {earned && (
-                          <span className="flex-shrink-0 text-[10px] bg-amber-200 dark:bg-amber-800/50
-                                           text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
-                            ✓
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, flexShrink: 0, fontWeight: 700 }}
+                            className="bg-amber-200 dark:bg-amber-800/50 text-amber-800 dark:text-amber-200">
+                            ✓ Earned
                           </span>
                         )}
                       </div>
@@ -222,71 +210,93 @@ function AllAchievementsModal({ unlocked, onClose }) {
   );
 }
 
-// ── Stat card ─────────────────────────────────────────────────
+// ── Stat Card ─────────────────────────────────────────────────
 function StatCard({ Icon, iconCls, bg, label, val, loading }) {
   return (
-    <div className="rounded-2xl p-3 lg:p-4 border"
-      style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)',
-               opacity: loading ? 0.6 : 1 }}>
+    <div className="rounded-2xl p-3 border"
+      style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)', opacity: loading ? 0.6 : 1 }}>
       <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center mb-2`}>
-        <Icon size={16} className={iconCls}/>
+        <Icon size={15} className={iconCls}/>
       </div>
-      <div className="font-display text-xl lg:text-2xl text-gray-800 dark:text-gray-100">{val}</div>
-      <div className="text-xs text-gray-400 font-medium mt-0.5">{label}</div>
+      {/* clamp so these don't overflow at xlarge */}
+      <div className="font-display text-gray-800 dark:text-gray-100 tabular-nums"
+        style={{ fontSize: 'clamp(16px, 4vw, 24px)', lineHeight: 1.1 }}>
+        {val}
+      </div>
+      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3, fontWeight: 600 }}>{label}</div>
     </div>
   );
 }
 
-// ── Achievement tile — used in the preview grid ───────────────
-// Mobile: horizontal row layout. Desktop: compact tile.
-function AchTile({ ach, earned, isMobile }) {
+// ── Achievement Row (mobile list) ─────────────────────────────
+// All sizes in fixed px — never scales with html font-size.
+function AchRow({ ach, earned }) {
   const AchIcon = GROUP_ICONS[ach.group] || Star;
-
-  if (isMobile) {
-    // Horizontal card — much more readable on small screens
-    return (
-      <div className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all
-        ${earned
-          ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'
-          : 'border-gray-100 dark:border-gray-700 opacity-40 grayscale'}`}>
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
-          ${earned ? 'bg-amber-100 dark:bg-amber-800/40' : 'bg-gray-100 dark:bg-gray-800'}`}>
-          <AchIcon size={16} className={earned ? 'text-amber-500' : 'text-gray-400'}/>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={`font-bold text-sm leading-tight
-            ${earned ? 'text-gray-800 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
-            {ach.title}
-          </p>
-          <p className="text-xs text-gray-400 leading-tight mt-0.5">{ach.desc}</p>
-        </div>
-        {earned && (
-          <span className="flex-shrink-0 text-[10px] bg-amber-200 dark:bg-amber-800/50
-                           text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
-            ✓ Earned
-          </span>
-        )}
-      </div>
-    );
-  }
-
-  // Desktop: compact tile grid
   return (
-    <div className={`rounded-xl md:rounded-2xl p-2 md:p-3 text-center border-2 transition-all
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '12px 14px',
+      borderRadius: 16,
+      border: `2px solid ${earned ? '#fcd34d' : 'var(--border-color)'}`,
+      background: earned ? 'rgba(251,191,36,0.07)' : 'var(--bg-card-grad)',
+      opacity: earned ? 1 : 0.5,
+    }}>
+      {/* Icon */}
+      <div style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: earned ? 'rgba(251,191,36,0.15)' : 'rgba(156,163,175,0.1)',
+      }}>
+        <AchIcon size={16} className={earned ? 'text-amber-500' : 'text-gray-400'}/>
+      </div>
+
+      {/* Text */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          className="text-gray-800 dark:text-gray-100">
+          {ach.title}
+        </p>
+        <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {ach.desc}
+        </p>
+      </div>
+
+      {/* Badge */}
+      {earned && (
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 999,
+          flexShrink: 0, whiteSpace: 'nowrap',
+          background: 'rgba(251,191,36,0.2)', color: '#b45309',
+        }}>
+          ✓ Earned
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Achievement Tile (desktop grid) ──────────────────────────
+function AchTile({ ach, earned }) {
+  const AchIcon = GROUP_ICONS[ach.group] || Star;
+  return (
+    <div className={`rounded-xl p-2.5 text-center border-2 transition-all
       ${earned
-        ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 shadow-sm'
+        ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'
         : 'border-gray-100 dark:border-gray-700 opacity-40 grayscale'}`}>
-      <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl mx-auto mb-1.5 flex items-center justify-center
+      <div className={`w-8 h-8 rounded-lg mx-auto mb-1.5 flex items-center justify-center
         ${earned ? 'bg-amber-100 dark:bg-amber-800/40' : 'bg-gray-100 dark:bg-gray-800'}`}>
         <AchIcon size={15} className={earned ? 'text-amber-500' : 'text-gray-400'}/>
       </div>
-      <p className="font-bold text-[10px] md:text-[11px] text-gray-700 dark:text-gray-200 leading-tight line-clamp-2">
+      <p style={{ fontSize: 10, fontWeight: 700, lineHeight: 1.2 }}
+        className="text-gray-700 dark:text-gray-200 line-clamp-2">
         {ach.title}
       </p>
       {earned && (
-        <span className="inline-block mt-1 text-[8px] md:text-[9px] bg-amber-200 dark:bg-amber-800/50
-                         text-amber-800 dark:text-amber-200 px-1 py-0.5 rounded-full font-bold">
-          ✓ Earned
+        <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 999, fontWeight: 700, display: 'inline-block', marginTop: 3 }}
+          className="bg-amber-200 dark:bg-amber-800/50 text-amber-800 dark:text-amber-200">
+          ✓
         </span>
       )}
     </div>
@@ -305,9 +315,7 @@ export default function ProfilePage() {
   const [usernameErr,     setUsernameErr]     = useState('');
   const [savingUsername,  setSavingUsername]  = useState(false);
   const [showAllAch,      setShowAllAch]      = useState(false);
-
-  // Tab state for mobile (profile / stats / achievements)
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab,       setActiveTab]       = useState('profile');
 
   useEffect(() => {
     if (!user?.id) { setStats(null); setStatsLoading(false); return; }
@@ -346,24 +354,26 @@ export default function ProfilePage() {
   const allAvg       = Math.round(parseFloat(stats?.stats?.avg_score ?? 0));
   const sortedAch    = [...ACHIEVEMENTS].sort((a, b) => (unlocked.has(b.key) ? 1 : 0) - (unlocked.has(a.key) ? 1 : 0));
 
+  // ── Mobile Tab Bar — all fixed px ────────────────────────────
   const TABS = [
-    { key: 'profile',      Icon: User,     label: 'Profile'      },
-    { key: 'stats',        Icon: TrendingUp, label: 'Stats'      },
-    { key: 'achievements', Icon: Trophy,   label: 'Achievements' },
+    { key:'profile',      Icon:User,      label:'Profile'      },
+    { key:'stats',        Icon:TrendingUp, label:'Stats'       },
+    { key:'achievements', Icon:Trophy,    label:'Badges'       },
   ];
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in space-y-4 md:space-y-5">
+    <div className="max-w-5xl mx-auto animate-fade-in space-y-4">
 
-      {/* ══ HERO BANNER ══════════════════════════════════════ */}
+      {/* ══ HERO BANNER ════════════════════════════════════════ */}
       <div className="relative rounded-3xl overflow-hidden shadow-lg"
         style={{ background:'linear-gradient(135deg,#4D96FF 0%,#6BCB77 100%)' }}>
         <div className="absolute inset-0 opacity-10"
-          style={{ backgroundImage:'radial-gradient(circle at 20% 50%,#fff 1px,transparent 1px),radial-gradient(circle at 80% 20%,#fff 1px,transparent 1px)', backgroundSize:'40px 40px' }}/>
+          style={{ backgroundImage:'radial-gradient(circle at 20% 50%,#fff 1px,transparent 1px)', backgroundSize:'40px 40px' }}/>
 
-        {/* ── Mobile layout ── */}
-        <div className="md:hidden relative px-5 pt-6 pb-0">
-          <div className="flex items-start gap-4">
+        {/* ── Mobile hero ── */}
+        <div className="md:hidden relative px-4 pt-5 pb-0">
+          <div className="flex items-center gap-3">
+            {/* Avatar */}
             <div className="relative flex-shrink-0">
               <div className="w-16 h-16 rounded-2xl ring-4 ring-white/40 overflow-hidden">
                 <AvatarDisplay avatar={user?.avatar} username={user?.username} size={64}/>
@@ -373,18 +383,16 @@ export default function ProfilePage() {
                            flex items-center justify-center shadow-md">
                 <Camera size={11}/>
               </button>
-              {savingAvatar && (
-                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                </div>
-              )}
             </div>
-            <div className="flex-1 min-w-0 pt-0.5">
+
+            {/* Name + level */}
+            <div className="flex-1 min-w-0">
               {editUsername ? (
                 <div className="flex items-center gap-1.5 mb-1">
                   <input value={newUsername}
                     onChange={e => { setNewUsername(e.target.value); setUsernameErr(''); }}
-                    className="flex-1 px-2 py-1 rounded-lg border border-white/60 text-sm font-bold
+                    style={{ fontSize: 14 }}
+                    className="flex-1 px-2 py-1 rounded-lg border border-white/60 font-bold
                                outline-none bg-white/20 text-white placeholder-white/60 min-w-0"
                     maxLength={30} autoFocus/>
                   <button onClick={handleSaveUsername} disabled={savingUsername}
@@ -397,41 +405,46 @@ export default function ProfilePage() {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <h1 className="font-display text-xl text-white leading-tight truncate">{user?.username}</h1>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <h1 className="font-display text-white leading-tight truncate" style={{ fontSize: 20 }}>
+                    {user?.username}
+                  </h1>
                   <button onClick={() => { setEditUsername(true); setNewUsername(user?.username || ''); }}
                     className="p-1 rounded-md bg-white/20 flex-shrink-0">
                     <Edit2 size={11} className="text-white"/>
                   </button>
                 </div>
               )}
-              {usernameErr && <p className="text-[10px] text-rose-200 mb-0.5">{usernameErr}</p>}
-              <div className="flex items-center gap-2">
-                <span className="bg-white/20 rounded-full px-2 py-0.5 text-xs font-bold text-white">
+              {usernameErr && <p style={{ fontSize: 10 }} className="text-rose-200 mb-0.5">{usernameErr}</p>}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span style={{ fontSize: 11, fontWeight: 700 }}
+                  className="bg-white/20 rounded-full px-2 py-0.5 text-white whitespace-nowrap">
                   Lv {user?.level || 1}
                 </span>
-                <span className="flex items-center gap-1 bg-amber-400/30 rounded-full px-2 py-0.5">
-                  <Star size={9} className="text-amber-200 fill-amber-200"/>
-                  <span className="text-[11px] font-bold text-white">{user?.xp || 0} XP</span>
+                <span style={{ fontSize: 11, fontWeight: 700 }}
+                  className="flex items-center gap-1 bg-amber-400/30 rounded-full px-2 py-0.5 text-white whitespace-nowrap">
+                  <Star size={9} className="fill-amber-200 text-amber-200"/>
+                  {user?.xp || 0} XP
                 </span>
               </div>
-              <p className="text-[10px] text-white/60 mt-1 truncate">{user?.email}</p>
+              <p style={{ fontSize: 10 }} className="text-white/60 mt-1 truncate">{user?.email}</p>
             </div>
           </div>
-          <div className="mt-4">
-            <div className="flex justify-between text-[10px] text-white/70 mb-1">
+
+          {/* XP bar */}
+          <div className="mt-3">
+            <div className="flex justify-between mb-1" style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
               <span>To Level {(user?.level || 1) + 1}</span>
               <span>{currentXP}/{xpForLevel} XP</span>
             </div>
             <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full bg-white rounded-full transition-all duration-700"
-                style={{ width:`${xpPct}%` }}/>
+              <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width:`${xpPct}%` }}/>
             </div>
           </div>
           <div className="h-4"/>
         </div>
 
-        {/* ── Desktop layout ── */}
+        {/* ── Desktop hero ── */}
         <div className="hidden md:block relative px-8 pt-8 pb-0">
           <div className="flex items-center gap-6">
             <div className="relative flex-shrink-0">
@@ -443,20 +456,15 @@ export default function ProfilePage() {
                            flex items-center justify-center shadow-md hover:scale-110 transition-transform">
                 <Camera size={15}/>
               </button>
-              {savingAvatar && (
-                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                </div>
-              )}
             </div>
             <div className="flex-1 min-w-0">
               {editUsername ? (
                 <div className="flex items-center gap-2 mb-1">
                   <input value={newUsername}
                     onChange={e => { setNewUsername(e.target.value); setUsernameErr(''); }}
-                    className="px-3 py-1.5 rounded-xl border-2 border-white/60 text-base font-bold
+                    className="px-3 py-1.5 rounded-xl border-2 border-white/60 font-bold
                                outline-none bg-white/20 text-white placeholder-white/60 w-56 min-w-0"
-                    maxLength={30} autoFocus/>
+                    style={{ fontSize: 16 }} maxLength={30} autoFocus/>
                   <button onClick={handleSaveUsername} disabled={savingUsername}
                     className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 flex-shrink-0">
                     {savingUsername ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Check size={15}/>}
@@ -468,7 +476,9 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2 mb-1">
-                  <h1 className="font-display text-3xl text-white leading-tight truncate">{user?.username}</h1>
+                  <h1 className="font-display text-white leading-tight truncate" style={{ fontSize: 'clamp(20px, 3vw, 30px)' }}>
+                    {user?.username}
+                  </h1>
                   <button onClick={() => { setEditUsername(true); setNewUsername(user?.username || ''); }}
                     className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors flex-shrink-0">
                     <Edit2 size={14} className="text-white"/>
@@ -496,43 +506,48 @@ export default function ProfilePage() {
               <span>{currentXP} / {xpForLevel} XP</span>
             </div>
             <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full bg-white rounded-full transition-all duration-700 shadow-sm"
-                style={{ width:`${xpPct}%` }}/>
+              <div className="h-full bg-white rounded-full transition-all duration-700 shadow-sm" style={{ width:`${xpPct}%` }}/>
             </div>
           </div>
           <div className="h-5"/>
         </div>
       </div>
 
-      {/* ══ MOBILE TAB BAR ══════════════════════════════════ */}
-      <div className="md:hidden flex rounded-2xl p-1 gap-1"
+      {/* ══ MOBILE TAB BAR — fixed px, never wraps ════════════ */}
+      <div className="md:hidden flex rounded-2xl overflow-hidden"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
         {TABS.map(({ key, Icon, label }) => (
           <button key={key} onClick={() => setActiveTab(key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold transition-all
-              ${activeTab === key
-                ? 'bg-sky text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-            <Icon size={15}/>
-            <span>{label}</span>
+            style={{
+              flex: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '12px 4px',
+              fontSize: 13, fontWeight: 700,
+              whiteSpace: 'nowrap',
+              border: 'none', cursor: 'pointer',
+              borderRadius: 0,
+              background: activeTab === key ? '#60B8F5' : 'transparent',
+              color: activeTab === key ? '#fff' : '#9ca3af',
+              transition: 'background 0.15s, color 0.15s',
+            }}>
+            <Icon size={14} style={{ flexShrink: 0 }}/>
+            {label}
           </button>
         ))}
       </div>
 
-      {/* ══ MOBILE: Profile tab ══════════════════════════════ */}
+      {/* ══ MOBILE: Profile tab ════════════════════════════════ */}
       <div className={`md:hidden ${activeTab !== 'profile' ? 'hidden' : ''} space-y-4`}>
-        {/* Quick stats summary */}
         <div className="grid grid-cols-2 gap-3">
-          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}     loading={statsLoading}/>
-          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted}  loading={statsLoading}/>
+          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"    val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
+          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed" val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
         </div>
-        {/* Recent achievements preview — horizontal rows on mobile */}
-        <div className="rounded-3xl p-4 border"
-          style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
+        {/* Earned achievements preview */}
+        <div className="rounded-3xl p-4 border" style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-lg text-gray-800 dark:text-gray-100">Achievements</h2>
+            <h2 className="font-display text-gray-800 dark:text-gray-100" style={{ fontSize: 18 }}>Achievements</h2>
             <button onClick={() => setActiveTab('achievements')}
-              className="text-xs font-bold text-sky hover:underline flex items-center gap-1">
+              className="text-sky font-bold hover:underline flex items-center gap-1" style={{ fontSize: 12 }}>
               <Trophy size={12}/> See All
             </button>
           </div>
@@ -540,14 +555,13 @@ export default function ProfilePage() {
             <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-700"
               style={{ width:`${Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}%` }}/>
           </div>
-          <p className="text-xs text-gray-400 mb-3">{earnedCount} of {ACHIEVEMENTS.length} earned</p>
-          {/* Show only earned ones, max 4 */}
+          <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 10 }}>{earnedCount} of {ACHIEVEMENTS.length} earned</p>
           <div className="space-y-2">
             {sortedAch.filter(a => unlocked.has(a.key)).slice(0, 4).map(ach => (
-              <AchTile key={ach.key} ach={ach} earned={true} isMobile={true}/>
+              <AchRow key={ach.key} ach={ach} earned={true}/>
             ))}
             {earnedCount === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">
+              <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', padding: '16px 0' }}>
                 Complete activities to earn your first badge!
               </p>
             )}
@@ -555,58 +569,47 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ══ MOBILE: Stats tab ════════════════════════════════ */}
+      {/* ══ MOBILE: Stats tab ══════════════════════════════════ */}
       <div className={`md:hidden ${activeTab !== 'stats' ? 'hidden' : ''}`}>
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="font-display text-xl text-gray-800 dark:text-gray-100">Stats</h2>
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold
-                           bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-            <History size={11}/> All Time
-          </span>
-          {statsLoading && <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin ml-1"/>}
+          <h2 className="font-display text-gray-800 dark:text-gray-100" style={{ fontSize: 20 }}>Stats</h2>
+          {statsLoading && <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin"/>}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}     loading={statsLoading}/>
-          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted}  loading={statsLoading}/>
+          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
+          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
           <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"  bg="bg-indigo-50 dark:bg-indigo-900/20"   label="Avg Score"  val={statsLoading ? '…' : `${allAvg}%`} loading={statsLoading}/>
-          <StatCard Icon={Flame}       iconCls="text-orange-400"  bg="bg-orange-50 dark:bg-orange-900/20"   label="Day Streak" val={`${user?.streak || 0}d`}            loading={false}/>
+          <StatCard Icon={Flame}       iconCls="text-orange-400"  bg="bg-orange-50 dark:bg-orange-900/20"   label="Day Streak" val={`${user?.streak || 0}d`}           loading={false}/>
         </div>
       </div>
 
-      {/* ══ MOBILE: Achievements tab ════════════════════════ */}
+      {/* ══ MOBILE: Achievements tab ════════════════════════════ */}
       <div className={`md:hidden ${activeTab !== 'achievements' ? 'hidden' : ''}`}>
         <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="font-display text-xl text-gray-800 dark:text-gray-100">Achievements</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {earnedCount} of {ACHIEVEMENTS.length} earned
-              {earnedCount > 0 && (
-                <span className="ml-2 text-amber-500 font-bold">
-                  · {Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}% complete
-                </span>
-              )}
-            </p>
-          </div>
+          <h2 className="font-display text-gray-800 dark:text-gray-100" style={{ fontSize: 20 }}>Achievements</h2>
           <button onClick={() => setShowAllAch(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold
-                       bg-sky/10 text-sky hover:bg-sky/20 transition-colors">
-            <Trophy size={13}/> Full List
+            className="text-sky font-bold hover:underline flex items-center gap-1" style={{ fontSize: 12 }}>
+            <Trophy size={12}/> Full List
           </button>
         </div>
-        {/* Progress bar */}
-        <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 mb-4 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 mb-3 overflow-hidden">
           <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-700"
             style={{ width:`${Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}%` }}/>
         </div>
-        {/* All achievements as rows on mobile */}
+        <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 10 }}>
+          {earnedCount} of {ACHIEVEMENTS.length} earned
+          {earnedCount > 0 && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 700 }}>
+            · {Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}% complete
+          </span>}
+        </p>
         <div className="space-y-2">
           {sortedAch.map(ach => (
-            <AchTile key={ach.key} ach={ach} earned={unlocked.has(ach.key)} isMobile={true}/>
+            <AchRow key={ach.key} ach={ach} earned={unlocked.has(ach.key)}/>
           ))}
         </div>
       </div>
 
-      {/* ══ DESKTOP: Stats Row ══════════════════════════════ */}
+      {/* ══ DESKTOP: Stats Row ═════════════════════════════════ */}
       <div className="hidden md:block">
         <div className="flex items-center gap-2 mb-3">
           <h2 className="font-display text-xl text-gray-800 dark:text-gray-100">Stats</h2>
@@ -617,26 +620,24 @@ export default function ProfilePage() {
           {statsLoading && <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin ml-1"/>}
         </div>
         <div className="grid grid-cols-4 gap-4">
-          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}     loading={statsLoading}/>
-          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted}  loading={statsLoading}/>
+          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
+          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
           <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"  bg="bg-indigo-50 dark:bg-indigo-900/20"   label="Avg Score"  val={statsLoading ? '…' : `${allAvg}%`} loading={statsLoading}/>
-          <StatCard Icon={Flame}       iconCls="text-orange-400"  bg="bg-orange-50 dark:bg-orange-900/20"   label="Day Streak" val={`${user?.streak || 0}d`}            loading={false}/>
+          <StatCard Icon={Flame}       iconCls="text-orange-400"  bg="bg-orange-50 dark:bg-orange-900/20"   label="Day Streak" val={`${user?.streak || 0}d`}           loading={false}/>
         </div>
       </div>
 
-      {/* ══ DESKTOP: Achievements ══════════════════════════ */}
-      <div className="hidden md:block rounded-3xl p-4 md:p-6 border"
+      {/* ══ DESKTOP: Achievements ══════════════════════════════ */}
+      <div className="hidden md:block rounded-3xl p-6 border"
         style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-display text-xl text-gray-800 dark:text-gray-100">Achievements</h2>
             <p className="text-xs text-gray-400 mt-0.5">
               {earnedCount} of {ACHIEVEMENTS.length} earned
-              {earnedCount > 0 && (
-                <span className="ml-2 text-amber-500 font-bold">
-                  · {Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}% complete
-                </span>
-              )}
+              {earnedCount > 0 && <span className="ml-2 text-amber-500 font-bold">
+                · {Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}% complete
+              </span>}
             </p>
           </div>
           <button onClick={() => setShowAllAch(true)}
@@ -651,7 +652,7 @@ export default function ProfilePage() {
         </div>
         <div className="grid grid-cols-6 gap-3">
           {sortedAch.slice(0, 12).map(ach => (
-            <AchTile key={ach.key} ach={ach} earned={unlocked.has(ach.key)} isMobile={false}/>
+            <AchTile key={ach.key} ach={ach} earned={unlocked.has(ach.key)}/>
           ))}
         </div>
       </div>
