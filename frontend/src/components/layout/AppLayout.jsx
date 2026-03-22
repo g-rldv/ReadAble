@@ -1,5 +1,6 @@
 // ============================================================
 // AppLayout — fixed left sidebar + scrollable main content
+// Mobile header uses ONLY fixed px — never inherits html font-size
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
@@ -73,7 +74,7 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
                            isFullscreen, toggleFullscreen }) {
   return (
     <div className="flex flex-col h-full">
-      {/* Logo + optional close button (mobile) */}
+      {/* Logo */}
       <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -137,8 +138,6 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
 
       {/* Bottom actions */}
       <div className="px-3 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
-
-        {/* Sound toggle row */}
         <button onClick={toggleSound}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
                      text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
@@ -157,7 +156,6 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
           </div>
         </button>
 
-        {/* Music theme quick-picker */}
         {soundOn && (
           <div className="px-1 pb-1">
             <div className="flex items-center justify-between px-3 py-2 rounded-xl
@@ -173,14 +171,13 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
                                  ${settings.bg_music_enabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
               </button>
             </div>
-
             {settings.bg_music_enabled && (
               <div className="grid grid-cols-4 gap-1">
                 {[
-                  { key:'calm',    Icon:Music,              label:'Calm'    },
-                  { key:'playful', Icon:Music2,             label:'Playful' },
-                  { key:'focus',   Icon:SlidersHorizontal,  label:'Focus'   },
-                  { key:'fantasy', Icon:Sparkles,           label:'Fantasy' },
+                  { key:'calm',    Icon:Music,             label:'Calm'    },
+                  { key:'playful', Icon:Music2,            label:'Playful' },
+                  { key:'focus',   Icon:SlidersHorizontal, label:'Focus'   },
+                  { key:'fantasy', Icon:Sparkles,          label:'Fantasy' },
                 ].map(({ key, Icon, label }) => {
                   const active = settings.bg_music_theme === key;
                   return (
@@ -202,7 +199,6 @@ function SidebarContent({ user, settings, soundOn, xpPct, currentXP,
           </div>
         )}
 
-        {/* Fullscreen toggle */}
         <button onClick={toggleFullscreen}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
                      text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
@@ -293,7 +289,7 @@ export default function AppLayout() {
         />
       </aside>
 
-      {/* Mobile full-screen sidebar */}
+      {/* Mobile full-screen drawer */}
       <div className={`lg:hidden fixed inset-0 z-[9998] transition-all duration-300
                        ${drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <div className={`absolute inset-0 bg-black/20 transition-opacity duration-300
@@ -316,40 +312,121 @@ export default function AppLayout() {
       {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Mobile top bar — clean 3-zone layout */}
-        <header className="lg:hidden flex items-center px-3 py-2.5 flex-shrink-0"
-          style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-color)' }}>
+        {/* ─────────────────────────────────────────────────────
+            MOBILE TOP BAR
+            Every single value is in fixed px via inline styles.
+            This element must NEVER inherit from html { font-size }
+            because the user may have selected Large (18px) or
+            Extra Large (21px), which would cause the pill text to
+            grow and overflow the fixed-height bar.
+        ───────────────────────────────────────────────────── */}
+        <header
+          className="lg:hidden flex-shrink-0"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            height: 52,
+            padding: '0 10px',
+            gap: 0,
+            background: 'var(--bg-sidebar)',
+            borderBottom: '1px solid var(--border-color)',
+            // Hard reset — children using em/rem will base off 16px
+            fontSize: '16px',
+            fontFamily: 'inherit',
+            boxSizing: 'border-box',
+          }}>
 
-          {/* Left: hamburger */}
-          <button onClick={() => setDrawerOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl
-                       hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex-shrink-0">
-            <Menu size={20} className="text-gray-600 dark:text-gray-300"/>
+          {/* ── Left: hamburger button ── */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open menu"
+            style={{
+              width: 38, height: 38,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              borderRadius: 10,
+              padding: 0,
+            }}>
+            <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.7 }}/>
           </button>
 
-          {/* Centre: logo */}
-          <div className="flex-1 flex items-center justify-center gap-1.5">
-            <div className="w-6 h-6 rounded-lg bg-sky flex items-center justify-center flex-shrink-0">
-              <BookOpen size={12} className="text-white"/>
+          {/* ── Centre: logo (takes all remaining space) ── */}
+          <div style={{
+            flex: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 6,
+            minWidth: 0,
+            overflow: 'hidden',
+          }}>
+            {/* Icon box — fixed 24×24 */}
+            <div style={{
+              width: 24, height: 24,
+              borderRadius: 7,
+              background: '#60B8F5',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <BookOpen size={13} color="white"/>
             </div>
-            <span className="font-display text-lg text-sky leading-none">ReadAble</span>
+            {/* Wordmark — fixed 18px, never scales */}
+            <span style={{
+              fontFamily: '"Fredoka One", cursive',
+              fontSize: 18,
+              color: '#60B8F5',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}>
+              ReadAble
+            </span>
           </div>
 
-          {/* Right: single compact stat pill */}
-          <div className="flex-shrink-0">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-              style={{ background: 'var(--border-color)' }}>
-              <Star size={11} className="text-amber-500 fill-amber-500 flex-shrink-0"/>
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 leading-none">
+          {/* ── Right: stat pill — fixed 12px text, fixed layout ── */}
+          <div style={{ flexShrink: 0 }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '5px 10px',
+              borderRadius: 10,
+              background: 'var(--border-color)',
+              whiteSpace: 'nowrap',
+            }}>
+              {/* Inline SVG star — immune to font-size inheritance */}
+              <svg
+                width="11" height="11" viewBox="0 0 24 24"
+                style={{ flexShrink: 0 }}
+                fill="#f59e0b" stroke="none">
+                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+              </svg>
+
+              {/* XP value */}
+              <span style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                lineHeight: 1,
+              }}>
                 {user?.xp || 0} XP
               </span>
-              <span className="text-gray-400 dark:text-gray-500 text-xs leading-none select-none">·</span>
-              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 leading-none">
+
+              {/* Separator */}
+              <span style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1 }}>·</span>
+
+              {/* Level */}
+              <span style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#9ca3af',
+                lineHeight: 1,
+              }}>
                 Lv {user?.level || 1}
               </span>
             </div>
           </div>
+
         </header>
+        {/* ── end mobile top bar ── */}
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <Outlet/>
