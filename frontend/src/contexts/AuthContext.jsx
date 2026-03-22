@@ -1,6 +1,7 @@
 // ============================================================
 // Auth Context
-// Change from original: register() accepts otp_code as 4th arg
+// Fix: coins added to mergeUser comparison so coin changes
+// trigger a re-render without needing a full page refresh.
 // ============================================================
 import React, {
   createContext, useContext, useState,
@@ -24,11 +25,12 @@ export function AuthProvider({ children }) {
     setUser(prev => {
       if (!prev) return next;
       const same =
-        prev.xp           === next.xp     &&
-        prev.level        === next.level  &&
-        prev.streak       === next.streak &&
+        prev.xp           === next.xp      &&
+        prev.level        === next.level   &&
+        prev.streak       === next.streak  &&
+        prev.coins        === next.coins   &&   // ← coins now tracked
         prev.username     === next.username &&
-        prev.avatar       === next.avatar &&
+        prev.avatar       === next.avatar  &&
         (prev.achievements?.length ?? 0) === (next.achievements?.length ?? 0);
       return same ? prev : next;
     });
@@ -98,7 +100,6 @@ export function AuthProvider({ children }) {
     return u;
   }, []); // eslint-disable-line
 
-  // otp_code is the 4th argument — required for the new registration flow
   const register = useCallback(async (username, email, password, otp_code) => {
     const res = await api.post('/auth/register', { username, email, password, otp_code });
     const { token: t, user: u } = res.data;
@@ -122,8 +123,14 @@ export function AuthProvider({ children }) {
 
   const refreshUser = useCallback(() => fetchUser(), [fetchUser]);
 
+  // Optimistically update a subset of user fields without an API call.
+  // Used by ShopPage so coin deductions reflect instantly.
+  const patchUser = useCallback((updates) => {
+    setUser(prev => prev ? { ...prev, ...updates } : prev);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser, patchUser }}>
       {children}
     </AuthContext.Provider>
   );
