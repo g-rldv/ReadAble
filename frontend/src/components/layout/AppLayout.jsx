@@ -1,7 +1,8 @@
 // ============================================================
 // AppLayout
 // Desktop : fixed left sidebar
-// Mobile  : top bar + floating-bubble bottom nav + full-screen drawer
+// Mobile  : top bar (logo LEFT of hamburger) + floating-bubble
+//           bottom nav + full-screen drawer (no nav links)
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -32,109 +33,66 @@ const SIDEBAR_NAV = [
 ];
 
 // ── Floating-bubble bottom nav ────────────────────────────────
-const BAR_H  = 62;
-const POP_H  = 16;
-const CIRC   = 54;
-const CIRC_R = CIRC / 2;
-const NUM    = BOTTOM_NAV.length;
-const VB_W   = NUM * 100;
-const VB_H   = BAR_H;
-const NOTCH_R  = 46;
-const NOTCH_D  = 30;
-const NOTCH_BV = 26;
+const BAR_H = 62, POP_H = 16, CIRC = 54, CIRC_R = 27;
+const NUM = BOTTOM_NAV.length, VB_W = NUM * 100, VB_H = BAR_H;
+const NOTCH_R = 46, NOTCH_D = 30, NOTCH_BV = 26;
 
-function buildPath(activeIdx) {
-  const cx = activeIdx * 100 + 50;
+function buildPath(i) {
+  const cx = i * 100 + 50;
   return [
     `M 0 0`,
     `H ${cx - NOTCH_R - NOTCH_BV}`,
     `C ${cx - NOTCH_R + 9} 0, ${cx - NOTCH_R} ${NOTCH_D}, ${cx} ${NOTCH_D}`,
     `C ${cx + NOTCH_R} ${NOTCH_D}, ${cx + NOTCH_R - 9} 0, ${cx + NOTCH_R + NOTCH_BV} 0`,
-    `H ${VB_W}`,
-    `V ${VB_H}`,
-    `H 0 Z`,
+    `H ${VB_W} V ${VB_H} H 0 Z`,
   ].join(' ');
 }
 
 function BottomNavBar() {
   const location = useLocation();
-
-  // Detect current theme darkness so we pick a contrasting nav colour
-  // We read the CSS variable at render time; it updates when theme changes
-  // because the component re-renders via the settings context.
   const isDark = typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark');
-
-  // Nav background: always opaque and visually distinct from page bg.
-  // Light themes → white card. Dark theme → deep card colour.
   const NAV_BG = isDark ? '#1E1840' : '#FFFFFF';
-  // Active bubble gradient adapts too
-  const BUBBLE_GRAD = 'linear-gradient(145deg, #7EC9F7 0%, #4D96FF 100%)';
 
   const activeIdx = (() => {
     const i = BOTTOM_NAV.findIndex(({ to }) =>
       location.pathname === to ||
-      (to !== '/dashboard' && location.pathname.startsWith(to))
-    );
+      (to !== '/dashboard' && location.pathname.startsWith(to)));
     return i < 0 ? 0 : i;
   })();
 
-  const path = buildPath(activeIdx);
-  const circlePct = `${(activeIdx * 2 + 1) / (NUM * 2) * 100}%`;
-  const circleFromBottom = BAR_H - CIRC_R;
   const { Icon: ActiveIcon } = BOTTOM_NAV[activeIdx];
-  const containerH = BAR_H + POP_H;
 
   return (
-    <nav
-      className="lg:hidden"
-      style={{
-        position: 'relative',
-        flexShrink: 0,
-        height: containerH,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        fontSize: '16px',
-        fontFamily: 'inherit',
-        overflow: 'visible',
-        zIndex: 50,
-      }}>
-
-      {/* SVG bar with morphing notch */}
-      <svg
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
-        preserveAspectRatio="none"
-        aria-hidden="true"
+    <nav className="lg:hidden" style={{
+      position: 'relative', flexShrink: 0,
+      height: BAR_H + POP_H,
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      fontSize: '16px', fontFamily: 'inherit',
+      overflow: 'visible', zIndex: 50,
+    }}>
+      {/* SVG bar */}
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="none" aria-hidden="true"
         style={{
-          position: 'absolute',
-          bottom: 0, left: 0,
-          width: '100%',
-          height: BAR_H,
-          display: 'block',
-          overflow: 'visible',
+          position: 'absolute', bottom: 0, left: 0,
+          width: '100%', height: BAR_H, display: 'block', overflow: 'visible',
           filter: 'drop-shadow(0 -3px 12px rgba(0,0,0,0.18))',
         }}>
-        <path
-          d={path}
-          style={{
-            fill: NAV_BG,
-            transition: 'd 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
-        />
+        <path d={buildPath(activeIdx)} style={{
+          fill: NAV_BG,
+          transition: 'd 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}/>
       </svg>
 
-      {/* Floating active-tab circle */}
+      {/* Floating circle */}
       <div style={{
         position: 'absolute',
-        left: circlePct,
-        bottom: circleFromBottom,
+        left: `${(activeIdx * 2 + 1) / (NUM * 2) * 100}%`,
+        bottom: BAR_H - CIRC_R,
         transform: 'translateX(-50%)',
-        width: CIRC,
-        height: CIRC,
-        borderRadius: '50%',
-        background: BUBBLE_GRAD,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        width: CIRC, height: CIRC, borderRadius: '50%',
+        background: 'linear-gradient(145deg, #7EC9F7 0%, #4D96FF 100%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: `0 0 0 5px ${NAV_BG}, 0 8px 24px rgba(77,150,255,0.45)`,
         transition: 'left 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
         zIndex: 10,
@@ -143,39 +101,23 @@ function BottomNavBar() {
       </div>
 
       {/* Tab buttons */}
-      <div style={{
-        position: 'absolute',
-        bottom: 0, left: 0, right: 0,
-        height: BAR_H,
-        display: 'flex',
-      }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: BAR_H, display: 'flex' }}>
         {BOTTOM_NAV.map(({ to, Icon, label }, i) => {
           const isActive = i === activeIdx;
           return (
             <NavLink key={to} to={to} style={{
-              flex: 1,
-              display: 'flex', flexDirection: 'column',
+              flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'flex-end',
-              paddingBottom: 10,
-              textDecoration: 'none',
+              paddingBottom: 10, textDecoration: 'none',
               WebkitTapHighlightColor: 'transparent',
             }}>
-              {!isActive && (
-                <Icon size={20} strokeWidth={1.8} style={{
-                  color: isDark ? '#6b7280' : '#9ca3af',
-                  marginBottom: 4, flexShrink: 0,
-                }}/>
-              )}
-              {isActive && <div style={{ height: 24 }}/>}
+              {!isActive && <Icon size={20} strokeWidth={1.8} style={{ color: isDark ? '#6b7280' : '#9ca3af', marginBottom: 4 }}/>}
+              {isActive  && <div style={{ height: 24 }}/>}
               <span style={{
-                fontSize: 10,
-                fontWeight: isActive ? 700 : 500,
-                lineHeight: 1,
-                whiteSpace: 'nowrap',
+                fontSize: 10, fontWeight: isActive ? 700 : 500,
+                lineHeight: 1, whiteSpace: 'nowrap',
                 color: isActive ? '#4D96FF' : (isDark ? '#6b7280' : '#9ca3af'),
-              }}>
-                {label}
-              </span>
+              }}>{label}</span>
             </NavLink>
           );
         })}
@@ -232,7 +174,6 @@ function LogoutModal({ onConfirm, onCancel }) {
   );
 }
 
-// ── Sound picker sub-section (reused in both sidebars) ────────
 function MusicPicker({ settings, updateSettings }) {
   if (!settings.bg_music_enabled) return null;
   return (
@@ -259,7 +200,7 @@ function MusicPicker({ settings, updateSettings }) {
 function BottomControls({ soundOn, settings, toggleSound, updateSettings,
                           isFullscreen, toggleFullscreen, onLogoutClick }) {
   return (
-    <div className="px-3 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
+    <div className="px-4 pb-6 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
       <button onClick={toggleSound}
         className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
                    text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
@@ -368,22 +309,20 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
   );
 }
 
-// ── Mobile full-screen drawer ─────────────────────────────────
-// Covers the ENTIRE screen — no page content peeking through.
+// ── Mobile full-screen drawer (NO nav links — bottom bar handles that) ──
 function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP,
                         toggleSound, updateSettings, onLogoutClick,
                         isFullscreen, toggleFullscreen }) {
   return (
     <div className={`lg:hidden fixed inset-0 z-[9998] transition-all duration-300
                      ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-
-      {/* Full-screen panel — slides in from left, covers 100% width */}
       <div className={`absolute inset-0 flex flex-col transition-transform duration-300 ease-out
                        ${open ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ background: 'var(--bg-sidebar)' }}>
 
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0"
+        {/* Header — logo + close */}
+        <div className="flex items-center justify-between px-5 py-4
+                        border-b border-gray-100 dark:border-gray-700 flex-shrink-0"
           style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-sky flex items-center justify-center flex-shrink-0">
@@ -398,7 +337,7 @@ function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP
           </button>
         </div>
 
-        {/* ── User card ── */}
+        {/* User card */}
         <div className="px-4 py-4 mx-4 mt-4 rounded-2xl border border-sky/20 flex-shrink-0"
           style={{ background: 'linear-gradient(135deg,rgba(77,150,255,0.10),rgba(107,203,119,0.07))' }}>
           <div className="flex items-center gap-3">
@@ -421,22 +360,22 @@ function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP
           </div>
         </div>
 
-        {/* ── Nav links — full size ── */}
-        <nav className="flex-1 px-4 mt-5 space-y-1 overflow-y-auto">
-          {SIDEBAR_NAV.map(({ to, Icon, label }) => (
-            <NavLink key={to} to={to} onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-base transition-all ${
-                  isActive
-                    ? 'bg-sky text-white shadow-md shadow-sky/25'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-                }`}>
-              <Icon size={22}/>{label}
-            </NavLink>
-          ))}
-        </nav>
+        {/* Settings shortcut only — navigation is on the bottom bar */}
+        <div className="px-4 mt-5 flex-shrink-0">
+          <NavLink to="/settings" onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-base transition-all ${
+                isActive
+                  ? 'bg-sky text-white shadow-md shadow-sky/25'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+              }`}>
+            <Settings size={22}/>Settings
+          </NavLink>
+        </div>
 
-        {/* ── Controls ── */}
+        <div className="flex-1"/>
+
+        {/* Sound / fullscreen / sign-out */}
         <BottomControls
           soundOn={soundOn} settings={settings}
           toggleSound={toggleSound} updateSettings={updateSettings}
@@ -518,42 +457,82 @@ export default function AppLayout() {
       {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Mobile top bar — all fixed px */}
+        {/* ── Mobile top bar ─────────────────────────────────
+            Logo + hamburger on the LEFT, stat pill on the RIGHT.
+            All fixed px — never inherits html font-size.
+        ───────────────────────────────────────────────────── */}
         <header className="lg:hidden flex-shrink-0" style={{
-          display: 'flex', alignItems: 'center',
-          height: 52, padding: '0 10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: 52,
+          padding: '0 12px',
           background: 'var(--bg-sidebar)',
           borderBottom: '1px solid var(--border-color)',
-          fontSize: '16px', fontFamily: 'inherit', boxSizing: 'border-box',
+          fontSize: '16px',
+          fontFamily: 'inherit',
+          boxSizing: 'border-box',
+          gap: 8,
         }}>
-          <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" style={{
-            width: 38, height: 38, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: 'none', background: 'transparent', cursor: 'pointer',
-            borderRadius: 10, padding: 0,
-          }}>
-            <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.7 }}/>
-          </button>
 
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 0 }}>
-            <div style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, background: '#60B8F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <BookOpen size={13} color="white"/>
+          {/* LEFT: logo icon + wordmark + hamburger */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {/* Logo icon */}
+            <div style={{
+              width: 28, height: 28, borderRadius: 8,
+              background: '#60B8F5',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <BookOpen size={15} color="white"/>
             </div>
-            <span style={{ fontFamily: '"Fredoka One", cursive', fontSize: 18, color: '#60B8F5', lineHeight: 1, whiteSpace: 'nowrap' }}>
+
+            {/* Wordmark */}
+            <span style={{
+              fontFamily: '"Fredoka One", cursive',
+              fontSize: 19,
+              color: '#60B8F5',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}>
               ReadAble
             </span>
+
+            {/* Hamburger — right beside the wordmark */}
+            <button
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              style={{
+                width: 34, height: 34,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                borderRadius: 9, padding: 0, flexShrink: 0,
+              }}>
+              <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
+            </button>
           </div>
 
+          {/* RIGHT: XP + Level pill */}
           <div style={{ flexShrink: 0 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 10, background: 'var(--border-color)', whiteSpace: 'nowrap' }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '5px 10px', borderRadius: 10,
+              background: 'var(--border-color)',
+              whiteSpace: 'nowrap',
+            }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="none" style={{ flexShrink: 0 }}>
                 <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
               </svg>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{user?.xp || 0} XP</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+                {user?.xp || 0} XP
+              </span>
               <span style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1 }}>·</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', lineHeight: 1 }}>Lv {user?.level || 1}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', lineHeight: 1 }}>
+                Lv {user?.level || 1}
+              </span>
             </div>
           </div>
+
         </header>
 
         {/* Page content */}
