@@ -1,8 +1,7 @@
 // ============================================================
 // AppLayout
 // Desktop : fixed left sidebar
-// Mobile  : top bar (logo LEFT of hamburger) + floating-bubble
-//           bottom nav + full-screen drawer (no nav links)
+// Mobile  : top bar + FIXED bottom nav (like a real app)
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -64,12 +63,18 @@ function BottomNavBar() {
   const { Icon: ActiveIcon } = BOTTOM_NAV[activeIdx];
 
   return (
+    // ── FIXED at the bottom, full width, always visible ──
     <nav className="lg:hidden" style={{
-      position: 'fixed', flexShrink: 0,
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
       height: BAR_H + POP_H,
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      fontSize: '16px', fontFamily: 'inherit',
-      overflow: 'visible', zIndex: 50,
+      fontSize: '16px',
+      fontFamily: 'inherit',
+      overflow: 'visible',
+      zIndex: 50,
     }}>
       {/* SVG bar */}
       <svg viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="none" aria-hidden="true"
@@ -309,7 +314,7 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
   );
 }
 
-// ── Mobile full-screen drawer (NO nav links — bottom bar handles that) ──
+// ── Mobile full-screen drawer ─────────────────────────────────
 function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP,
                         toggleSound, updateSettings, onLogoutClick,
                         isFullscreen, toggleFullscreen }) {
@@ -320,7 +325,7 @@ function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP
                        ${open ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ background: 'var(--bg-sidebar)' }}>
 
-        {/* Header — logo + close */}
+        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4
                         border-b border-gray-100 dark:border-gray-700 flex-shrink-0"
           style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
@@ -360,7 +365,7 @@ function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP
           </div>
         </div>
 
-        {/* Settings shortcut only — navigation is on the bottom bar */}
+        {/* Settings shortcut */}
         <div className="px-4 mt-5 flex-shrink-0">
           <NavLink to="/settings" onClick={onClose}
             className={({ isActive }) =>
@@ -431,6 +436,9 @@ export default function AppLayout() {
     } catch (_) {}
   }, []);
 
+  // Height of the fixed bottom nav (BAR_H + POP_H + safe area)
+  const BOTTOM_NAV_HEIGHT = BAR_H + POP_H + 4; // ~82px
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
@@ -457,10 +465,7 @@ export default function AppLayout() {
       {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* ── Mobile top bar ─────────────────────────────────
-            Logo + hamburger on the LEFT, stat pill on the RIGHT.
-            All fixed px — never inherits html font-size.
-        ───────────────────────────────────────────────────── */}
+        {/* Mobile top bar */}
         <header className="lg:hidden flex-shrink-0" style={{
           display: 'flex',
           alignItems: 'center',
@@ -474,11 +479,8 @@ export default function AppLayout() {
           boxSizing: 'border-box',
           gap: 8,
         }}>
-
           {/* LEFT: hamburger → logo icon → wordmark */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-
-            {/* Hamburger first */}
             <button
               onClick={() => setDrawerOpen(true)}
               aria-label="Open menu"
@@ -490,8 +492,6 @@ export default function AppLayout() {
               }}>
               <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
             </button>
-
-            {/* Logo icon */}
             <div style={{
               width: 28, height: 28, borderRadius: 8,
               background: '#60B8F5',
@@ -500,8 +500,6 @@ export default function AppLayout() {
             }}>
               <BookOpen size={15} color="white"/>
             </div>
-
-            {/* Wordmark */}
             <span style={{
               fontFamily: '"Fredoka One", cursive',
               fontSize: 19,
@@ -533,15 +531,15 @@ export default function AppLayout() {
               </span>
             </div>
           </div>
-
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        {/* Page content — extra bottom padding so content clears the fixed nav */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:pb-8"
+          style={{ paddingBottom: `calc(1rem + ${BOTTOM_NAV_HEIGHT}px)` }}>
           <Outlet/>
         </main>
 
-        {/* Floating bubble bottom nav */}
+        {/* Fixed bottom nav — always visible, never scrolls away */}
         <BottomNavBar/>
       </div>
 
