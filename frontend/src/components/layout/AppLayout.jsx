@@ -316,34 +316,38 @@ export default function AppLayout() {
       {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 flex-shrink-0 shadow-sm"
-          style={{ background: 'var(--bg-card-grad)', borderBottom: '1px solid var(--border-color)' }}>
+        {/* Mobile top bar — clean 3-zone layout */}
+        <header className="lg:hidden flex items-center px-3 py-2.5 flex-shrink-0"
+          style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-color)' }}>
+
+          {/* Left: hamburger */}
           <button onClick={() => setDrawerOpen(true)}
-            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0">
-            <Menu size={22} className="text-gray-700 dark:text-gray-300"/>
+            className="w-9 h-9 flex items-center justify-center rounded-xl
+                       hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex-shrink-0">
+            <Menu size={20} className="text-gray-600 dark:text-gray-300"/>
           </button>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-sky flex items-center justify-center flex-shrink-0">
-              <BookOpen size={13} className="text-white"/>
+
+          {/* Centre: logo */}
+          <div className="flex-1 flex items-center justify-center gap-1.5">
+            <div className="w-6 h-6 rounded-lg bg-sky flex items-center justify-center flex-shrink-0">
+              <BookOpen size={12} className="text-white"/>
             </div>
-            <span className="font-display text-xl text-sky">ReadAble</span>
+            <span className="font-display text-lg text-sky leading-none">ReadAble</span>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2.5 py-1">
-              <Star size={12} className="text-amber-500 fill-amber-500"/>
-              <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
+
+          {/* Right: single compact stat pill */}
+          <div className="flex-shrink-0">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+              style={{ background: 'var(--border-color)' }}>
+              <Star size={11} className="text-amber-500 fill-amber-500 flex-shrink-0"/>
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 leading-none">
+                {user?.xp || 0} XP
+              </span>
+              <span className="text-gray-400 dark:text-gray-500 text-xs leading-none select-none">·</span>
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 leading-none">
+                Lv {user?.level || 1}
+              </span>
             </div>
-            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 rounded-full px-2 py-1">
-              <span className="text-xs">🪙</span>
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{user?.coins || 0}</span>
-            </div>
-            <button onClick={toggleFullscreen}
-              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              {isFullscreen
-                ? <Minimize size={18} className="text-indigo-500"/>
-                : <Maximize2 size={18} className="text-gray-500 dark:text-gray-400"/>}
-            </button>
           </div>
         </header>
 
