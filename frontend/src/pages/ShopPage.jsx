@@ -1,6 +1,7 @@
 // ============================================================
-// ShopPage.jsx — fully rebuilt with reliable layout
-// Single-column item rows, buttons always visible
+// ShopPage.jsx — optimistic coin deduction on purchase
+// Coins subtract instantly in the UI; refreshUser syncs the
+// server value in the background.
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }     from '../contexts/AuthContext';
@@ -21,7 +22,7 @@ const CATEGORIES = [
 const CATEGORY_SLOT = { hat:'hat', top:'top', accessory:'accessory', background:'background' };
 
 export default function ShopPage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, patchUser } = useAuth();
 
   const [wardrobe,    setWardrobe]    = useState([]);
   const [equipped,    setEquipped]    = useState({ ...DEFAULT_EQUIPPED });
@@ -52,14 +53,24 @@ export default function ShopPage() {
 
   const handleBuy = async (item) => {
     if (wardrobe.includes(item.id)) return;
-    if ((user?.coins ?? 0) < item.cost) { showToast('Not enough coins!', 'error'); return; }
+    const currentCoins = user?.coins ?? 0;
+    if (currentCoins < item.cost) { showToast('Not enough coins!', 'error'); return; }
+
     setBuying(item.id);
+
+    // ── Optimistic update: subtract coins & add to wardrobe immediately ──
+    patchUser({ coins: currentCoins - item.cost });
+    setWardrobe(prev => [...prev, item.id]);
+
     try {
       await api.post('/users/buy-item', { itemId: item.id, cost: item.cost });
-      setWardrobe(prev => [...prev, item.id]);
-      await refreshUser();
+      // Sync true server value in background (handles any edge cases)
+      refreshUser();
       showToast(`✨ Got ${item.name}!`);
     } catch (err) {
+      // Roll back optimistic changes on failure
+      patchUser({ coins: currentCoins });
+      setWardrobe(prev => prev.filter(id => id !== item.id));
       showToast(err.message || 'Purchase failed', 'error');
     } finally { setBuying(null); }
   };
@@ -90,6 +101,9 @@ export default function ShopPage() {
     api.post('/users/equip-item', { category: 'skin', itemId: st.id }).catch(() => {});
   };
 
+  // Current coin balance — always reads from user context (now reactive)
+  const coinBalance = user?.coins ?? 0;
+
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:192 }}>
       <div className="w-8 h-8 border-4 border-sky border-t-transparent rounded-full animate-spin"/>
@@ -107,6 +121,7 @@ export default function ShopPage() {
           fontWeight:700, color:'#fff', fontSize:14,
           background: toast.type === 'error' ? '#ef4444' : '#22c55e',
           boxShadow:'0 4px 20px rgba(0,0,0,0.2)',
+          transition: 'all 0.2s',
         }}>
           {toast.msg}
         </div>
@@ -120,13 +135,16 @@ export default function ShopPage() {
           </h1>
           <p style={{ fontSize:12, color:'#9ca3af', margin:'2px 0 0' }}>Spend coins to dress up your Buddy!</p>
         </div>
+        {/* Coin balance — reads from user context, updates instantly via patchUser */}
         <div style={{
           display:'flex', alignItems:'center', gap:6, padding:'8px 14px',
           borderRadius:999, fontWeight:700, fontSize:14, flexShrink:0,
           background:'rgba(251,191,36,0.15)', color:'#D97706',
           border:'1px solid rgba(251,191,36,0.3)',
+          transition: 'all 0.3s',
         }}>
-          <span>🪙</span><span>{user?.coins ?? 0}</span>
+          <span>🪙</span>
+          <span style={{ minWidth: 20, textAlign: 'right' }}>{coinBalance}</span>
         </div>
       </div>
 
@@ -179,7 +197,6 @@ export default function ShopPage() {
       </div>
 
       {/* ── MAIN LAYOUT ── */}
-      {/* Desktop: flex row. Mobile: single column */}
       <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
 
         {/* Desktop sidebar */}
@@ -208,7 +225,7 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* Items panel — flex:1 with minWidth:0 so it never overflows */}
+        {/* Items panel */}
         <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:0 }}>
 
           {/* Category pills */}
@@ -234,13 +251,12 @@ export default function ShopPage() {
               const isEq    = isEquipped(item);
               const hasAch  = user?.achievements?.includes(item.earnedBy);
               const freeByAch = item.earnedBy && !isOwned && hasAch;
-              const affordable = canBuy(item);
+              // Re-check affordability against live coinBalance
+              const affordable = !isOwned && coinBalance >= item.cost;
 
-              // Pick border colour
               const borderColor = isEq ? '#60B8F5' : isOwned ? '#6ee7b7' : '#e5e7eb';
               const bgColor = isEq ? 'rgba(96,184,245,0.07)' : isOwned ? 'rgba(110,231,183,0.07)' : 'var(--bg-card-grad)';
 
-              // Build the action button
               let btnLabel, btnBg, btnColor, btnAction, btnDisabled;
               if (isOwned || item.isDefault) {
                 btnLabel   = equipping === item.id ? '…' : isEq ? '✓ On' : 'Equip';
@@ -264,21 +280,15 @@ export default function ShopPage() {
 
               return (
                 <div key={item.id} style={{
-                  display:'flex',
-                  alignItems:'center',
-                  gap:10,
-                  padding:'10px 12px',
-                  borderRadius:16,
+                  display:'flex', alignItems:'center', gap:10,
+                  padding:'10px 12px', borderRadius:16,
                   border:`2px solid ${borderColor}`,
                   background: bgColor,
-                  /* Critical: no overflow:hidden here — would clip the button */
+                  transition: 'border-color 0.2s, background 0.2s',
                 }}>
-                  {/* Emoji */}
                   <span style={{ fontSize:22, width:28, textAlign:'center', flexShrink:0, lineHeight:1 }}>
                     {item.preview}
                   </span>
-
-                  {/* Name + status — min-width:0 allows it to shrink so button stays visible */}
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ fontWeight:700, fontSize:14, color:'var(--text-primary)', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                       {item.name}
@@ -296,24 +306,18 @@ export default function ShopPage() {
                         : ''}
                     </p>
                   </div>
-
-                  {/* Action button — flexShrink:0 keeps it always visible */}
                   <button
                     onClick={btnAction}
                     disabled={btnDisabled}
                     style={{
-                      background: btnBg,
-                      color: btnColor,
-                      border: 'none',
-                      borderRadius: 10,
-                      padding: '7px 12px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,      /* NEVER shrink — this keeps button visible */
+                      background: btnBg, color: btnColor,
+                      border: 'none', borderRadius: 10,
+                      padding: '7px 12px', fontSize: 12, fontWeight: 700,
+                      whiteSpace: 'nowrap', flexShrink: 0,
                       cursor: btnDisabled ? 'not-allowed' : 'pointer',
                       opacity: btnDisabled ? 0.6 : 1,
                       minWidth: 56,
+                      transition: 'background 0.2s, opacity 0.2s',
                     }}>
                     {btnLabel}
                   </button>
