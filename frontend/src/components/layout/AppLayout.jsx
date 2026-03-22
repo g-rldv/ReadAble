@@ -17,8 +17,8 @@ import {
 
 const BOTTOM_NAV = [
   { to:'/dashboard',   Icon:LayoutDashboard, label:'Home'       },
-  { to:'/activities',  Icon:BookOpen,        label:'Activities' },
   { to:'/leaderboard', Icon:Trophy,          label:'Boards'     },
+  { to:'/activities',  Icon:BookOpen,        label:'Activities' },
   { to:'/profile',     Icon:User,            label:'Profile'    },
   { to:'/shop',        Icon:ShoppingBag,     label:'Shop'       },
 ];
