@@ -475,8 +475,22 @@ export default function AppLayout() {
           gap: 8,
         }}>
 
-          {/* LEFT: logo icon + wordmark + hamburger */}
+          {/* LEFT: hamburger → logo icon → wordmark */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+
+            {/* Hamburger first */}
+            <button
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              style={{
+                width: 34, height: 34,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                borderRadius: 9, padding: 0, flexShrink: 0,
+              }}>
+              <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
+            </button>
+
             {/* Logo icon */}
             <div style={{
               width: 28, height: 28, borderRadius: 8,
@@ -497,19 +511,6 @@ export default function AppLayout() {
             }}>
               ReadAble
             </span>
-
-            {/* Hamburger — right beside the wordmark */}
-            <button
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open menu"
-              style={{
-                width: 34, height: 34,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                borderRadius: 9, padding: 0, flexShrink: 0,
-              }}>
-              <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
-            </button>
           </div>
 
           {/* RIGHT: XP + Level pill */}
