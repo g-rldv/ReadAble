@@ -370,78 +370,128 @@ export default function ProfilePage() {
         <div className="absolute inset-0 opacity-10"
           style={{ backgroundImage:'radial-gradient(circle at 20% 50%,#fff 1px,transparent 1px)', backgroundSize:'40px 40px' }}/>
 
-        {/* ── Mobile hero ── */}
-        <div className="md:hidden relative px-4 pt-5 pb-0">
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-2xl ring-4 ring-white/40 overflow-hidden">
+        {/* ── Mobile hero — 100% fixed px, never inherits html font-size ── */}
+        <div className="md:hidden relative" style={{ padding: '16px 16px 0', fontSize: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+            {/* Avatar — fixed 64×64 always */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ width: 64, height: 64, borderRadius: 14, overflow: 'hidden',
+                            boxShadow: '0 0 0 3px rgba(255,255,255,0.35)' }}>
                 <AvatarDisplay avatar={user?.avatar} username={user?.username} size={64}/>
               </div>
-              <button onClick={() => setShowAvatarModal(true)}
-                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white text-sky
-                           flex items-center justify-center shadow-md">
-                <Camera size={11}/>
+              <button onClick={() => setShowAvatarModal(true)} style={{
+                position: 'absolute', bottom: -3, right: -3,
+                width: 22, height: 22, borderRadius: '50%',
+                background: 'white', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+              }}>
+                <Camera size={11} style={{ color: '#60B8F5' }}/>
               </button>
+              {savingAvatar && (
+                <div style={{ position: 'absolute', inset: 0, borderRadius: 14,
+                              background: 'rgba(0,0,0,0.4)', display: 'flex',
+                              alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                </div>
+              )}
             </div>
 
-            {/* Name + level */}
-            <div className="flex-1 min-w-0">
+            {/* Name + badges */}
+            <div style={{ flex: 1, minWidth: 0 }}>
               {editUsername ? (
-                <div className="flex items-center gap-1.5 mb-1">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <input value={newUsername}
                     onChange={e => { setNewUsername(e.target.value); setUsernameErr(''); }}
-                    style={{ fontSize: 14 }}
-                    className="flex-1 px-2 py-1 rounded-lg border border-white/60 font-bold
-                               outline-none bg-white/20 text-white placeholder-white/60 min-w-0"
+                    style={{
+                      flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700,
+                      padding: '4px 8px', borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.5)',
+                      background: 'rgba(255,255,255,0.2)', color: 'white', outline: 'none',
+                    }}
                     maxLength={30} autoFocus/>
-                  <button onClick={handleSaveUsername} disabled={savingUsername}
-                    className="w-7 h-7 rounded-lg bg-white/20 text-white flex items-center justify-center flex-shrink-0">
-                    {savingUsername ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Check size={13}/>}
+                  <button onClick={handleSaveUsername} disabled={savingUsername} style={{
+                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                    background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+                  }}>
+                    {savingUsername
+                      ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                      : <Check size={13}/>}
                   </button>
                   <button onClick={() => { setEditUsername(false); setUsernameErr(''); setNewUsername(user?.username || ''); }}
-                    className="w-7 h-7 rounded-lg bg-white/20 text-white flex items-center justify-center flex-shrink-0">
+                    style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                             background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer',
+                             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                     <X size={13}/>
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 mb-1">
-                  <h1 className="font-display text-white leading-tight truncate" style={{ fontSize: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <h1 style={{
+                    fontFamily: '"Fredoka One", cursive',
+                    fontSize: 20, color: 'white', lineHeight: 1.1,
+                    margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
                     {user?.username}
                   </h1>
                   <button onClick={() => { setEditUsername(true); setNewUsername(user?.username || ''); }}
-                    className="p-1 rounded-md bg-white/20 flex-shrink-0">
-                    <Edit2 size={11} className="text-white"/>
+                    style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                             background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer',
+                             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Edit2 size={11} color="white"/>
                   </button>
                 </div>
               )}
-              {usernameErr && <p style={{ fontSize: 10 }} className="text-rose-200 mb-0.5">{usernameErr}</p>}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span style={{ fontSize: 11, fontWeight: 700 }}
-                  className="bg-white/20 rounded-full px-2 py-0.5 text-white whitespace-nowrap">
+              {usernameErr && <p style={{ fontSize: 10, color: '#fca5a5', margin: '0 0 3px' }}>{usernameErr}</p>}
+
+              {/* Level + XP badges — fixed px, can never inherit scaling */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
+                  background: 'rgba(255,255,255,0.2)', borderRadius: 999,
+                  padding: '2px 8px', lineHeight: 1.4,
+                }}>
                   Lv {user?.level || 1}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700 }}
-                  className="flex items-center gap-1 bg-amber-400/30 rounded-full px-2 py-0.5 text-white whitespace-nowrap">
-                  <Star size={9} className="fill-amber-200 text-amber-200"/>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
+                  background: 'rgba(251,191,36,0.3)', borderRadius: 999,
+                  padding: '2px 8px', lineHeight: 1.4,
+                  display: 'flex', alignItems: 'center', gap: 3,
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="#fde68a" stroke="none">
+                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                  </svg>
                   {user?.xp || 0} XP
                 </span>
               </div>
-              <p style={{ fontSize: 10 }} className="text-white/60 mt-1 truncate">{user?.email}</p>
+
+              {/* Email — fixed 10px, truncated */}
+              <p style={{
+                fontSize: 10, color: 'rgba(255,255,255,0.6)',
+                margin: '4px 0 0', overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {user?.email}
+              </p>
             </div>
           </div>
 
-          {/* XP bar */}
-          <div className="mt-3">
-            <div className="flex justify-between mb-1" style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
+          {/* XP progress bar — all fixed px */}
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4,
+                          fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
               <span>To Level {(user?.level || 1) + 1}</span>
               <span>{currentXP}/{xpForLevel} XP</span>
             </div>
-            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width:`${xpPct}%` }}/>
+            <div style={{ height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: 'white', borderRadius: 999,
+                            width: `${xpPct}%`, transition: 'width 0.7s' }}/>
             </div>
           </div>
-          <div className="h-4"/>
+          <div style={{ height: 14 }}/>
         </div>
 
         {/* ── Desktop hero ── */}
