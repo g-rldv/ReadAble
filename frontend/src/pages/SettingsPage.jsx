@@ -34,13 +34,12 @@ const MUSIC_THEMES = [
   { key:'fantasy', label:'Fantasy', desc:'Mystical minor scales',     Icon:Sparkles          },
 ];
 
-// ── Text sizes — fixed px preview so the sample "Aa" never
-//    inherits the global font-size scaling from <html>
+// Text sizes with fixed px values — never scale with the html font-size
 const TEXT_SIZES = [
-  { key:'small',  label:'Small',       previewPx: 13 },
-  { key:'medium', label:'Medium',      previewPx: 16 },
-  { key:'large',  label:'Large',       previewPx: 20 },
-  { key:'xlarge', label:'Extra Large', previewPx: 26 },
+  { key:'small',  label:'Small',       previewPx: 13, sampleText: 'The quick brown fox' },
+  { key:'medium', label:'Medium',      previewPx: 16, sampleText: 'The quick brown fox' },
+  { key:'large',  label:'Large',       previewPx: 20, sampleText: 'The quick fox'       },
+  { key:'xlarge', label:'Extra Large', previewPx: 26, sampleText: 'Reading'             },
 ];
 
 // ── Reusable components ───────────────────────────────────────
@@ -103,6 +102,98 @@ function ThemeCard({ theme, active, onSelect }) {
         </div>
         <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">{desc}</p>
       </div>
+    </button>
+  );
+}
+
+// ── Text Size Tile ────────────────────────────────────────────
+// Uses only inline px styles — never inherits the global html font-size.
+// This is the critical fix: rem-based Tailwind classes would scale with
+// the user's chosen text size and defeat the purpose of a fixed preview.
+function TextSizeTile({ size, isActive, onClick }) {
+  const accentColor = '#F97B6B'; // coral
+  const border = isActive
+    ? `2px solid ${accentColor}`
+    : '2px solid var(--border-color)';
+  const bg = isActive
+    ? 'rgba(249,123,107,0.08)'
+    : 'var(--bg-card-grad)';
+
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        // Layout — fixed, never inherits rem scaling
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        width: '100%',
+        padding: '16px 18px',
+        boxSizing: 'border-box',
+        // Appearance
+        border,
+        borderRadius: 16,
+        background: bg,
+        cursor: 'pointer',
+        transition: 'border-color 0.15s, background 0.15s',
+        // Typography reset — nothing inside inherits html font-size
+        fontSize: '16px',
+        fontFamily: 'inherit',
+        textAlign: 'left',
+      }}>
+
+      {/* "Aa" sample — fixed px, represents the actual rendered size */}
+      <span style={{
+        fontSize: size.previewPx,
+        fontWeight: 700,
+        lineHeight: 1,
+        flexShrink: 0,
+        color: isActive ? accentColor : 'var(--text-primary)',
+        fontFamily: 'inherit',
+        display: 'block',
+        // Fixed width so "Aa" never shifts layout between sizes
+        minWidth: 36,
+      }}>
+        Aa
+      </span>
+
+      {/* Label + sample sentence */}
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{
+          display: 'block',
+          fontSize: 14,
+          fontWeight: 700,
+          lineHeight: 1.2,
+          color: isActive ? accentColor : 'var(--text-primary)',
+          whiteSpace: 'nowrap',
+        }}>
+          {size.label}
+        </span>
+        <span style={{
+          display: 'block',
+          fontSize: 11,
+          fontWeight: 400,
+          lineHeight: 1.3,
+          marginTop: 2,
+          color: '#9ca3af',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}>
+          {size.sampleText}
+        </span>
+      </span>
+
+      {/* Active checkmark */}
+      {isActive && (
+        <span style={{
+          flexShrink: 0,
+          color: accentColor,
+          fontSize: 16,
+          fontWeight: 900,
+          lineHeight: 1,
+        }}>✓</span>
+      )}
     </button>
   );
 }
@@ -255,87 +346,57 @@ export default function SettingsPage() {
       {/* ── Text Size ──────────────────────────────────────── */}
       <Section title="Text Size" icon={<Type size={22} className="text-sky"/>}>
         {/*
-          IMPORTANT: Every element inside the tiles uses ONLY inline px styles.
-          No Tailwind classes inside the tiles — rem-based classes scale with
-          the html font-size and would defeat the purpose of a fixed preview.
+          All sizing here is in fixed px via inline styles.
+          Tailwind rem-based classes would cascade from the html font-size
+          the user just set — creating a feedback loop where the preview
+          itself changes when you pick a size. Fixed px breaks that loop.
         */}
-        <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12, lineHeight: 1.5 }}>
-          Pick a reading size. Each tile shows that size as a fixed reference — they never change.
+        <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 14, lineHeight: 1.5, fontFamily: 'inherit' }}>
+          Pick a reading size. Each tile shows a fixed preview — it never changes as you switch.
         </p>
 
-        {/* Wrapper resets font-size so no rem value can leak in */}
+        {/*
+          Layout strategy:
+          • Mobile (< ~480px): 1 column — tiles are full-width, labels never wrap
+          • Tablet/Desktop: 2 columns — enough room for label + "Aa" side by side
+          We use a CSS custom property on the wrapper to switch cleanly.
+        */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-          fontSize: '16px',   /* hard reset — children using em will base off 16px */
+          // minmax(220px, 1fr): each tile needs at least 220px to show label without wrapping.
+          // If the container is narrower than 440px (2 × 220px), it collapses to 1 column.
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 10,
+          // Hard reset: nothing inside inherits the global html font-size
+          fontSize: '16px',
         }}>
-          {TEXT_SIZES.map(s => {
-            const isActive = settings.text_size === s.key;
-            return (
-              <button
-                key={s.key}
-                onClick={() => save({ text_size: s.key })}
-                style={{
-                  /* Fixed physical dimensions — never scale with global setting */
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,                       /* px, not rem */
-                  padding: '14px 16px',          /* px, not rem */
-                  borderRadius: 16,              /* px */
-                  border: `2px solid ${isActive ? '#F97B6B' : 'var(--border-color)'}`,
-                  background: isActive ? 'rgba(249,123,107,0.10)' : 'var(--bg-card-grad)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.15s, background 0.15s',
-                  /* Reset font — nothing inside will inherit html font-size */
-                  fontSize: '16px',
-                  fontFamily: 'inherit',
-                }}>
+          {TEXT_SIZES.map(s => (
+            <TextSizeTile
+              key={s.key}
+              size={s}
+              isActive={settings.text_size === s.key}
+              onClick={() => save({ text_size: s.key })}
+            />
+          ))}
+        </div>
 
-                {/* Aa preview — FIXED px size, represents the actual size for that setting */}
-                <span style={{
-                  fontSize: s.previewPx,   /* 13 | 16 | 20 | 26 — absolute px, never changes */
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  flexShrink: 0,
-                  color: isActive ? '#F97B6B' : 'var(--text-primary)',
-                  display: 'inline-block',
-                  minWidth: s.previewPx + 4,
-                }}>
-                  Aa
-                </span>
-
-                {/* Label — always 13px regardless of selected size */}
-                <span style={{
-                  fontSize: 13,            /* absolute px — never changes */
-                  fontWeight: 700,
-                  lineHeight: 1.3,
-                  color: isActive ? '#F97B6B' : 'var(--text-primary)',
-                  display: 'inline-block',
-                }}>
-                  {s.label}
-                </span>
-
-                {/* Active checkmark */}
-                {isActive && (
-                  <span style={{
-                    marginLeft: 'auto',
-                    flexShrink: 0,
-                    color: '#F97B6B',
-                    fontSize: 14,
-                    fontWeight: 900,
-                    lineHeight: 1,
-                  }}>✓</span>
-                )}
-              </button>
-            );
-          })}
+        {/* Live preview strip — shows the actual effect of the selected size */}
+        <div style={{
+          marginTop: 16,
+          padding: '12px 16px',
+          borderRadius: 12,
+          background: 'var(--bg-primary)',
+          border: '1px solid var(--border-color)',
+        }}>
+          <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6, fontFamily: 'inherit' }}>
+            Live preview
+          </p>
+          {/* This deliberately uses rem/em so it DOES respond to the global setting */}
+          <p className="font-body text-gray-800 dark:text-gray-100" style={{ margin: 0, lineHeight: 1.6 }}>
+            The quick brown fox jumps over the lazy dog.
+          </p>
         </div>
       </Section>
-
 
       {/* ── Background Music ───────────────────────────────── */}
       <Section title="Background Music" icon={<Music size={22} className="text-purple-500"/>}>
