@@ -65,7 +65,7 @@ function BottomNavBar() {
 
   return (
     <nav className="lg:hidden" style={{
-      position: 'relative', flexShrink: 0,
+      position: 'fixed', flexShrink: 0,
       height: BAR_H + POP_H,
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       fontSize: '16px', fontFamily: 'inherit',
