@@ -1,8 +1,6 @@
 // ============================================================
 // Email Utility — OTP delivery via SMTP (nodemailer)
 // Safe: never crashes the server.
-// Falls back to console.log if nodemailer isn't installed
-// or SMTP credentials are not configured.
 // ============================================================
 
 let nodemailer = null;
@@ -10,7 +8,6 @@ try {
   nodemailer = require('nodemailer');
 } catch (_) {
   console.warn('[Email] nodemailer not installed — OTPs will be logged to console.');
-  console.warn('[Email] Run: npm install nodemailer --prefix backend');
 }
 
 /** Generate a 6-digit OTP string */
@@ -21,15 +18,28 @@ function generateOTP() {
 /**
  * Send a 6-digit OTP email.
  * type: 'register' | 'reset'
- * Never throws — email failure is logged but does NOT break the request.
  */
 async function sendOTPEmail(toEmail, otp, type) {
-  // Always log to console (great for dev, also a fallback record)
   console.log(`[OTP] ${type.toUpperCase()} code for ${toEmail}: ${otp}`);
 
-  // If no SMTP or nodemailer missing, just use the console log above
-  if (!nodemailer || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log('[Email] No SMTP configured — use the code logged above.');
+  // ── Diagnostic: log exactly what is set ──────────────────
+  console.log('[Email] nodemailer loaded:', !!nodemailer);
+  console.log('[Email] SMTP_USER:', process.env.SMTP_USER ? `"${process.env.SMTP_USER}"` : 'MISSING');
+  console.log('[Email] SMTP_PASS:', process.env.SMTP_PASS ? `SET (${process.env.SMTP_PASS.length} chars)` : 'MISSING');
+  console.log('[Email] SMTP_HOST:', process.env.SMTP_HOST || 'MISSING');
+  console.log('[Email] SMTP_PORT:', process.env.SMTP_PORT || 'MISSING');
+  console.log('[Email] SMTP_SECURE:', process.env.SMTP_SECURE || 'MISSING');
+
+  if (!nodemailer) {
+    console.log('[Email] SKIP — nodemailer not installed.');
+    return;
+  }
+  if (!process.env.SMTP_USER) {
+    console.log('[Email] SKIP — SMTP_USER is not set.');
+    return;
+  }
+  if (!process.env.SMTP_PASS) {
+    console.log('[Email] SKIP — SMTP_PASS is not set.');
     return;
   }
 
@@ -72,15 +82,20 @@ async function sendOTPEmail(toEmail, otp, type) {
 </html>`;
 
   try {
+    console.log('[Email] Creating transporter...');
     const transporter = nodemailer.createTransport({
       host:   process.env.SMTP_HOST   || 'smtp.gmail.com',
-      port:   parseInt(process.env.SMTP_PORT || '587', 10),
+      port:   parseInt(process.env.SMTP_PORT || '465', 10),
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
+
+    console.log('[Email] Verifying transporter...');
+    await transporter.verify();
+    console.log('[Email] Transporter verified. Sending...');
 
     await transporter.sendMail({
       from:    process.env.SMTP_FROM || `"ReadAble" <${process.env.SMTP_USER}>`,
@@ -91,8 +106,9 @@ async function sendOTPEmail(toEmail, otp, type) {
 
     console.log(`[Email] Sent to ${toEmail}`);
   } catch (err) {
-    // Log but never throw — OTP is already saved in DB and logged above
     console.error('[Email] Send failed:', err.message);
+    console.error('[Email] Error code:', err.code);
+    console.error('[Email] Error details:', JSON.stringify(err, null, 2));
   }
 }
 
