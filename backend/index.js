@@ -157,6 +157,19 @@ async function setupDatabase() {
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     `);
 
+    await client.query(`
+  CREATE TABLE IF NOT EXISTS otp_tokens (
+    id         SERIAL PRIMARY KEY,
+    email      VARCHAR(255) NOT NULL,
+    otp        VARCHAR(10)  NOT NULL,
+    type       VARCHAR(20)  NOT NULL DEFAULT 'reset',
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    used       BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(email, type)
+  );
+`);
+
     console.log('[DB] ✅ Tables ready');
 
     // ── 16 Achievements ──────────────────────────────────────
