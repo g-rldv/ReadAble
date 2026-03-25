@@ -875,7 +875,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────── */}
+   /*   {/* ── CTA ─────────────────────────────────────────── */}
       <section className="max-w-2xl mx-auto px-4 pb-20 text-center">
         <div className="rounded-3xl p-10 bg-gradient-to-br from-sky to-mint text-white">
           <h2 className="font-display text-4xl mb-3">Ready to start reading?</h2>
@@ -886,7 +886,7 @@ export default function LandingPage() {
           </button>
         </div>
       </section>
-
+  */
       {/* ── Modals ──────────────────────────────────────── */}
       {showLogin    && <SignInModal    onClose={()=>setShowLogin(false)}    onSwitchToRegister={()=>{ setShowLogin(false); setShowRegister(true); }}/>}
       {showRegister && <RegisterModal onClose={()=>setShowRegister(false)} onSwitchToLogin={()=>{ setShowRegister(false); setShowLogin(true); }}/>}
