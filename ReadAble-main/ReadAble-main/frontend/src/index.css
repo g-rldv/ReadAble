@@ -1,0 +1,325 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ═══════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES — one block per theme
+   Applied via [data-theme="x"] on <html>
+   ═══════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES — one block per theme
+   Applied via [data-theme="x"] on <html>
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── DEFAULT / LIGHT — clean warm white ─────────────────── */
+:root,
+[data-theme="cotton"] {
+  --bg-primary:    #FFF8F2;
+  --bg-card:       #FFFFFF;
+  --bg-card-grad:  linear-gradient(145deg, #FFFFFF 0%, #FFF0F5 100%);
+  --bg-sidebar:    #FFF4F0;
+  --text-primary:  #2C1810;
+  --text-muted:    #8C6060;
+  --border-color:  #F0D8D0;
+  --shadow:        0 4px 20px rgba(200,100,80,0.10);
+  --accent:        #F07050;
+}
+
+/* ── STRAWBERRY — rosy pink tones ───────────────────────── */
+[data-theme="sky"] {
+  --bg-primary:    #FFF0F4;
+  --bg-card:       #FFF8FA;
+  --bg-card-grad:  linear-gradient(145deg, #FFF8FA 0%, #FFE8F0 100%);
+  --bg-sidebar:    #FFE0EA;
+  --text-primary:  #4A0E20;
+  --text-muted:    #B05070;
+  --border-color:  #F8B8CC;
+  --shadow:        0 4px 18px rgba(230,80,120,0.14);
+  --accent:        #E83060;
+}
+
+/* ── MEADOW — fresh sage green ──────────────────────────── */
+[data-theme="mint"] {
+  --bg-primary:    #F2FAF2;
+  --bg-card:       #F8FEF8;
+  --bg-card-grad:  linear-gradient(145deg, #F8FEF8 0%, #E0F5E0 100%);
+  --bg-sidebar:    #E0F4E0;
+  --text-primary:  #0E2E14;
+  --text-muted:    #3A7A46;
+  --border-color:  #98D8A0;
+  --shadow:        0 4px 18px rgba(40,160,80,0.12);
+  --accent:        #22A845;
+}
+
+/* ── SUNRISE — warm golden peach ────────────────────────── */
+[data-theme="sunshine"] {
+  --bg-primary:    #FFF8ED;
+  --bg-card:       #FFFCF5;
+  --bg-card-grad:  linear-gradient(145deg, #FFFCF5 0%, #FFF0D0 100%);
+  --bg-sidebar:    #FFECC8;
+  --text-primary:  #3A2000;
+  --text-muted:    #906820;
+  --border-color:  #F0C870;
+  --shadow:        0 4px 18px rgba(220,160,20,0.15);
+  --accent:        #D08010;
+}
+
+/* ── LAVENDER — soft lilac purple ───────────────────────── */
+[data-theme="lavender"] {
+  --bg-primary:    #F6F2FF;
+  --bg-card:       #FAF8FF;
+  --bg-card-grad:  linear-gradient(145deg, #FAF8FF 0%, #EEE0FF 100%);
+  --bg-sidebar:    #EDE0FF;
+  --text-primary:  #220850;
+  --text-muted:    #7040C0;
+  --border-color:  #C8A8F0;
+  --shadow:        0 4px 18px rgba(120,60,220,0.13);
+  --accent:        #8040D8;
+}
+
+/* ── MANGO — warm coral orange ──────────────────────────── */
+[data-theme="peach"] {
+  --bg-primary:    #FFF4EC;
+  --bg-card:       #FFF9F5;
+  --bg-card-grad:  linear-gradient(145deg, #FFF9F5 0%, #FFE8D0 100%);
+  --bg-sidebar:    #FFE0C0;
+  --text-primary:  #3A1200;
+  --text-muted:    #B05828;
+  --border-color:  #F0A868;
+  --shadow:        0 4px 18px rgba(220,110,40,0.15);
+  --accent:        #E06818;
+}
+
+/* ── BUBBLEGUM — sweet pink magenta ─────────────────────── */
+[data-theme="bubblegum"] {
+  --bg-primary:    #FFF0F8;
+  --bg-card:       #FFF8FC;
+  --bg-card-grad:  linear-gradient(145deg, #FFF8FC 0%, #FFE0F4 100%);
+  --bg-sidebar:    #FFCCEA;
+  --text-primary:  #3A0828;
+  --text-muted:    #C03888;
+  --border-color:  #F888CC;
+  --shadow:        0 4px 18px rgba(230,50,160,0.14);
+  --accent:        #D82890;
+}
+
+/* ── AQUA — bright sky aqua ─────────────────────────────── */
+[data-theme="ocean"] {
+  --bg-primary:    #EEF9FD;
+  --bg-card:       #F5FCFF;
+  --bg-card-grad:  linear-gradient(145deg, #F5FCFF 0%, #D8F4FC 100%);
+  --bg-sidebar:    #D0EEFC;
+  --text-primary:  #04222E;
+  --text-muted:    #1878A0;
+  --border-color:  #70CCE8;
+  --shadow:        0 4px 18px rgba(0,160,210,0.15);
+  --accent:        #0898C8;
+}
+
+/* ── MIDNIGHT — deep navy, soft neon glow ───────────────── */
+[data-theme="night"] {
+  --bg-primary:    #0C0A20;
+  --bg-card:       #181430;
+  --bg-card-grad:  linear-gradient(145deg, #1E1840 0%, #141030 100%);
+  --bg-sidebar:    #0A0818;
+  --text-primary:  #F0ECFF;
+  --text-muted:    #A890E0;
+  --border-color:  #3C2E80;
+  --shadow:        0 4px 22px rgba(0,0,0,0.55);
+  --accent:        #9060F0;
+}
+/* ── Global resets ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--bg-primary, #FFF8F0);
+  color: var(--text-primary, #1A1A2E);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+}
+
+/* ── Typography ──────────────────────────────────────────── */
+.font-display { font-family: 'Fredoka One', cursive; }
+.font-body    { font-family: 'Nunito', sans-serif; }
+
+/* Text size classes applied to <html> */
+html.text-small  { font-size: 14px; }
+html.text-medium { font-size: 16px; }
+html.text-large  { font-size: 18px; }
+html.text-xlarge { font-size: 21px; }
+
+/* ── Tailwind color helpers ───────────────────────────────── */
+@layer utilities {
+  .text-coral       { color: #F97B6B; }
+  .text-coral-dark  { color: #E05555; }
+  .bg-coral         { background-color: #F97B6B; }
+  .text-sky         { color: #60B8F5; }
+  .bg-sky           { background-color: #60B8F5; }
+  .bg-sky-dark      { background-color: #3EA0DC; }
+  .text-mint        { color: #4ADE80; }
+  .text-mint-dark   { color: #22C55E; }
+  .bg-mint          { background-color: #4ADE80; }
+  .text-sunny       { color: #FCD34D; }
+  .bg-sunny         { background-color: #FCD34D; }
+  .bg-grape         { background-color: #9B59B6; }
+  .line-clamp-2     { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .line-clamp-1     { display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+}
+
+/* ── Cards / shadows ─────────────────────────────────────── */
+.shadow-card { box-shadow: var(--shadow, 0 4px 20px rgba(0,0,0,0.08)); }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn-game {
+  @apply font-display font-bold rounded-2xl px-5 py-3 transition-all duration-150 select-none;
+  @apply active:scale-95 focus-visible:outline-none;
+}
+.btn-game:active  { transform: scale(0.95); }
+.btn-game:hover   { filter: brightness(1.06); }
+.btn-game:disabled{ opacity: 0.55; cursor: not-allowed; }
+
+/* ── Gradient backdrop (gradient theme) ──────────────────── */
+
+
+/* ── Drop zones (games) ───────────────────────────────────── */
+.drop-zone {
+  @apply border-2 border-dashed rounded-2xl transition-all duration-200;
+  min-height: 3rem;
+}
+.drop-zone.active  { @apply border-sky bg-sky/10 scale-105; }
+.drop-zone.correct { @apply border-mint bg-mint/10; }
+.drop-zone.wrong   { @apply border-coral bg-coral/10; }
+
+
+/* ── Confetti ────────────────────────────────────────────── */
+.confetti-piece {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  animation: confettiFall linear forwards;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 10px; }
+.dark ::-webkit-scrollbar-thumb { background: #4A5568; }
+
+/* ── Focus ring ──────────────────────────────────────────── */
+*:focus-visible {
+  outline: 3px solid var(--accent, #4D96FF);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Smooth theme transition (layout shell only, NOT cards/modals) ─
+   Only the page background and sidebar get the transition.
+   Cards and modals must NOT have it — a transition from the browser
+   default of transparent→color causes every modal to flash invisible
+   on first render (mount-from-transparent bug). ──────────────────── */
+div[style*="var(--bg-primary)"],
+aside[style*="var(--bg-sidebar)"] {
+  transition: background-color 0.4s ease, background 0.4s ease;
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+.animate-fade-in  { animation: fadeIn  0.25s ease-out both; }
+.animate-pop      { animation: pop     0.28s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+.animate-slide-up { animation: slideUp 0.35s ease-out both; }
+.animate-rise-up  { animation: riseUp  0.35s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+.animate-wiggle   { animation: wiggle  0.4s ease-in-out; }
+.animate-float    { animation: float   3s ease-in-out infinite; }
+.animate-win-pulse   { animation: winPulse 0.8s ease-in-out 3; }
+.animate-result-reveal{ animation: resultReveal 0.55s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-icon-spin    { animation: iconSpin 0.7s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-glow-ring    { animation: glowRing 0.8s ease-out both; }
+.animate-score-sweep  { animation: scoreSweep 0.45s ease-out 0.3s both; }
+.animate-shimmer      { background: linear-gradient(90deg,#FF6B6B 0%,#ff8c8c 40%,#FF6B6B 60%,#e05555 100%);
+                        background-size: 200% auto;
+                        animation: shimmer 2s linear infinite; }
+.shake            { animation: shake   0.4s ease-in-out; }
+
+.xp-pop {
+  position: fixed; pointer-events: none; z-index: 9999;
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.4rem; color: #4D96FF; font-weight: bold;
+  animation: xpFloat 1.2s ease-out forwards;
+}
+.music-note {
+  position: fixed; pointer-events: none; z-index: 9990;
+  font-size: 1.4rem;
+  animation: noteFloat 2s ease-out forwards;
+}
+
+@keyframes fadeIn   { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+@keyframes pop      { from{opacity:0;transform:scale(0.88)}     to{opacity:1;transform:scale(1)} }
+@keyframes slideUp  { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none} }
+@keyframes riseUp   { from{opacity:0;transform:translateY(20px) scale(0.95)} to{opacity:1;transform:none} }
+@keyframes wiggle   { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-6deg)} 75%{transform:rotate(6deg)} }
+@keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes winPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+
+/* ── Result reveal animations ──────────────────────────────── */
+/* Card slides up cleanly from below */
+@keyframes resultReveal {
+  0%   { opacity:0; transform:translateY(28px); }
+  60%  { opacity:1; transform:translateY(-4px); }
+  100% { opacity:1; transform:translateY(0); }
+}
+/* Trophy/icon spins in with a spring overshoot */
+@keyframes iconSpin {
+  0%   { opacity:0; transform:scale(0.3) rotate(-180deg); }
+  65%  { opacity:1; transform:scale(1.15) rotate(12deg); }
+  82%  { transform:scale(0.93) rotate(-4deg); }
+  100% { opacity:1; transform:scale(1) rotate(0deg); }
+}
+/* Glow ring expands outward then fades */
+@keyframes glowRing {
+  0%   { transform:scale(0.6); opacity:0.9; }
+  100% { transform:scale(2.2); opacity:0; }
+}
+/* Score label sweeps up */
+@keyframes scoreSweep {
+  0%   { opacity:0; transform:translateY(10px); }
+  100% { opacity:1; transform:translateY(0); }
+}
+/* CTA button shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+/* Stars scatter from centre */
+@keyframes starScatter {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:var(--end-pos) scale(0); }
+}
+@keyframes shake    { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-5px)} 40%,80%{transform:translateX(5px)} }
+@keyframes confettiFall {
+  to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+@keyframes xpFloat  { 0%{transform:translateX(-50%) translateY(0);opacity:1} 100%{transform:translateX(-50%) translateY(-70px);opacity:0} }
+@keyframes noteFloat{ 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-60px) scale(0.6)} }
+
+/* ── Mobile-specific tweaks ──────────────────────────────── */
+@media (max-width: 640px) {
+  /* Larger tap areas for filter pills */
+  .filter-pill { min-height: 36px; }
+  /* Prevent horizontal scroll from game boards */
+  .game-board  { overflow-x: hidden; }
+  /* Card font slightly tighter on small screens */
+  .font-display { letter-spacing: -0.01em; }
+}
+
+/* ── Prevent iOS bounce scroll on fixed modals ───────────── */
+.modal-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* Hide scrollbar for filter pill rows */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
