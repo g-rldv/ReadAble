@@ -1,6 +1,7 @@
 // ============================================================
 // LandingPage — hero, trial game with connected progress bars,
 // red/green answer feedback, quick settings
+// Added: Forgot Password flow inside SignInModal
 // ============================================================
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -12,8 +13,10 @@ import {
   TrendingUp, Palette, Check, Star, X, UserPlus,
   Eye, EyeOff, Mail, Lock, User, Settings,
   Sun, Moon, Sparkles, Leaf, LogIn,
+  ArrowLeft, ShieldCheck, RefreshCw,
 } from 'lucide-react';
 import { launchConfetti } from '../utils/confetti';
+import api from '../utils/api';
 
 // ── Trial game data ───────────────────────────────────────────
 const TRIAL_ITEMS = [
@@ -94,7 +97,72 @@ function AuthInput({ label, type='text', value, onChange, placeholder, name, ico
   );
 }
 
-// ── Sign-In loading overlay (bouncing dots + cycling tip) ─────
+// ── OTP digit input ───────────────────────────────────────────
+function OTPInput({ value, onChange }) {
+  const inputs = useRef([]);
+  const digits = Array.from({ length: 6 }, (_, i) => value[i] || '');
+
+  const handleChange = (e, idx) => {
+    const char = e.target.value.replace(/\D/g, '').slice(-1);
+    const next = [...digits]; next[idx] = char;
+    onChange(next.join(''));
+    if (char && idx < 5) inputs.current[idx + 1]?.focus();
+  };
+
+  const handleKey = (e, idx) => {
+    if (e.key === 'Backspace') {
+      if (digits[idx]) {
+        const n = [...digits]; n[idx] = ''; onChange(n.join(''));
+      } else if (idx > 0) {
+        inputs.current[idx - 1]?.focus();
+        const n = [...digits]; n[idx - 1] = ''; onChange(n.join(''));
+      }
+    }
+    if (e.key === 'ArrowLeft'  && idx > 0) inputs.current[idx - 1]?.focus();
+    if (e.key === 'ArrowRight' && idx < 5) inputs.current[idx + 1]?.focus();
+  };
+
+  const handlePaste = (e) => {
+    const p = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!p) return;
+    onChange(p.padEnd(6, '').slice(0, 6));
+    inputs.current[Math.min(p.length, 5)]?.focus();
+  };
+
+  return (
+    <div className="flex gap-1.5 justify-center">
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={el => inputs.current[i] = el}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={d}
+          onChange={e => handleChange(e, i)}
+          onKeyDown={e => handleKey(e, i)}
+          onPaste={i === 0 ? handlePaste : undefined}
+          className="w-10 h-12 text-center text-xl font-bold rounded-xl border-2 outline-none
+                     transition-all bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white
+                     focus:border-sky focus:bg-white dark:focus:bg-gray-700 focus:scale-105
+                     border-gray-200 dark:border-gray-600"
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Resend cooldown hook ──────────────────────────────────────
+function useResendCooldown() {
+  const [cd, setCd] = useState(0);
+  const start = () => {
+    setCd(60);
+    const iv = setInterval(() => setCd(c => { if (c <= 1) { clearInterval(iv); return 0; } return c - 1; }), 1000);
+  };
+  return [cd, start];
+}
+
+// ── Sign-In loading overlay ───────────────────────────────────
 const SIGN_IN_TIPS = [
   '📚 Loading your books…',
   '🏆 Fetching your achievements…',
@@ -110,7 +178,6 @@ function SignInLoadingOverlay() {
   }, []);
   return (
     <div className="flex flex-col items-center justify-center py-10 px-4 animate-fade-in">
-      {/* Bouncing dots */}
       <div className="flex items-end gap-2 mb-6 h-8">
         {[0, 1, 2].map(i => (
           <span key={i} className="block w-3 h-3 rounded-full bg-sky" style={{
@@ -119,12 +186,10 @@ function SignInLoadingOverlay() {
           }}/>
         ))}
       </div>
-      {/* Animated progress bar */}
       <div className="w-full max-w-[180px] h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden mb-5">
         <div className="h-full rounded-full bg-gradient-to-r from-sky to-indigo-400"
           style={{ animation: 'signInBar 1.8s ease-in-out infinite' }}/>
       </div>
-      {/* Cycling tip */}
       <p key={tipIdx} className="text-sm font-semibold text-gray-500 dark:text-gray-400 animate-fade-in text-center">
         {SIGN_IN_TIPS[tipIdx]}
       </p>
@@ -143,13 +208,176 @@ function SignInLoadingOverlay() {
   );
 }
 
+// ── Forgot Password View (inside SignInModal) ─────────────────
+// Steps: 'email' → 'otp' → 'newpass' → 'done'
+function ForgotPasswordView({ onBack }) {
+  const [step,     setStep]     = useState('email');
+  const [email,    setEmail]    = useState('');
+  const [otp,      setOtp]      = useState('');
+  const [otpErr,   setOtpErr]   = useState('');
+  const [newPass,  setNewPass]  = useState('');
+  const [confirm,  setConfirm]  = useState('');
+  const [passErr,  setPassErr]  = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [resendCd, startResend] = useResendCooldown();
+
+  // Step 1 — send OTP
+  const sendOTP = async (e) => {
+    e?.preventDefault();
+    if (!email.trim()) return;
+    setLoading(true);
+    try {
+      await api.post('/auth/send-otp', { email: email.trim(), type: 'reset' });
+    } catch (_) {
+      // always advance — prevents account enumeration
+    } finally {
+      setLoading(false);
+      setStep('otp');
+      startResend();
+    }
+  };
+
+  // Step 2 — verify digits (client-side gate; server validates on reset)
+  const verifyOTP = (e) => {
+    e.preventDefault();
+    if (otp.length < 6) { setOtpErr('Please enter all 6 digits.'); return; }
+    setOtpErr('');
+    setStep('newpass');
+  };
+
+  // Step 3 — set new password
+  const resetPassword = async (e) => {
+    e.preventDefault();
+    if (newPass.length < 6)   { setPassErr('Password must be at least 6 characters.'); return; }
+    if (newPass !== confirm)   { setPassErr('Passwords do not match.'); return; }
+    setPassErr(''); setLoading(true);
+    try {
+      await api.post('/auth/reset-password', {
+        email: email.trim(), otp_code: otp, new_password: newPass,
+      });
+      setStep('done');
+    } catch (err) {
+      const msg = err.message || '';
+      if (/invalid|expired|code/i.test(msg)) {
+        setOtpErr(msg);
+        setStep('otp');
+      } else {
+        setPassErr(msg || 'Something went wrong. Please try again.');
+      }
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="animate-fade-in">
+      {/* Back button */}
+      <button onClick={onBack}
+        className="flex items-center gap-1.5 text-xs font-semibold text-gray-400
+                   hover:text-sky mb-4 transition-colors group">
+        <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
+        Back to Sign In
+      </button>
+
+      {/* ── Step 1: email ──────────────────────────────── */}
+      {step === 'email' && (
+        <>
+          <h2 className="font-display text-xl mb-0.5 text-gray-900 dark:text-white">Forgot Password?</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            Enter your email and we'll send you a reset code.
+          </p>
+          <form onSubmit={sendOTP}>
+            <AuthInput label="Email address" type="email" name="email" value={email}
+              onChange={e => setEmail(e.target.value)} placeholder="you@example.com" icon={Mail}/>
+            <button type="submit" disabled={loading || !email.trim()}
+              className="btn-game w-full bg-sky text-white text-sm mt-1 disabled:opacity-60">
+              {loading ? 'Sending…' : 'Send Reset Code'}
+            </button>
+          </form>
+        </>
+      )}
+
+      {/* ── Step 2: OTP ────────────────────────────────── */}
+      {step === 'otp' && (
+        <>
+          <div className="flex items-center gap-2 mb-0.5">
+            <ShieldCheck size={18} className="text-sky flex-shrink-0" />
+            <h2 className="font-display text-xl text-gray-900 dark:text-white">Check your email</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">
+            We sent a 6-digit code to{' '}
+            <strong className="text-gray-700 dark:text-gray-200">{email}</strong>.
+            It expires in 10 minutes.
+          </p>
+          <form onSubmit={verifyOTP}>
+            <div className="mb-4">
+              <OTPInput value={otp} onChange={v => { setOtp(v); setOtpErr(''); }} />
+              {otpErr && <p className="text-xs text-rose-500 mt-2 text-center">{otpErr}</p>}
+            </div>
+            <button type="submit" disabled={otp.length < 6}
+              className="btn-game w-full bg-sky text-white text-sm disabled:opacity-50">
+              Verify Code
+            </button>
+          </form>
+          <div className="text-center mt-3">
+            {resendCd > 0
+              ? <p className="text-xs text-gray-400">Resend in {resendCd}s</p>
+              : <button onClick={sendOTP}
+                  className="text-xs font-semibold text-sky hover:underline inline-flex items-center gap-1">
+                  <RefreshCw size={11} /> Resend code
+                </button>
+            }
+          </div>
+        </>
+      )}
+
+      {/* ── Step 3: new password ───────────────────────── */}
+      {step === 'newpass' && (
+        <>
+          <h2 className="font-display text-xl mb-0.5 text-gray-900 dark:text-white">New Password</h2>
+          <p className="text-xs text-gray-500 mb-4">Choose a new password for your account.</p>
+          <form onSubmit={resetPassword}>
+            <AuthInput label="New password" type="password" name="np" value={newPass}
+              onChange={e => setNewPass(e.target.value)}
+              placeholder="At least 6 characters" icon={Lock}/>
+            <AuthInput label="Confirm password" type="password" name="cp" value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              placeholder="Repeat your new password" icon={Lock} error={passErr}/>
+            <button type="submit" disabled={loading}
+              className="btn-game w-full bg-sky text-white text-sm mt-1 disabled:opacity-60">
+              {loading ? 'Resetting…' : 'Reset Password'}
+            </button>
+          </form>
+        </>
+      )}
+
+      {/* ── Step 4: done ───────────────────────────────── */}
+      {step === 'done' && (
+        <div className="text-center py-4">
+          <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30
+                          flex items-center justify-center mx-auto mb-3">
+            <Check size={28} className="text-emerald-500" />
+          </div>
+          <h3 className="font-display text-xl text-gray-800 dark:text-gray-100 mb-1">Password reset!</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
+            Your password has been updated. You can now sign in.
+          </p>
+          <button onClick={onBack}
+            className="btn-game bg-sky text-white text-sm w-full">
+            Back to Sign In
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Sign-In Modal ─────────────────────────────────────────────
 function SignInModal({ onClose, onSwitchToRegister }) {
   const { login } = useAuth();
   const navigate  = useNavigate();
-  const [form, setForm]       = useState({ email:'', password:'' });
-  const [error, setError]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [form, setForm]         = useState({ email:'', password:'' });
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   const handle = e => setForm(f=>({...f,[e.target.name]:e.target.value}));
 
@@ -170,28 +398,55 @@ function SignInModal({ onClose, onSwitchToRegister }) {
       onClick={e=>{if(e.target===e.currentTarget&&!loading)onClose();}}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
-        {/* Header — hidden while loading so overlay fills the space */}
+
+        {/* Header — hidden while loading */}
         {!loading && (
           <div className="flex items-center justify-between px-5 pt-5 pb-1">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center"><BookOpen size={16} className="text-white"/></div>
+              <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
+                <BookOpen size={16} className="text-white"/>
+              </div>
               <span className="font-display text-lg text-sky">ReadAble</span>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><X size={18} className="text-gray-400"/></button>
+            <button onClick={onClose}
+              className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <X size={18} className="text-gray-400"/>
+            </button>
           </div>
         )}
+
         <div className="px-6 pb-6 pt-3">
-          {/* Loading overlay replaces form while signing in */}
+          {/* Loading overlay while signing in */}
           {loading ? (
             <SignInLoadingOverlay/>
+          ) : showForgot ? (
+            /* ── Forgot password view ── */
+            <ForgotPasswordView onBack={() => setShowForgot(false)} />
           ) : (
+            /* ── Main sign-in form ── */
             <>
               <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Welcome back!</h2>
               <p className="text-xs text-gray-500 mb-4">Sign in to continue your journey</p>
               <form onSubmit={submit}>
-                <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle} placeholder="you@example.com" icon={Mail}/>
-                <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle} placeholder="Your password" icon={Lock}/>
-                {error && <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-800">{error}</div>}
+                <AuthInput label="Email" type="email" name="email" value={form.email}
+                  onChange={handle} placeholder="you@example.com" icon={Mail}/>
+                <AuthInput label="Password" type="password" name="password" value={form.password}
+                  onChange={handle} placeholder="Your password" icon={Lock}/>
+
+                {/* Forgot password link */}
+                <div className="flex justify-end -mt-2 mb-3">
+                  <button type="button" onClick={() => setShowForgot(true)}
+                    className="text-xs font-semibold text-sky hover:underline transition-colors">
+                    Forgot password?
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600
+                                  dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-800">
+                    {error}
+                  </div>
+                )}
                 <button type="submit" disabled={loading}
                   className="btn-game w-full bg-sky text-white text-sm disabled:opacity-60">
                   Sign In
@@ -199,7 +454,9 @@ function SignInModal({ onClose, onSwitchToRegister }) {
               </form>
               <p className="text-center text-xs text-gray-500 mt-4">
                 No account?{' '}
-                <button onClick={onSwitchToRegister} className="text-sky font-bold hover:underline">Create one free</button>
+                <button onClick={onSwitchToRegister} className="text-sky font-bold hover:underline">
+                  Create one free
+                </button>
               </p>
             </>
           )}
@@ -381,7 +638,6 @@ export default function LandingPage() {
   const [selected,     setSelected]     = useState(null);
   const [trialDone,    setTrialDone]    = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
-  // NEW: tracks 'correct' | 'wrong' | null for each question
   const [stepResults,  setStepResults]  = useState([null, null, null]);
 
   const [showLogin,    setShowLogin]    = useState(false);
@@ -403,7 +659,6 @@ export default function LandingPage() {
     setSelected(opt);
     const correct = opt === current.answer;
 
-    // Record result for the progress bar
     setStepResults(r => {
       const next = [...r];
       next[trialStep] = correct ? 'correct' : 'wrong';
@@ -511,13 +766,12 @@ export default function LandingPage() {
 
             {!trialDone ? (
               <>
-                {/* ── Progress bars — connected to game results ── */}
+                {/* Progress bars */}
                 <div className="flex gap-2 mb-6">
                   {TRIAL_ITEMS.map((_, i) => {
                     const result    = stepResults[i];
                     const isCurrent = i === trialStep;
-                    // Colour based on result or current state
-                    let bg = 'bg-gray-200 dark:bg-gray-700'; // future
+                    let bg = 'bg-gray-200 dark:bg-gray-700';
                     if      (result === 'correct') bg = 'bg-emerald-400';
                     else if (result === 'wrong')   bg = 'bg-rose-500';
                     else if (isCurrent)            bg = 'bg-sky animate-pulse';
@@ -533,7 +787,6 @@ export default function LandingPage() {
 
                 <div className="text-center text-7xl mb-6 animate-float" role="img">{current.emoji}</div>
 
-                {/* ── Answer buttons with clear red/green feedback ── */}
                 <div className="grid grid-cols-2 gap-3">
                   {current.options.map(opt => {
                     const isSel  = selected === opt;
@@ -543,16 +796,12 @@ export default function LandingPage() {
 
                     if (showFeedback) {
                       if (isSel && isCorr) {
-                        // ✅ Selected + correct → green
                         cls = 'bg-emerald-500 text-white border-2 border-emerald-400 scale-105 shadow-lg shadow-emerald-500/30';
                       } else if (isSel && !isCorr) {
-                        // ❌ Selected + wrong → red + shake
                         cls = 'bg-rose-600 text-white border-2 border-rose-400 shake shadow-lg shadow-rose-600/30';
                       } else if (!isSel && isCorr && selected !== null) {
-                        // Reveal correct answer subtly after wrong pick
                         cls = 'bg-emerald-400/20 text-emerald-600 dark:text-emerald-300 border-2 border-emerald-400/60';
                       } else {
-                        // Other options — dim
                         cls = 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-2 border-transparent opacity-50';
                       }
                     }
@@ -567,7 +816,7 @@ export default function LandingPage() {
                 </div>
               </>
             ) : (
-              // ── Result screen ────────────────────────────
+              // ── Result screen ──────────────────────────────
               <div className="text-center py-4 animate-result-reveal">
                 <div className="relative w-20 h-20 mx-auto mb-4">
                   <div className={`absolute inset-0 rounded-full animate-glow-ring
@@ -580,7 +829,6 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Result dots showing correct/wrong per question */}
                 <div className="flex items-center justify-center gap-2 mb-3">
                   {stepResults.map((r, i) => (
                     <div key={i} className={`w-3 h-3 rounded-full ${r==='correct'?'bg-emerald-400':r==='wrong'?'bg-rose-500':'bg-gray-300'}`}/>
