@@ -63,7 +63,7 @@ function BottomNavBar() {
   const { Icon: ActiveIcon } = BOTTOM_NAV[activeIdx];
 
   return (
-    <nav className="lg:hidden" style={{
+    <nav className="md:hidden" style={{
       position: 'fixed',
       bottom: 0,
       left: 0,
@@ -318,7 +318,7 @@ function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP
                         toggleSound, updateSettings, onLogoutClick,
                         isFullscreen, toggleFullscreen }) {
   return (
-    <div className={`lg:hidden fixed inset-0 z-[9998] transition-all duration-300
+    <div className={`md:hidden fixed inset-0 z-[9998] transition-all duration-300
                      ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       <div className={`absolute inset-0 flex flex-col transition-transform duration-300 ease-out
                        ${open ? 'translate-x-0' : '-translate-x-full'}`}
@@ -445,7 +445,7 @@ export default function AppLayout() {
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col shadow-card"
+      <aside className="hidden md:flex w-64 flex-shrink-0 flex-col shadow-card"
         style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-color)' }}>
         <DesktopSidebar
           user={user} settings={settings} soundOn={soundOn} xpPct={xpPct} currentXP={currentXP}
@@ -467,8 +467,11 @@ export default function AppLayout() {
       {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Mobile top bar — burger + logo hidden on Shop page */}
-        <header className="lg:hidden flex-shrink-0" style={{
+        {/* Mobile top bar
+            • Shown only on truly small screens (below lg / 1024px)
+            • On the shop page the burger+logo are hidden; only XP pill remains
+            • On other pages the full bar shows for mobile nav access        */}
+        <header className="md:hidden flex-shrink-0" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -481,46 +484,41 @@ export default function AppLayout() {
           boxSizing: 'border-box',
           gap: 8,
         }}>
-          {/* LEFT: hamburger → logo icon → wordmark — hidden on Shop page */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            flexShrink: 0,
-            visibility: isShopPage ? 'hidden' : 'visible',
-            pointerEvents: isShopPage ? 'none' : 'auto',
-          }}>
-            <button
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open menu"
-              style={{
-                width: 34, height: 34,
+          {/* LEFT: hamburger + logo — hidden on shop page */}
+          {!isShopPage && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open menu"
+                style={{
+                  width: 34, height: 34,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  borderRadius: 9, padding: 0, flexShrink: 0,
+                }}>
+                <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
+              </button>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: '#60B8F5',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                borderRadius: 9, padding: 0, flexShrink: 0,
+                flexShrink: 0,
               }}>
-              <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
-            </button>
-            <div style={{
-              width: 28, height: 28, borderRadius: 8,
-              background: '#60B8F5',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <BookOpen size={15} color="white"/>
+                <BookOpen size={15} color="white"/>
+              </div>
+              <span style={{
+                fontFamily: '"Fredoka One", cursive',
+                fontSize: 19,
+                color: '#60B8F5',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}>
+                ReadAble
+              </span>
             </div>
-            <span style={{
-              fontFamily: '"Fredoka One", cursive',
-              fontSize: 19,
-              color: '#60B8F5',
-              lineHeight: 1,
-              whiteSpace: 'nowrap',
-            }}>
-              ReadAble
-            </span>
-          </div>
+          )}
 
-          {/* RIGHT: XP + Level pill */}
+          {/* RIGHT: XP + Level pill — always visible, pushes to right on shop page */}
           <div style={{ flexShrink: 0, marginLeft: isShopPage ? 'auto' : 0 }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
