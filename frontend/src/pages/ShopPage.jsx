@@ -1,7 +1,6 @@
 // ============================================================
 // ShopPage.jsx — optimistic coin deduction on purchase
-// Coins subtract instantly in the UI; refreshUser syncs the
-// server value in the background.
+// "How to Earn Coins" moved to bottom after all item listings
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }     from '../contexts/AuthContext';
@@ -57,18 +56,14 @@ export default function ShopPage() {
     if (currentCoins < item.cost) { showToast('Not enough coins!', 'error'); return; }
 
     setBuying(item.id);
-
-    // ── Optimistic update: subtract coins & add to wardrobe immediately ──
     patchUser({ coins: currentCoins - item.cost });
     setWardrobe(prev => [...prev, item.id]);
 
     try {
       await api.post('/users/buy-item', { itemId: item.id, cost: item.cost });
-      // Sync true server value in background (handles any edge cases)
       refreshUser();
       showToast(`✨ Got ${item.name}!`);
     } catch (err) {
-      // Roll back optimistic changes on failure
       patchUser({ coins: currentCoins });
       setWardrobe(prev => prev.filter(id => id !== item.id));
       showToast(err.message || 'Purchase failed', 'error');
@@ -101,7 +96,6 @@ export default function ShopPage() {
     api.post('/users/equip-item', { category: 'skin', itemId: st.id }).catch(() => {});
   };
 
-  // Current coin balance — always reads from user context (now reactive)
   const coinBalance = user?.coins ?? 0;
 
   if (loading) return (
@@ -121,7 +115,6 @@ export default function ShopPage() {
           fontWeight:700, color:'#fff', fontSize:14,
           background: toast.type === 'error' ? '#ef4444' : '#22c55e',
           boxShadow:'0 4px 20px rgba(0,0,0,0.2)',
-          transition: 'all 0.2s',
         }}>
           {toast.msg}
         </div>
@@ -135,13 +128,11 @@ export default function ShopPage() {
           </h1>
           <p style={{ fontSize:12, color:'#9ca3af', margin:'2px 0 0' }}>Spend coins to dress up your Buddy!</p>
         </div>
-        {/* Coin balance — reads from user context, updates instantly via patchUser */}
         <div style={{
           display:'flex', alignItems:'center', gap:6, padding:'8px 14px',
           borderRadius:999, fontWeight:700, fontSize:14, flexShrink:0,
           background:'rgba(251,191,36,0.15)', color:'#D97706',
           border:'1px solid rgba(251,191,36,0.3)',
-          transition: 'all 0.3s',
         }}>
           <span>🪙</span>
           <span style={{ minWidth: 20, textAlign: 'right' }}>{coinBalance}</span>
@@ -251,7 +242,6 @@ export default function ShopPage() {
               const isEq    = isEquipped(item);
               const hasAch  = user?.achievements?.includes(item.earnedBy);
               const freeByAch = item.earnedBy && !isOwned && hasAch;
-              // Re-check affordability against live coinBalance
               const affordable = !isOwned && coinBalance >= item.cost;
 
               const borderColor = isEq ? '#60B8F5' : isOwned ? '#6ee7b7' : '#e5e7eb';
@@ -317,7 +307,6 @@ export default function ShopPage() {
                       cursor: btnDisabled ? 'not-allowed' : 'pointer',
                       opacity: btnDisabled ? 0.6 : 1,
                       minWidth: 56,
-                      transition: 'background 0.2s, opacity 0.2s',
                     }}>
                     {btnLabel}
                   </button>
@@ -328,8 +317,13 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* How to earn coins */}
-      <div style={{ borderRadius:24, padding:'16px 20px', border:'1px solid var(--border-color)', background:'var(--bg-card-grad)' }}>
+      {/* ── How to Earn Coins — at the very bottom ── */}
+      <div style={{
+        borderRadius:24, padding:'16px 20px',
+        border:'1px solid var(--border-color)',
+        background:'var(--bg-card-grad)',
+        marginTop: 8,
+      }}>
         <h3 className="font-display" style={{ fontSize:17, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
           🪙 How to Earn Coins
         </h3>
@@ -349,6 +343,7 @@ export default function ShopPage() {
           ))}
         </div>
       </div>
+
     </div>
   );
 }
