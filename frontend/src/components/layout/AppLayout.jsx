@@ -63,7 +63,6 @@ function BottomNavBar() {
   const { Icon: ActiveIcon } = BOTTOM_NAV[activeIdx];
 
   return (
-    // ── FIXED at the bottom, full width, always visible ──
     <nav className="lg:hidden" style={{
       position: 'fixed',
       bottom: 0,
@@ -397,9 +396,12 @@ export default function AppLayout() {
   const { user, logout }             = useAuth();
   const { settings, updateSettings } = useSettings();
   const navigate                     = useNavigate();
+  const location                     = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [drawerOpen,      setDrawerOpen]      = useState(false);
   const [isFullscreen,    setIsFullscreen]    = useState(false);
+
+  const isShopPage = location.pathname === '/shop';
 
   const handleLogout = () => { logout(); navigate('/'); };
   const soundOn = settings.tts_enabled || settings.bg_music_enabled;
@@ -465,7 +467,7 @@ export default function AppLayout() {
       {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Mobile top bar */}
+        {/* Mobile top bar — burger + logo hidden on Shop page */}
         <header className="lg:hidden flex-shrink-0" style={{
           display: 'flex',
           alignItems: 'center',
@@ -479,8 +481,15 @@ export default function AppLayout() {
           boxSizing: 'border-box',
           gap: 8,
         }}>
-          {/* LEFT: hamburger → logo icon → wordmark */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {/* LEFT: hamburger → logo icon → wordmark — hidden on Shop page */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            flexShrink: 0,
+            visibility: isShopPage ? 'hidden' : 'visible',
+            pointerEvents: isShopPage ? 'none' : 'auto',
+          }}>
             <button
               onClick={() => setDrawerOpen(true)}
               aria-label="Open menu"
@@ -512,7 +521,7 @@ export default function AppLayout() {
           </div>
 
           {/* RIGHT: XP + Level pill */}
-          <div style={{ flexShrink: 0 }}>
+          <div style={{ flexShrink: 0, marginLeft: isShopPage ? 'auto' : 0 }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '5px 10px', borderRadius: 10,
