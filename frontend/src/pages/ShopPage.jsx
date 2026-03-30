@@ -105,7 +105,7 @@ export default function ShopPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in" style={{ display:'flex', flexDirection:'column', gap:16 }}>
+    <div className="max-w-5xl mx-auto animate-fade-in" style={{ display:'flex', flexDirection:'column', gap:30 }}>
 
       {/* Toast */}
       {toast && (
