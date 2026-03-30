@@ -490,7 +490,7 @@ export default function AppLayout() {
           }}
         >
           {/* Wrap contents in a flex div so the layout still works */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', height: '100%', gap: 8 }}>
 
             {/* LEFT: hamburger + logo — hidden on shop page */}
             {!isShopPage && (
