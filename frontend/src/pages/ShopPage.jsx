@@ -139,6 +139,33 @@ export default function ShopPage() {
         </div>
       </div>
 
+            {/* ── How to Earn Coins — at the very bottom ── */}
+      <div style={{
+        borderRadius:24, padding:'16px 20px',
+        border:'1px solid var(--border-color)',
+        background:'var(--bg-card-grad)',
+        marginTop: 8,
+      }}>
+        <h3 className="font-display" style={{ fontSize:17, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
+          🪙 How to Earn Coins
+        </h3>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:12 }}>
+          {[
+            { icon:'🎮', title:'Play Activities',     desc:'Earn coins = 1.5× your XP reward' },
+            { icon:'🏆', title:'Unlock Achievements', desc:'Bonus coins for each achievement' },
+            { icon:'🎀', title:'Achievement Items',   desc:'Some items are free with their achievement' },
+          ].map(({ icon, title, desc }) => (
+            <div key={title} style={{ display:'flex', alignItems:'flex-start', gap:12, padding:12, borderRadius:16, background:'var(--bg-primary)', border:'1px solid var(--border-color)' }}>
+              <span style={{ fontSize:22, flexShrink:0 }}>{icon}</span>
+              <div>
+                <p style={{ fontWeight:700, fontSize:13, color:'var(--text-primary)', margin:0 }}>{title}</p>
+                <p style={{ fontSize:11, color:'#9ca3af', margin:'2px 0 0', lineHeight:1.4 }}>{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ── MOBILE buddy preview (collapsible) ── */}
       <div className="md:hidden" style={{
         borderRadius:20, border:'1px solid var(--border-color)',
@@ -317,32 +344,7 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* ── How to Earn Coins — at the very bottom ── */}
-      <div style={{
-        borderRadius:24, padding:'16px 20px',
-        border:'1px solid var(--border-color)',
-        background:'var(--bg-card-grad)',
-        marginTop: 8,
-      }}>
-        <h3 className="font-display" style={{ fontSize:17, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
-          🪙 How to Earn Coins
-        </h3>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:12 }}>
-          {[
-            { icon:'🎮', title:'Play Activities',     desc:'Earn coins = 1.5× your XP reward' },
-            { icon:'🏆', title:'Unlock Achievements', desc:'Bonus coins for each achievement' },
-            { icon:'🎀', title:'Achievement Items',   desc:'Some items are free with their achievement' },
-          ].map(({ icon, title, desc }) => (
-            <div key={title} style={{ display:'flex', alignItems:'flex-start', gap:12, padding:12, borderRadius:16, background:'var(--bg-primary)', border:'1px solid var(--border-color)' }}>
-              <span style={{ fontSize:22, flexShrink:0 }}>{icon}</span>
-              <div>
-                <p style={{ fontWeight:700, fontSize:13, color:'var(--text-primary)', margin:0 }}>{title}</p>
-                <p style={{ fontSize:11, color:'#9ca3af', margin:'2px 0 0', lineHeight:1.4 }}>{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+
 
     </div>
   );
