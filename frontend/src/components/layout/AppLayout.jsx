@@ -9,7 +9,7 @@ import { useAuth }     from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import {
   LayoutDashboard, BookOpen, Trophy, User, Settings,
-  LogOut, Volume2, VolumeX, Star, Menu, X,
+  LogOut, Volume2, VolumeX, Star, X,
   Music, Music2, SlidersHorizontal, Sparkles, Maximize2, Minimize,
   ShoppingBag,
 } from 'lucide-react';
@@ -313,95 +313,13 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
   );
 }
 
-// ── Mobile full-screen drawer ─────────────────────────────────
-function MobileDrawer({ open, onClose, user, settings, soundOn, xpPct, currentXP,
-                        toggleSound, updateSettings, onLogoutClick,
-                        isFullscreen, toggleFullscreen }) {
-  return (
-    <div className={`md:hidden fixed inset-0 z-[9998] transition-all duration-300
-                     ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-      <div className={`absolute inset-0 flex flex-col transition-transform duration-300 ease-out
-                       ${open ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ background: 'var(--bg-sidebar)' }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4
-                        border-b border-gray-100 dark:border-gray-700 flex-shrink-0"
-          style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-sky flex items-center justify-center flex-shrink-0">
-              <BookOpen size={18} className="text-white"/>
-            </div>
-            <span className="font-display text-2xl text-sky">ReadAble</span>
-          </div>
-          <button onClick={onClose}
-            className="w-9 h-9 rounded-xl flex items-center justify-center
-                       hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors">
-            <X size={22} className="text-gray-500 dark:text-gray-400"/>
-          </button>
-        </div>
-
-        {/* User card */}
-        <div className="px-4 py-4 mx-4 mt-4 rounded-2xl border border-sky/20 flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,rgba(77,150,255,0.10),rgba(107,203,119,0.07))' }}>
-          <div className="flex items-center gap-3">
-            <SidebarAvatar avatar={user?.avatar} username={user?.username}/>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-base truncate text-gray-800 dark:text-gray-200">{user?.username}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
-            </div>
-            <div className="flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full px-3 py-1 flex-shrink-0">
-              <Star size={12} className="text-amber-500 fill-amber-500"/>
-              <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0} XP</span>
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-sky to-emerald-400 rounded-full transition-all duration-700"
-                style={{ width: `${xpPct}%` }}/>
-            </div>
-            <p className="text-xs text-gray-400 mt-1.5">{currentXP}/50 XP to Level {(user?.level || 1) + 1}</p>
-          </div>
-        </div>
-
-        {/* Settings shortcut */}
-        <div className="px-4 mt-5 flex-shrink-0">
-          <NavLink to="/settings" onClick={onClose}
-            className={({ isActive }) =>
-              `flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-base transition-all ${
-                isActive
-                  ? 'bg-sky text-white shadow-md shadow-sky/25'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}>
-            <Settings size={22}/>Settings
-          </NavLink>
-        </div>
-
-        <div className="flex-1"/>
-
-        {/* Sound / fullscreen / sign-out */}
-        <BottomControls
-          soundOn={soundOn} settings={settings}
-          toggleSound={toggleSound} updateSettings={updateSettings}
-          isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen}
-          onLogoutClick={onLogoutClick}
-        />
-      </div>
-    </div>
-  );
-}
-
 // ── Root layout ───────────────────────────────────────────────
 export default function AppLayout() {
   const { user, logout }             = useAuth();
   const { settings, updateSettings } = useSettings();
   const navigate                     = useNavigate();
-  const location                     = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [drawerOpen,      setDrawerOpen]      = useState(false);
   const [isFullscreen,    setIsFullscreen]    = useState(false);
-
-  const isShopPage = location.pathname === '/shop';
 
   const handleLogout = () => { logout(); navigate('/'); };
   const soundOn = settings.tts_enabled || settings.bg_music_enabled;
@@ -438,13 +356,12 @@ export default function AppLayout() {
     } catch (_) {}
   }, []);
 
-  // Height of the fixed bottom nav (BAR_H + POP_H + safe area)
-  const BOTTOM_NAV_HEIGHT = BAR_H + POP_H + 4; // ~82px
+  const BOTTOM_NAV_HEIGHT = BAR_H + POP_H + 4;
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — hidden on mobile */}
       <aside className="hidden md:flex w-64 flex-shrink-0 flex-col shadow-card"
         style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-color)' }}>
         <DesktopSidebar
@@ -455,79 +372,57 @@ export default function AppLayout() {
         />
       </aside>
 
-      {/* Mobile full-screen drawer */}
-      <MobileDrawer
-        open={drawerOpen} onClose={() => setDrawerOpen(false)}
-        user={user} settings={settings} soundOn={soundOn} xpPct={xpPct} currentXP={currentXP}
-        toggleSound={toggleSound} updateSettings={updateSettings}
-        isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen}
-        onLogoutClick={() => { setDrawerOpen(false); setShowLogoutModal(true); }}
-      />
-
       {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* ─── Mobile-only top bar ───────────────────────────────────
-            md:hidden hides this on screens ≥ 768 px.
-            IMPORTANT: do NOT set display:flex in the inline style —
-            that would override md:hidden's display:none.              */}
-        <header
-          className="md:hidden flex-shrink-0"
+        {/* ── Mobile-only top bar ──────────────────────────────────
+            - Burger icon REMOVED — bottom nav handles all navigation
+            - ReadAble logo always visible on ALL pages
+            - XP pill on the right
+            - md:hidden hides this on desktop (do NOT add display:flex
+              to the inline style or it will override md:hidden)       */}
+        <header className="md:hidden flex-shrink-0"
           style={{
-            /* display is intentionally omitted here so Tailwind's
-               md:hidden (display:none) can actually take effect.
-               The flex layout is handled by the className below.    */
-            alignItems: 'center',
-            justifyContent: 'space-between',
             height: 52,
-            padding: '0 12px',
+            padding: '0 16px',
             background: 'var(--bg-sidebar)',
             borderBottom: '1px solid var(--border-color)',
-            fontSize: '16px',
             fontFamily: 'inherit',
             boxSizing: 'border-box',
+          }}>
+          {/* Inner flex wrapper — keeps layout without fighting md:hidden */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            height: '100%',
             gap: 8,
-          }}
-        >
-          {/* Wrap contents in a flex div so the layout still works */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', height: '100%', gap: 8 }}>
+          }}>
 
-            {/* LEFT: hamburger + logo — hidden on shop page */}
-            {!isShopPage && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <button
-                  onClick={() => setDrawerOpen(true)}
-                  aria-label="Open menu"
-                  style={{
-                    width: 34, height: 34,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: 'none', background: 'transparent', cursor: 'pointer',
-                    borderRadius: 9, padding: 0, flexShrink: 0,
-                  }}>
-                  <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
-                </button>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: '#60B8F5',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <BookOpen size={15} color="white"/>
-                </div>
-                <span style={{
-                  fontFamily: '"Fredoka One", cursive',
-                  fontSize: 19,
-                  color: '#60B8F5',
-                  lineHeight: 1,
-                  whiteSpace: 'nowrap',
-                }}>
-                  ReadAble
-                </span>
+            {/* LEFT: logo — visible on every page including Shop */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: '#60B8F5',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <BookOpen size={15} color="white" />
               </div>
-            )}
+              <span style={{
+                fontFamily: '"Fredoka One", cursive',
+                fontSize: 19,
+                color: '#60B8F5',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}>
+                ReadAble
+              </span>
+            </div>
 
             {/* RIGHT: XP + Level pill */}
-            <div style={{ flexShrink: 0, marginLeft: isShopPage ? 'auto' : 0 }}>
+            <div style={{ flexShrink: 0 }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '5px 10px', borderRadius: 10,
@@ -556,7 +451,7 @@ export default function AppLayout() {
           <Outlet/>
         </main>
 
-        {/* Fixed bottom nav */}
+        {/* Fixed bottom nav — mobile only */}
         <BottomNavBar/>
       </div>
 
