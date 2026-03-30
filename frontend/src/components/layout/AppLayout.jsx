@@ -467,86 +467,96 @@ export default function AppLayout() {
       {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Mobile top bar
-            • Shown only on truly small screens (below lg / 1024px)
-            • On the shop page the burger+logo are hidden; only XP pill remains
-            • On other pages the full bar shows for mobile nav access        */}
-        <header className="md:hidden flex-shrink-0" style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: 52,
-          padding: '0 12px',
-          background: 'var(--bg-sidebar)',
-          borderBottom: '1px solid var(--border-color)',
-          fontSize: '16px',
-          fontFamily: 'inherit',
-          boxSizing: 'border-box',
-          gap: 8,
-        }}>
-          {/* LEFT: hamburger + logo — hidden on shop page */}
-          {!isShopPage && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <button
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open menu"
-                style={{
-                  width: 34, height: 34,
+        {/* ─── Mobile-only top bar ───────────────────────────────────
+            md:hidden hides this on screens ≥ 768 px.
+            IMPORTANT: do NOT set display:flex in the inline style —
+            that would override md:hidden's display:none.              */}
+        <header
+          className="md:hidden flex-shrink-0"
+          style={{
+            /* display is intentionally omitted here so Tailwind's
+               md:hidden (display:none) can actually take effect.
+               The flex layout is handled by the className below.    */
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            height: 52,
+            padding: '0 12px',
+            background: 'var(--bg-sidebar)',
+            borderBottom: '1px solid var(--border-color)',
+            fontSize: '16px',
+            fontFamily: 'inherit',
+            boxSizing: 'border-box',
+            gap: 8,
+          }}
+        >
+          {/* Wrap contents in a flex div so the layout still works */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}>
+
+            {/* LEFT: hamburger + logo — hidden on shop page */}
+            {!isShopPage && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <button
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Open menu"
+                  style={{
+                    width: 34, height: 34,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: 'none', background: 'transparent', cursor: 'pointer',
+                    borderRadius: 9, padding: 0, flexShrink: 0,
+                  }}>
+                  <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
+                </button>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: '#60B8F5',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: 'none', background: 'transparent', cursor: 'pointer',
-                  borderRadius: 9, padding: 0, flexShrink: 0,
+                  flexShrink: 0,
                 }}>
-                <Menu size={20} style={{ color: 'var(--text-primary)', opacity: 0.65 }}/>
-              </button>
-              <div style={{
-                width: 28, height: 28, borderRadius: 8,
-                background: '#60B8F5',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <BookOpen size={15} color="white"/>
+                  <BookOpen size={15} color="white"/>
+                </div>
+                <span style={{
+                  fontFamily: '"Fredoka One", cursive',
+                  fontSize: 19,
+                  color: '#60B8F5',
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                }}>
+                  ReadAble
+                </span>
               </div>
-              <span style={{
-                fontFamily: '"Fredoka One", cursive',
-                fontSize: 19,
-                color: '#60B8F5',
-                lineHeight: 1,
+            )}
+
+            {/* RIGHT: XP + Level pill */}
+            <div style={{ flexShrink: 0, marginLeft: isShopPage ? 'auto' : 0 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '5px 10px', borderRadius: 10,
+                background: 'var(--border-color)',
                 whiteSpace: 'nowrap',
               }}>
-                ReadAble
-              </span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="none" style={{ flexShrink: 0 }}>
+                  <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                </svg>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+                  {user?.xp || 0} XP
+                </span>
+                <span style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1 }}>·</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', lineHeight: 1 }}>
+                  Lv {user?.level || 1}
+                </span>
+              </div>
             </div>
-          )}
 
-          {/* RIGHT: XP + Level pill — always visible, pushes to right on shop page */}
-          <div style={{ flexShrink: 0, marginLeft: isShopPage ? 'auto' : 0 }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '5px 10px', borderRadius: 10,
-              background: 'var(--border-color)',
-              whiteSpace: 'nowrap',
-            }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="none" style={{ flexShrink: 0 }}>
-                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
-              </svg>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
-                {user?.xp || 0} XP
-              </span>
-              <span style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1 }}>·</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', lineHeight: 1 }}>
-                Lv {user?.level || 1}
-              </span>
-            </div>
           </div>
         </header>
 
-        {/* Page content — extra bottom padding so content clears the fixed nav */}
+        {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:pb-8"
           style={{ paddingBottom: `calc(1rem + ${BOTTOM_NAV_HEIGHT}px)` }}>
           <Outlet/>
         </main>
 
-        {/* Fixed bottom nav — always visible, never scrolls away */}
+        {/* Fixed bottom nav */}
         <BottomNavBar/>
       </div>
 
