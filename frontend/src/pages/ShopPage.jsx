@@ -218,9 +218,9 @@ export default function ShopPage() {
       <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
 
         {/* Desktop sidebar */}
-        <div className="hidden md:flex" style={{ width:220, flexShrink:0, flexDirection:'column', alignItems:'center', gap:16, borderRadius:24, padding:20, border:'1px solid var(--border-color)', background:'var(--bg-card-grad)', position:'sticky', top:16 }}>
+        <div className="hidden md:flex" style={{ width:250, flexShrink:0, flexDirection:'column', alignItems:'center', gap:16, borderRadius:24, padding:20, border:'1px solid var(--border-color)', background:'var(--bg-card-grad)', position:'sticky', top:16 }}>
           <p className="font-display" style={{ fontSize:16, color:'var(--text-primary)', margin:0 }}>Your Buddy</p>
-          <CharacterAvatar equipped={equipped} size={160}/>
+          <CharacterAvatar equipped={equipped} size={220}/>
           <div style={{ width:'100%' }}>
             <p style={{ fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Skin Tone</p>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:6 }}>
