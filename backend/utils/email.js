@@ -1,45 +1,15 @@
-// ============================================================
-// Email Utility — OTP delivery via SMTP (nodemailer)
-// Safe: never crashes the server.
-// ============================================================
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM_ADDRESS   = process.env.SMTP_FROM || 'onboarding@resend.dev';
 
-let nodemailer = null;
-try {
-  nodemailer = require('nodemailer');
-} catch (_) {
-  console.warn('[Email] nodemailer not installed — OTPs will be logged to console.');
-}
-
-/** Generate a 6-digit OTP string */
 function generateOTP() {
   return String(Math.floor(100_000 + Math.random() * 900_000));
 }
 
-/**
- * Send a 6-digit OTP email.
- * type: 'register' | 'reset'
- */
 async function sendOTPEmail(toEmail, otp, type) {
   console.log(`[OTP] ${type.toUpperCase()} code for ${toEmail}: ${otp}`);
 
-  // ── Diagnostic: log exactly what is set ──────────────────
-  console.log('[Email] nodemailer loaded:', !!nodemailer);
-  console.log('[Email] SMTP_USER:', process.env.SMTP_USER ? `"${process.env.SMTP_USER}"` : 'MISSING');
-  console.log('[Email] SMTP_PASS:', process.env.SMTP_PASS ? `SET (${process.env.SMTP_PASS.length} chars)` : 'MISSING');
-  console.log('[Email] SMTP_HOST:', process.env.SMTP_HOST || 'MISSING');
-  console.log('[Email] SMTP_PORT:', process.env.SMTP_PORT || 'MISSING');
-  console.log('[Email] SMTP_SECURE:', process.env.SMTP_SECURE || 'MISSING');
-
-  if (!nodemailer) {
-    console.log('[Email] SKIP — nodemailer not installed.');
-    return;
-  }
-  if (!process.env.SMTP_USER) {
-    console.log('[Email] SKIP — SMTP_USER is not set.');
-    return;
-  }
-  if (!process.env.SMTP_PASS) {
-    console.log('[Email] SKIP — SMTP_PASS is not set.');
+  if (!RESEND_API_KEY) {
+    console.log('[Email] SKIP — RESEND_API_KEY not set. OTP logged above.');
     return;
   }
 
@@ -82,33 +52,29 @@ async function sendOTPEmail(toEmail, otp, type) {
 </html>`;
 
   try {
-    console.log('[Email] Creating transporter...');
-    const transporter = nodemailer.createTransport({
-      host:   process.env.SMTP_HOST   || 'smtp.gmail.com',
-      port:   parseInt(process.env.SMTP_PORT || '465', 10),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        from: FROM_ADDRESS,
+        to:   [toEmail],
+        subject,
+        html,
+      }),
     });
 
-    console.log('[Email] Verifying transporter...');
-    await transporter.verify();
-    console.log('[Email] Transporter verified. Sending...');
+    const data = await response.json();
 
-    await transporter.sendMail({
-      from:    process.env.SMTP_FROM || `"ReadAble" <${process.env.SMTP_USER}>`,
-      to:      toEmail,
-      subject,
-      html,
-    });
-
-    console.log(`[Email] Sent to ${toEmail}`);
+    if (!response.ok) {
+      console.error('[Email] Resend API error:', data);
+    } else {
+      console.log(`[Email] Sent successfully to ${toEmail}, id: ${data.id}`);
+    }
   } catch (err) {
-    console.error('[Email] Send failed:', err.message);
-    console.error('[Email] Error code:', err.code);
-    console.error('[Email] Error details:', JSON.stringify(err, null, 2));
+    console.error('[Email] Fetch failed:', err.message);
   }
 }
 
