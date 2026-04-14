@@ -502,68 +502,123 @@ function RegisterLoadingOverlay() {
 }
 
 // ── Register Modal ────────────────────────────────────────────
+// Step 'form' → send OTP → step 'otp' → verify OTP → create account
 function RegisterModal({ onClose, onSwitchToLogin }) {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm]     = useState({ username:'', email:'', password:'', confirm:'' });
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+
+  const [step,     setStep]     = useState('form');
+  const [form,     setForm]     = useState({ username: '', email: '', password: '', confirm: '' });
+  const [errors,   setErrors]   = useState({});
+  const [loading,  setLoading]  = useState(false);
+  const [otp,      setOtp]      = useState('');
+  const [otpErr,   setOtpErr]   = useState('');
+  const [resendCd, startResend] = useResendCooldown();
 
   const handle = e => {
-    setForm(f=>({...f,[e.target.name]:e.target.value}));
-    setErrors(er=>({...er,[e.target.name]:'',general:''}));
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+    setErrors(er => ({ ...er, [e.target.name]: '', general: '' }));
   };
 
-  const submit = async (e) => {
+  const validate = () => {
+    const e = {};
+    if (form.username.trim().length < 3) e.username = 'At least 3 characters.';
+    if (!form.email.includes('@'))       e.email    = 'Valid email required.';
+    if (form.password.length < 6)        e.password = 'At least 6 characters.';
+    if (form.password !== form.confirm)  e.confirm  = 'Passwords do not match.';
+    return e;
+  };
+
+  // Step 1: validate form → send OTP
+  const submitForm = async (e) => {
     e.preventDefault();
-    const errs = {};
-    if (form.username.trim().length < 3) errs.username = 'At least 3 characters.';
-    if (!form.email.includes('@'))       errs.email    = 'Valid email required.';
-    if (form.password.length < 6)        errs.password = 'At least 6 characters.';
-    if (form.password !== form.confirm)  errs.confirm  = 'Passwords do not match.';
+    const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
-      await register(form.username.trim(), form.email.trim(), form.password);
-      navigate('/dashboard', { replace:true });
+      await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' });
+      setStep('otp');
+      startResend();
     } catch (err) {
-      const raw = err.response?.data?.error || err.message || '';
-      if (/username.*taken/i.test(raw))  setErrors({ username:'Username already taken.' });
-      else if (/email.*taken/i.test(raw))setErrors({ email:'Email already registered.' });
-      else                               setErrors({ general:'Something went wrong. Please try again.' });
+      const raw = err.message || '';
+      if (/already exists|already taken/i.test(raw)) setErrors({ email: 'An account with that email already exists.' });
+      else setErrors({ general: raw || 'Failed to send code. Please try again.' });
+    } finally { setLoading(false); }
+  };
+
+  const resendOTP = async () => {
+    setLoading(true);
+    try {
+      await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' });
+      startResend();
+      setOtpErr('');
+    } catch (_) {}
+    finally { setLoading(false); }
+  };
+
+  // Step 2: verify OTP → register account
+  const submitOTP = async (e) => {
+    e.preventDefault();
+    if (otp.length < 6) { setOtpErr('Please enter all 6 digits.'); return; }
+    setOtpErr(''); setLoading(true);
+    try {
+      await register(form.username.trim(), form.email.trim(), form.password, otp);
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      const raw = err.message || '';
+      if (/invalid|expired|code/i.test(raw))   setOtpErr(raw || 'Invalid or expired code.');
+      else if (/username.*taken/i.test(raw))    setErrors({ username: 'That username is already taken.' });
+      else if (/email.*taken/i.test(raw))       setErrors({ email: 'An account with that email already exists.' });
+      else                                      setOtpErr(raw || 'Something went wrong. Please try again.');
     } finally { setLoading(false); }
   };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
-      onClick={e=>{if(e.target===e.currentTarget&&!loading)onClose();}}>
+      onClick={e => { if (e.target === e.currentTarget && !loading) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
-        style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
+        style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
+
         {!loading && (
           <div className="flex items-center justify-between px-5 pt-5 pb-1">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-coral flex items-center justify-center"><BookOpen size={16} className="text-white"/></div>
+              <div className="w-8 h-8 rounded-xl bg-coral flex items-center justify-center">
+                <BookOpen size={16} className="text-white"/>
+              </div>
               <span className="font-display text-lg text-coral">ReadAble</span>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><X size={18} className="text-gray-400"/></button>
+            <button onClick={onClose}
+              className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <X size={18} className="text-gray-400"/>
+            </button>
           </div>
         )}
+
         <div className="px-6 pb-6 pt-3">
           {loading ? (
             <RegisterLoadingOverlay/>
-          ) : (
+          ) : step === 'form' ? (
             <>
               <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Join ReadAble!</h2>
               <p className="text-xs text-gray-500 mb-4">Free account — takes 30 seconds</p>
-              <form onSubmit={submit}>
-                <AuthInput label="Username" name="username" value={form.username} onChange={handle} placeholder="SuperReader" icon={User} error={errors.username}/>
-                <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle} placeholder="you@example.com" icon={Mail} error={errors.email}/>
-                <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle} placeholder="At least 6 characters" icon={Lock} error={errors.password}/>
-                <AuthInput label="Confirm Password" type="password" name="confirm" value={form.confirm} onChange={handle} placeholder="Repeat password" icon={Lock} error={errors.confirm}/>
-                {errors.general && <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-xs font-semibold border border-rose-200 dark:border-rose-800">{errors.general}</div>}
-                <button type="submit" disabled={loading}
-                  className="btn-game w-full bg-coral text-white text-sm mt-1 disabled:opacity-60">
-                  Start Learning!
+              <form onSubmit={submitForm}>
+                <AuthInput label="Username" name="username" value={form.username} onChange={handle}
+                  placeholder="SuperReader" icon={User} error={errors.username}/>
+                <AuthInput label="Email" type="email" name="email" value={form.email} onChange={handle}
+                  placeholder="you@example.com" icon={Mail} error={errors.email}/>
+                <AuthInput label="Password" type="password" name="password" value={form.password} onChange={handle}
+                  placeholder="At least 6 characters" icon={Lock} error={errors.password}/>
+                <AuthInput label="Confirm Password" type="password" name="confirm" value={form.confirm} onChange={handle}
+                  placeholder="Repeat password" icon={Lock} error={errors.confirm}/>
+                {errors.general && (
+                  <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600
+                                  dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-800">
+                    {errors.general}
+                  </div>
+                )}
+                <button type="submit"
+                  className="btn-game w-full bg-coral text-white text-sm mt-1">
+                  Send Verification Code →
                 </button>
               </form>
               <p className="text-center text-xs text-gray-500 mt-4">
@@ -571,6 +626,47 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
                 <button onClick={onSwitchToLogin} className="text-sky font-bold hover:underline">Sign in</button>
               </p>
             </>
+          ) : (
+            /* Step 2: OTP */
+            <div className="animate-fade-in">
+              <button onClick={() => { setStep('form'); setOtp(''); setOtpErr(''); }}
+                className="flex items-center gap-1.5 text-xs font-semibold text-gray-400
+                           hover:text-sky mb-4 transition-colors group">
+                <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform"/>
+                Edit details
+              </button>
+
+              <div className="flex items-center gap-2 mb-0.5">
+                <ShieldCheck size={18} className="text-coral flex-shrink-0"/>
+                <h2 className="font-display text-xl text-gray-900 dark:text-white">Verify your email</h2>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                We sent a 6-digit code to{' '}
+                <strong className="text-gray-700 dark:text-gray-200">{form.email}</strong>.
+                Enter it below to confirm your account.
+              </p>
+
+              <form onSubmit={submitOTP}>
+                <div className="mb-4">
+                  <OTPInput value={otp} onChange={v => { setOtp(v); setOtpErr(''); }}/>
+                  {otpErr && <p className="text-xs text-rose-500 mt-2 text-center">{otpErr}</p>}
+                </div>
+                <button type="submit" disabled={otp.length < 6}
+                  className="btn-game w-full bg-coral text-white text-sm disabled:opacity-50">
+                  Start Learning! 🎉
+                </button>
+              </form>
+
+              <div className="text-center mt-3">
+                {resendCd > 0
+                  ? <p className="text-xs text-gray-400">Resend in {resendCd}s</p>
+                  : <button onClick={resendOTP}
+                      className="text-xs font-semibold text-sky hover:underline inline-flex items-center gap-1">
+                      <RefreshCw size={11}/> Resend code
+                    </button>
+                }
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -874,19 +970,7 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-
-      {/*   { ── CTA ─────────────────────────────────────────── }
-      <section className="max-w-2xl mx-auto px-4 pb-20 text-center">
-        <div className="rounded-3xl p-10 bg-gradient-to-br from-sky to-mint text-white">
-          <h2 className="font-display text-4xl mb-3">Ready to start reading?</h2>
-          <p className="mb-6 opacity-90">Join thousands of learners improving every day!</p>
-          <button onClick={()=>setShowRegister(true)}
-            className="inline-flex items-center gap-2 bg-white text-sky font-display text-lg px-8 py-3 rounded-2xl shadow-lg hover:scale-105 transition-transform">
-            Create Free Account <ArrowRight size={20}/>
-          </button>
-        </div>
-      </section>
-     */}
+    
       {/* ── Modals ──────────────────────────────────────── */}
       {showLogin    && <SignInModal    onClose={()=>setShowLogin(false)}    onSwitchToRegister={()=>{ setShowLogin(false); setShowRegister(true); }}/>}
       {showRegister && <RegisterModal onClose={()=>setShowRegister(false)} onSwitchToLogin={()=>{ setShowRegister(false); setShowLogin(true); }}/>}
