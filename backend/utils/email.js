@@ -1,3 +1,9 @@
+// ============================================================
+// email.js — sends OTP emails via Resend API (https://resend.com)
+// Set RESEND_API_KEY in your environment variables.
+// Set SMTP_FROM (or FROM_ADDRESS) to your verified sender address.
+// ============================================================
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_ADDRESS   = process.env.SMTP_FROM || 'onboarding@resend.dev';
 
@@ -6,10 +12,11 @@ function generateOTP() {
 }
 
 async function sendOTPEmail(toEmail, otp, type) {
+  // Always log for debugging / local dev
   console.log(`[OTP] ${type.toUpperCase()} code for ${toEmail}: ${otp}`);
 
   if (!RESEND_API_KEY) {
-    console.log('[Email] SKIP — RESEND_API_KEY not set. OTP logged above.');
+    console.warn('[Email] RESEND_API_KEY not set — OTP logged above but NOT sent.');
     return;
   }
 
@@ -20,7 +27,7 @@ async function sendOTPEmail(toEmail, otp, type) {
   const headline = isReset ? 'Reset Your Password' : 'Verify Your Email';
   const bodyLine = isReset
     ? 'Use the code below to reset your ReadAble password:'
-    : 'Use the code below to verify your email address:';
+    : 'Use the code below to verify your email and complete sign-up:';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -45,7 +52,7 @@ async function sendOTPEmail(toEmail, otp, type) {
     </p>
     <hr style="border:none;border-top:1px solid #F0D8D0;margin:0 0 16px"/>
     <p style="color:#C0B0B0;font-size:12px;text-align:center;margin:0">
-      If you did not request this, you can safely ignore it.
+      If you did not request this, you can safely ignore this email.
     </p>
   </div>
 </body>
@@ -59,8 +66,8 @@ async function sendOTPEmail(toEmail, otp, type) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: FROM_ADDRESS,
-        to:   [toEmail],
+        from:    FROM_ADDRESS,
+        to:      [toEmail],
         subject,
         html,
       }),
@@ -69,12 +76,12 @@ async function sendOTPEmail(toEmail, otp, type) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('[Email] Resend API error:', data);
+      console.error('[Email] Resend API error:', JSON.stringify(data));
     } else {
-      console.log(`[Email] Sent successfully to ${toEmail}, id: ${data.id}`);
+      console.log(`[Email] Sent ${type} OTP to ${toEmail} — id: ${data.id}`);
     }
   } catch (err) {
-    console.error('[Email] Fetch failed:', err.message);
+    console.error('[Email] Resend fetch failed:', err.message);
   }
 }
 
