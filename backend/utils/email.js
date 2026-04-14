@@ -1,22 +1,21 @@
 // ============================================================
-// email.js — sends OTP emails via Resend API (https://resend.com)
-// Set RESEND_API_KEY in your environment variables.
-// Set SMTP_FROM (or FROM_ADDRESS) to your verified sender address.
+// email.js — sends OTP emails via SendGrid HTTP API
+// Set SENDGRID_API_KEY in your environment variables.
+// Set SMTP_FROM to your sender email address.
 // ============================================================
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_ADDRESS   = process.env.SMTP_FROM || 'onboarding@resend.dev';
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const FROM_ADDRESS     = process.env.SMTP_FROM || 'noreply@yourdomain.com';
 
 function generateOTP() {
   return String(Math.floor(100_000 + Math.random() * 900_000));
 }
 
 async function sendOTPEmail(toEmail, otp, type) {
-  // Always log for debugging / local dev
   console.log(`[OTP] ${type.toUpperCase()} code for ${toEmail}: ${otp}`);
 
-  if (!RESEND_API_KEY) {
-    console.warn('[Email] RESEND_API_KEY not set — OTP logged above but NOT sent.');
+  if (!SENDGRID_API_KEY) {
+    console.warn('[Email] SENDGRID_API_KEY not set — OTP logged above but NOT sent.');
     return;
   }
 
@@ -59,29 +58,28 @@ async function sendOTPEmail(toEmail, otp, type) {
 </html>`;
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:    FROM_ADDRESS,
-        to:      [toEmail],
+        personalizations: [{ to: [{ email: toEmail }] }],
+        from:             { email: FROM_ADDRESS },
         subject,
-        html,
+        content: [{ type: 'text/html', value: html }],
       }),
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('[Email] Resend API error:', JSON.stringify(data));
+    if (response.ok) {
+      console.log(`[Email] Sent ${type} OTP to ${toEmail}`);
     } else {
-      console.log(`[Email] Sent ${type} OTP to ${toEmail} — id: ${data.id}`);
+      const data = await response.json();
+      console.error('[Email] SendGrid error:', JSON.stringify(data));
     }
   } catch (err) {
-    console.error('[Email] Resend fetch failed:', err.message);
+    console.error('[Email] SendGrid fetch failed:', err.message);
   }
 }
 
