@@ -10,7 +10,6 @@ const { requireAuth } = require('../middleware/auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'readable-dev-secret-change-in-production';
 const JWT_EXPIRES = '7d';
 
-// Helper: create a signed JWT
 function signToken(user) {
   return jwt.sign(
     { id: user.id, username: user.username, email: user.email, level: user.level },
@@ -20,12 +19,16 @@ function signToken(user) {
 }
 
 // ── POST /api/auth/register ───────────────────────────────────
+// Requires a valid OTP that was sent to the email via /send-otp
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, otp_code } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email and password are required' });
+    }
+    if (!otp_code) {
+      return res.status(400).json({ error: 'Email verification code is required' });
     }
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
@@ -34,6 +37,18 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Username must be 3–30 characters' });
     }
 
+    // 1. Verify OTP
+    const otpResult = await pool.query(
+      `SELECT id FROM otp_tokens
+       WHERE email=$1 AND otp=$2 AND type='register'
+         AND used=FALSE AND expires_at > NOW()`,
+      [email.toLowerCase().trim(), otp_code]
+    );
+    if (!otpResult.rows[0]) {
+      return res.status(400).json({ error: 'Invalid or expired verification code. Please request a new one.' });
+    }
+
+    // 2. Check for existing user
     const existing = await pool.query(
       'SELECT id FROM users WHERE email=$1 OR username=$2',
       [email.toLowerCase(), username]
@@ -42,8 +57,14 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Username or email already taken' });
     }
 
-    const password_hash = await bcrypt.hash(password, 12);
+    // 3. Mark OTP as used
+    await pool.query(
+      'UPDATE otp_tokens SET used=TRUE WHERE email=$1 AND type=$2',
+      [email.toLowerCase().trim(), 'register']
+    );
 
+    // 4. Create user
+    const password_hash = await bcrypt.hash(password, 12);
     const result = await pool.query(
       `INSERT INTO users (username, email, password_hash)
        VALUES ($1, $2, $3)
@@ -88,8 +109,7 @@ router.post('/login', async (req, res) => {
 
     const token = signToken(user);
     const { password_hash, ...safeUser } = user;
-    // Ensure coins is always present
-    safeUser.coins = safeUser.coins ?? 0;
+    safeUser.coins    = safeUser.coins    ?? 0;
     safeUser.wardrobe = safeUser.wardrobe ?? [];
     safeUser.equipped = safeUser.equipped ?? {};
     res.json({ token, user: safeUser });
@@ -134,7 +154,6 @@ router.post('/refresh', requireAuth, async (req, res) => {
   }
 });
 
-const crypto = require('crypto');
 const { generateOTP, sendOTPEmail } = require('../utils/email');
 
 // ── POST /api/auth/send-otp ───────────────────────────────────
@@ -144,19 +163,21 @@ router.post('/send-otp', async (req, res) => {
   if (!email) return res.status(400).json({ error: 'Email required' });
 
   // Always respond 200 — prevents email enumeration
-  res.json({ message: 'If that email exists, a code was sent.' });
+  res.json({ message: 'If that email is eligible, a code was sent.' });
 
   try {
+    const normalizedEmail = email.toLowerCase().trim();
+
     if (type === 'register') {
-      // For registration, check email isn't already taken
+      // Only send if email is NOT already registered
       const existing = await pool.query(
-        'SELECT id FROM users WHERE email=$1', [email.toLowerCase().trim()]
+        'SELECT id FROM users WHERE email=$1', [normalizedEmail]
       );
-      if (existing.rows[0]) return; // silently do nothing
+      if (existing.rows[0]) return; // silently skip — already taken
     } else {
       // For reset, only send if account exists
       const existing = await pool.query(
-        'SELECT id FROM users WHERE email=$1', [email.toLowerCase().trim()]
+        'SELECT id FROM users WHERE email=$1', [normalizedEmail]
       );
       if (!existing.rows[0]) return;
     }
@@ -164,16 +185,15 @@ router.post('/send-otp', async (req, res) => {
     const otp       = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
-    // Upsert OTP (invalidates previous)
     await pool.query(
       `INSERT INTO otp_tokens (email, otp, type, expires_at)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (email, type) DO UPDATE
          SET otp=$2, expires_at=$4, used=FALSE, created_at=NOW()`,
-      [email.toLowerCase().trim(), otp, type || 'reset', expiresAt]
+      [normalizedEmail, otp, type || 'reset', expiresAt]
     );
 
-    await sendOTPEmail(email.toLowerCase().trim(), otp, type || 'reset');
+    await sendOTPEmail(normalizedEmail, otp, type || 'reset');
   } catch (err) {
     console.error('[Auth/SendOTP]', err.message);
   }
