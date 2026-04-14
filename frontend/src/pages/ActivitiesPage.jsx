@@ -1,5 +1,6 @@
 // ============================================================
 // ActivitiesPage — browse & filter with 3-D pick-up card hover
+// Unlock logic: per-category (complete 2 easy in a type to unlock medium/hard for THAT type only)
 // ============================================================
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -28,7 +29,7 @@ const DIFFS = [
 const DIFF_ORDER = { easy:0, medium:1, hard:2 };
 const TYPE_ORDER = { word_match:0, fill_blank:1, sentence_sort:2, picture_word:3 };
 
-// How many easy activities must be completed to unlock medium/hard
+// How many easy activities must be completed (per category) to unlock medium/hard
 const UNLOCK_THRESHOLD = 2;
 
 function ActivityCard({ activity, progress, isLocked }) {
@@ -96,7 +97,7 @@ function ActivityCard({ activity, progress, isLocked }) {
             <Lock size={18} className="text-white" />
           </div>
           <p className="text-white text-[11px] font-bold text-center px-4 leading-snug drop-shadow">
-            Complete {UNLOCK_THRESHOLD}+ Easy activities to unlock!
+            Complete {UNLOCK_THRESHOLD}+ Easy in this category to unlock!
           </p>
         </div>
       </div>
@@ -134,19 +135,26 @@ function ActivityCard({ activity, progress, isLocked }) {
   );
 }
 
-function TypeSection({ typeKey, activities, progress, completedEasyCount }) {
+function TypeSection({ typeKey, activities, progress, completedEasyByType }) {
   const label  = TYPES.find(t => t.key === typeKey)?.label;
   if (!activities.length) return null;
   const sorted = [...activities].sort((a,b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty]);
+  // Use per-category easy completion count
+  const easyDoneInType = completedEasyByType[typeKey] ?? 0;
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
         <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</h2>
         <span className="text-xs text-gray-300 dark:text-gray-600">({activities.length})</span>
+        {easyDoneInType < UNLOCK_THRESHOLD && (
+          <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold ml-1">
+            ({easyDoneInType}/{UNLOCK_THRESHOLD} easy done)
+          </span>
+        )}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4" style={{ perspective:'1200px' }}>
         {sorted.map(act => {
-          const isLocked = act.difficulty !== 'easy' && completedEasyCount < UNLOCK_THRESHOLD;
+          const isLocked = act.difficulty !== 'easy' && easyDoneInType < UNLOCK_THRESHOLD;
           return <ActivityCard key={act.id} activity={act} progress={progress} isLocked={isLocked}/>;
         })}
       </div>
@@ -196,10 +204,13 @@ export default function ActivitiesPage() {
     </div>
   );
 
-  // Count completed easy activities across all types
-  const completedEasyCount = activities.filter(a =>
-    a.difficulty === 'easy' && progress[a.id]?.completed
-  ).length;
+  // Count completed easy activities per category
+  const completedEasyByType = {};
+  ['word_match','fill_blank','sentence_sort','picture_word'].forEach(t => {
+    completedEasyByType[t] = activities.filter(a =>
+      a.type === t && a.difficulty === 'easy' && progress[a.id]?.completed
+    ).length;
+  });
 
   const filtered = activities
     .filter(a => activeDiff === 'all' || a.difficulty === activeDiff)
@@ -213,6 +224,11 @@ export default function ActivitiesPage() {
     grouped[t] = sorted.filter(a => a.type === t);
   });
   const completedCount = Object.values(progress).filter(p => p.completed).length;
+
+  // For the filter bar hint: check if any category still needs unlocking
+  const anyLocked = ['word_match','fill_blank','sentence_sort','picture_word'].some(
+    t => (completedEasyByType[t] ?? 0) < UNLOCK_THRESHOLD
+  );
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in space-y-6">
@@ -254,13 +270,12 @@ export default function ActivitiesPage() {
           )}
         </div>
 
-        {/* Unlock hint — shown when user hasn't completed enough easy activities */}
-        {completedEasyCount < UNLOCK_THRESHOLD && (
+        {/* Unlock hint — shown when any category has locked activities */}
+        {anyLocked && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
             <Lock size={13} className="text-amber-500 flex-shrink-0"/>
             <p className="text-xs text-amber-700 dark:text-amber-300 font-semibold">
-              Complete {UNLOCK_THRESHOLD} Easy activities to unlock Medium &amp; Hard levels.
-              <span className="ml-1 font-bold">({completedEasyCount}/{UNLOCK_THRESHOLD} done)</span>
+              Complete {UNLOCK_THRESHOLD} Easy activities in each game category to unlock Medium &amp; Hard for that category.
             </p>
           </div>
         )}
@@ -274,13 +289,14 @@ export default function ActivitiesPage() {
       ) : activeType === 'all' ? (
         <div className="space-y-8">
           {['word_match','fill_blank','sentence_sort','picture_word'].map(t => (
-            <TypeSection key={t} typeKey={t} activities={grouped[t]||[]} progress={progress} completedEasyCount={completedEasyCount}/>
+            <TypeSection key={t} typeKey={t} activities={grouped[t]||[]} progress={progress} completedEasyByType={completedEasyByType}/>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4" style={{ perspective:'1200px' }}>
           {sorted.map(act => {
-            const isLocked = act.difficulty !== 'easy' && completedEasyCount < UNLOCK_THRESHOLD;
+            const easyDoneInType = completedEasyByType[act.type] ?? 0;
+            const isLocked = act.difficulty !== 'easy' && easyDoneInType < UNLOCK_THRESHOLD;
             return <ActivityCard key={act.id} activity={act} progress={progress} isLocked={isLocked}/>;
           })}
         </div>
