@@ -1,6 +1,7 @@
 // ============================================================
 // ActivitiesPage — browse & filter with 3-D pick-up card hover
-// Unlock logic: per-category (complete 2 easy in a type to unlock medium/hard for THAT type only)
+// Unlock logic: complete ALL easy in a category → unlock medium
+//               complete ALL medium in a category → unlock hard
 // ============================================================
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -29,10 +30,38 @@ const DIFFS = [
 const DIFF_ORDER = { easy:0, medium:1, hard:2 };
 const TYPE_ORDER = { word_match:0, fill_blank:1, sentence_sort:2, picture_word:3 };
 
-// How many easy activities must be completed (per category) to unlock medium/hard
-const UNLOCK_THRESHOLD = 2;
+// ── Unlock helpers ────────────────────────────────────────────
+// Returns { medium: bool, hard: bool } for a given category
+function getUnlocked(typeKey, activities, progress) {
+  const inType = activities.filter(a => a.type === typeKey);
 
-function ActivityCard({ activity, progress, isLocked }) {
+  const easyAll  = inType.filter(a => a.difficulty === 'easy');
+  const medAll   = inType.filter(a => a.difficulty === 'medium');
+
+  const easyDone   = easyAll.every(a => progress[a.id]?.completed);
+  const mediumDone = medAll.length > 0 && medAll.every(a => progress[a.id]?.completed);
+
+  return {
+    medium: easyAll.length > 0 && easyDone,
+    hard:   medAll.length  > 0 && mediumDone,
+    easyTotal:   easyAll.length,
+    easyDone:    easyAll.filter(a => progress[a.id]?.completed).length,
+    mediumTotal: medAll.length,
+    mediumDone:  medAll.filter(a => progress[a.id]?.completed).length,
+  };
+}
+
+function lockReason(difficulty, unlocked) {
+  if (difficulty === 'medium') {
+    return `Complete all ${unlocked.easyTotal} Easy activities in this category to unlock Medium!`;
+  }
+  if (difficulty === 'hard') {
+    return `Complete all ${unlocked.mediumTotal} Medium activities in this category to unlock Hard!`;
+  }
+  return 'Complete previous activities to unlock!';
+}
+
+function ActivityCard({ activity, progress, isLocked, lockMsg }) {
   const [hovered, setHovered] = useState(false);
   const [tilt,    setTilt]    = useState({ x:0, y:0 });
   const cardRef = useRef(null);
@@ -92,12 +121,12 @@ function ActivityCard({ activity, progress, isLocked }) {
         />
 
         {/* Lock badge — centred on top of overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10">
-          <div className="w-10 h-10 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 px-3">
+          <div className="w-10 h-10 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center flex-shrink-0">
             <Lock size={18} className="text-white" />
           </div>
-          <p className="text-white text-[11px] font-bold text-center px-4 leading-snug drop-shadow">
-            Complete {UNLOCK_THRESHOLD}+ Easy in this category to unlock!
+          <p className="text-white text-[11px] font-bold text-center leading-snug drop-shadow">
+            {lockMsg}
           </p>
         </div>
       </div>
@@ -135,27 +164,52 @@ function ActivityCard({ activity, progress, isLocked }) {
   );
 }
 
-function TypeSection({ typeKey, activities, progress, completedEasyByType }) {
-  const label  = TYPES.find(t => t.key === typeKey)?.label;
+function TypeSection({ typeKey, activities, progress, allActivities }) {
+  const label    = TYPES.find(t => t.key === typeKey)?.label;
   if (!activities.length) return null;
-  const sorted = [...activities].sort((a,b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty]);
-  // Use per-category easy completion count
-  const easyDoneInType = completedEasyByType[typeKey] ?? 0;
+
+  const unlocked = getUnlocked(typeKey, allActivities, progress);
+  const sorted   = [...activities].sort((a,b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty]);
+
+  // Progress hint line shown under section heading
+  let hint = null;
+  if (!unlocked.medium) {
+    hint = `${unlocked.easyDone}/${unlocked.easyTotal} Easy done — finish all to unlock Medium`;
+  } else if (!unlocked.hard && unlocked.mediumTotal > 0) {
+    hint = `${unlocked.mediumDone}/${unlocked.mediumTotal} Medium done — finish all to unlock Hard`;
+  }
+
   return (
     <section>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
         <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</h2>
         <span className="text-xs text-gray-300 dark:text-gray-600">({activities.length})</span>
-        {easyDoneInType < UNLOCK_THRESHOLD && (
-          <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold ml-1">
-            ({easyDoneInType}/{UNLOCK_THRESHOLD} easy done)
-          </span>
-        )}
       </div>
+      {hint && (
+        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mb-3 flex items-center gap-1">
+          <Lock size={11}/> {hint}
+        </p>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4" style={{ perspective:'1200px' }}>
         {sorted.map(act => {
-          const isLocked = act.difficulty !== 'easy' && easyDoneInType < UNLOCK_THRESHOLD;
-          return <ActivityCard key={act.id} activity={act} progress={progress} isLocked={isLocked}/>;
+          let isLocked = false;
+          let msg = '';
+          if (act.difficulty === 'medium' && !unlocked.medium) {
+            isLocked = true;
+            msg = lockReason('medium', unlocked);
+          } else if (act.difficulty === 'hard' && !unlocked.hard) {
+            isLocked = true;
+            msg = lockReason('hard', unlocked);
+          }
+          return (
+            <ActivityCard
+              key={act.id}
+              activity={act}
+              progress={progress}
+              isLocked={isLocked}
+              lockMsg={msg}
+            />
+          );
         })}
       </div>
     </section>
@@ -176,12 +230,12 @@ function FilterPill({ active, onClick, children, activeClass }) {
 }
 
 export default function ActivitiesPage() {
-  const { user }                        = useAuth();
-  const [activities, setActivities]     = useState([]);
-  const [progress,   setProgress]       = useState({});
-  const [loading,    setLoading]        = useState(true);
-  const [activeType, setActiveType]     = useState('all');
-  const [activeDiff, setActiveDiff]     = useState('all');
+  const { user }                    = useAuth();
+  const [activities, setActivities] = useState([]);
+  const [progress,   setProgress]   = useState({});
+  const [loading,    setLoading]    = useState(true);
+  const [activeType, setActiveType] = useState('all');
+  const [activeDiff, setActiveDiff] = useState('all');
 
   const fetchData = useCallback(() => {
     if (!user?.id) return;
@@ -204,31 +258,27 @@ export default function ActivitiesPage() {
     </div>
   );
 
-  // Count completed easy activities per category
-  const completedEasyByType = {};
-  ['word_match','fill_blank','sentence_sort','picture_word'].forEach(t => {
-    completedEasyByType[t] = activities.filter(a =>
-      a.type === t && a.difficulty === 'easy' && progress[a.id]?.completed
-    ).length;
-  });
-
   const filtered = activities
     .filter(a => activeDiff === 'all' || a.difficulty === activeDiff)
     .filter(a => activeType === 'all' || a.type === activeType);
+
   const sorted = [...filtered].sort((a,b) => {
     if (a.type !== b.type) return (TYPE_ORDER[a.type]??9) - (TYPE_ORDER[b.type]??9);
     return DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty];
   });
+
   const grouped = {};
   ['word_match','fill_blank','sentence_sort','picture_word'].forEach(t => {
     grouped[t] = sorted.filter(a => a.type === t);
   });
+
   const completedCount = Object.values(progress).filter(p => p.completed).length;
 
-  // For the filter bar hint: check if any category still needs unlocking
-  const anyLocked = ['word_match','fill_blank','sentence_sort','picture_word'].some(
-    t => (completedEasyByType[t] ?? 0) < UNLOCK_THRESHOLD
-  );
+  // Show global hint in filter bar only if any category still has locked tiers
+  const anyLocked = ['word_match','fill_blank','sentence_sort','picture_word'].some(t => {
+    const u = getUnlocked(t, activities, progress);
+    return !u.medium || !u.hard;
+  });
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in space-y-6">
@@ -270,12 +320,12 @@ export default function ActivitiesPage() {
           )}
         </div>
 
-        {/* Unlock hint — shown when any category has locked activities */}
+        {/* Global unlock hint */}
         {anyLocked && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
             <Lock size={13} className="text-amber-500 flex-shrink-0"/>
             <p className="text-xs text-amber-700 dark:text-amber-300 font-semibold">
-              Complete {UNLOCK_THRESHOLD} Easy activities in each game category to unlock Medium &amp; Hard for that category.
+              Complete <strong>all</strong> Easy activities in a category to unlock Medium, then all Medium to unlock Hard.
             </p>
           </div>
         )}
@@ -289,16 +339,32 @@ export default function ActivitiesPage() {
       ) : activeType === 'all' ? (
         <div className="space-y-8">
           {['word_match','fill_blank','sentence_sort','picture_word'].map(t => (
-            <TypeSection key={t} typeKey={t} activities={grouped[t]||[]} progress={progress} completedEasyByType={completedEasyByType}/>
+            grouped[t]?.length > 0 && (
+              <TypeSection
+                key={t}
+                typeKey={t}
+                activities={grouped[t]}
+                progress={progress}
+                allActivities={activities}
+              />
+            )
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4" style={{ perspective:'1200px' }}>
-          {sorted.map(act => {
-            const easyDoneInType = completedEasyByType[act.type] ?? 0;
-            const isLocked = act.difficulty !== 'easy' && easyDoneInType < UNLOCK_THRESHOLD;
-            return <ActivityCard key={act.id} activity={act} progress={progress} isLocked={isLocked}/>;
-          })}
+        // Single-type filtered view
+        <div className="space-y-8">
+          {['word_match','fill_blank','sentence_sort','picture_word']
+            .filter(t => grouped[t]?.length > 0)
+            .map(t => (
+              <TypeSection
+                key={t}
+                typeKey={t}
+                activities={grouped[t]}
+                progress={progress}
+                allActivities={activities}
+              />
+            ))
+          }
         </div>
       )}
     </div>
