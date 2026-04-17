@@ -183,7 +183,6 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       );
     }
   }
-*/
  
 module.exports = { ACHIEVEMENT_CHARACTER_UNLOCKS };
 
