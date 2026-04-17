@@ -1,13 +1,11 @@
 // ============================================================
-// AppLayout
-// Desktop : fixed left sidebar
-// Mobile  : top bar + FIXED bottom nav (like a real app)
+// AppLayout.jsx — updated to use character PNG in sidebar
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth }     from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { characterById } from '../components/character/CHARACTER_CATALOG';
+import { characterById, DEFAULT_CHARACTER_ID } from '../character/CHARACTER_CATALOG';
 import {
   LayoutDashboard, BookOpen, Trophy, User, Settings,
   LogOut, Volume2, VolumeX, Star, X,
@@ -32,7 +30,7 @@ const SIDEBAR_NAV = [
   { to:'/settings',    Icon:Settings,        label:'Settings'    },
 ];
 
-// ── Floating-bubble bottom nav ────────────────────────────────
+// ── Bottom nav constants ──────────────────────────────────────
 const BAR_H = 62, POP_H = 16, CIRC = 54, CIRC_R = 27;
 const NUM = BOTTOM_NAV.length, VB_W = NUM * 100, VB_H = BAR_H;
 const NOTCH_R = 46, NOTCH_D = 30, NOTCH_BV = 26;
@@ -65,18 +63,12 @@ function BottomNavBar() {
 
   return (
     <nav className="md:hidden" style={{
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
+      position: 'fixed', bottom: 0, left: 0, right: 0,
       height: BAR_H + POP_H,
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      fontSize: '16px',
-      fontFamily: 'inherit',
-      overflow: 'visible',
-      zIndex: 50,
+      fontSize: '16px', fontFamily: 'inherit',
+      overflow: 'visible', zIndex: 50,
     }}>
-      {/* SVG bar */}
       <svg viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="none" aria-hidden="true"
         style={{
           position: 'absolute', bottom: 0, left: 0,
@@ -89,7 +81,6 @@ function BottomNavBar() {
         }}/>
       </svg>
 
-      {/* Floating circle */}
       <div style={{
         position: 'absolute',
         left: `${(activeIdx * 2 + 1) / (NUM * 2) * 100}%`,
@@ -105,7 +96,6 @@ function BottomNavBar() {
         <ActiveIcon size={22} color="white" strokeWidth={2}/>
       </div>
 
-      {/* Tab buttons */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: BAR_H, display: 'flex' }}>
         {BOTTOM_NAV.map(({ to, Icon, label }, i) => {
           const isActive = i === activeIdx;
@@ -131,23 +121,26 @@ function BottomNavBar() {
   );
 }
 
-// ── Shared helpers ────────────────────────────────────────────
-function SidebarAvatar({ characterId, username }) {
-  const char = characterById(characterId);
-  const src  = char
+// ── Character avatar for sidebar ──────────────────────────────
+function SidebarCharacter({ equippedCharacterId, username, size = 40 }) {
+  const charId = equippedCharacterId || DEFAULT_CHARACTER_ID;
+  const char   = characterById(charId);
+  const src    = char
     ? `/characters/${char.file}`
     : `/characters/char_common_gray.png`;
- 
+
   return (
-    <div className="w-10 h-10 rounded-2xl overflow-hidden flex-shrink-0
-                    bg-gradient-to-br from-sky/10 to-indigo-100
-                    dark:from-sky/10 dark:to-indigo-900/30
-                    flex items-center justify-center">
+    <div style={{
+      width: size, height: size, borderRadius: 12, flexShrink: 0,
+      overflow: 'hidden',
+      background: 'linear-gradient(135deg, rgba(96,184,245,0.15), rgba(107,203,119,0.1))',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
       <img
         src={src}
         alt={char?.name || username?.[0] || '?'}
-        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-        onError={e => { e.currentTarget.style.display = 'none'; }}
+        style={{ width: '90%', height: '90%', objectFit: 'contain' }}
+        onError={e => { e.currentTarget.style.opacity = '0.3'; }}
       />
     </div>
   );
@@ -250,10 +243,11 @@ function BottomControls({ soundOn, settings, toggleSound, updateSettings,
   );
 }
 
-// ── Desktop sidebar ───────────────────────────────────────────
 function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
                           toggleSound, updateSettings, onLogoutClick,
                           isFullscreen, toggleFullscreen }) {
+  const equippedCharId = user?.equipped?.character || DEFAULT_CHARACTER_ID;
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
@@ -268,7 +262,7 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
       <div className="px-4 py-4 mx-3 mt-3 rounded-2xl border border-sky/20 flex-shrink-0"
         style={{ background: 'linear-gradient(135deg,rgba(77,150,255,0.08),rgba(107,203,119,0.06))' }}>
         <div className="flex items-center gap-3">
-          <SidebarAvatar characterId={user?.equipped?.character} username={user?.username}/>
+          <SidebarCharacter equippedCharacterId={equippedCharId} username={user?.username} size={40}/>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm truncate text-gray-800 dark:text-gray-200">{user?.username}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
@@ -317,7 +311,6 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
   );
 }
 
-// ── Root layout ───────────────────────────────────────────────
 export default function AppLayout() {
   const { user, logout }             = useAuth();
   const { settings, updateSettings } = useSettings();
@@ -361,11 +354,11 @@ export default function AppLayout() {
   }, []);
 
   const BOTTOM_NAV_HEIGHT = BAR_H + POP_H + 4;
+  const equippedCharId = user?.equipped?.character || DEFAULT_CHARACTER_ID;
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Desktop sidebar — hidden on mobile */}
       <aside className="hidden md:flex w-64 flex-shrink-0 flex-col shadow-card"
         style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-color)' }}>
         <DesktopSidebar
@@ -376,62 +369,40 @@ export default function AppLayout() {
         />
       </aside>
 
-      {/* Main column */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* ── Mobile-only top bar ──────────────────────────────────
-            - Burger icon REMOVED — bottom nav handles all navigation
-            - ReadAble logo always visible on ALL pages
-            - XP pill on the right
-            - md:hidden hides this on desktop (do NOT add display:flex
-              to the inline style or it will override md:hidden)       */}
+        {/* Mobile top bar */}
         <header className="md:hidden flex-shrink-0"
           style={{
-            height: 52,
-            padding: '0 16px',
+            height: 52, padding: '0 16px',
             background: 'var(--bg-sidebar)',
             borderBottom: '1px solid var(--border-color)',
-            fontFamily: 'inherit',
-            boxSizing: 'border-box',
+            fontFamily: 'inherit', boxSizing: 'border-box',
           }}>
-          {/* Inner flex wrapper — keeps layout without fighting md:hidden */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            height: '100%',
-            gap: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            width: '100%', height: '100%', gap: 8,
           }}>
-
-            {/* LEFT: logo — visible on every page including Shop */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <div style={{
-                width: 28, height: 28, borderRadius: 8,
-                background: '#60B8F5',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
+                width: 28, height: 28, borderRadius: 8, background: '#60B8F5',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 <BookOpen size={15} color="white" />
               </div>
               <span style={{
-                fontFamily: '"Fredoka One", cursive',
-                fontSize: 19,
-                color: '#60B8F5',
-                lineHeight: 1,
-                whiteSpace: 'nowrap',
+                fontFamily: '"Fredoka One", cursive', fontSize: 19,
+                color: '#60B8F5', lineHeight: 1, whiteSpace: 'nowrap',
               }}>
                 ReadAble
               </span>
             </div>
 
-            {/* RIGHT: XP + Level pill */}
             <div style={{ flexShrink: 0 }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '5px 10px', borderRadius: 10,
-                background: 'var(--border-color)',
-                whiteSpace: 'nowrap',
+                background: 'var(--border-color)', whiteSpace: 'nowrap',
               }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="none" style={{ flexShrink: 0 }}>
                   <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
@@ -445,17 +416,14 @@ export default function AppLayout() {
                 </span>
               </div>
             </div>
-
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:pb-8"
           style={{ paddingBottom: `calc(1rem + ${BOTTOM_NAV_HEIGHT}px)` }}>
           <Outlet/>
         </main>
 
-        {/* Fixed bottom nav — mobile only */}
         <BottomNavBar/>
       </div>
 
