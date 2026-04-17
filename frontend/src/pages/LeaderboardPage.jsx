@@ -62,7 +62,7 @@ function AvatarDisplay({ equipped, avatar, username, size = 36 }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: size * 0.5, lineHeight: 1,
     }}>
-      {avatar && avatar.length <= 4 ? avatar : (username?.[0]?.toUpperCase() || '?')}
+      {(avatar && !/^[a-zA-Z]+$/.test(avatar)) ? avatar : (username?.[0]?.toUpperCase() || '?')}
     </div>
   );
 }
