@@ -1,351 +1,585 @@
 // ============================================================
-// ShopPage.jsx — optimistic coin deduction on purchase
-// "How to Earn Coins" moved to bottom after all item listings
+// ShopPage.jsx — Character collection shop
+// Characters are fixed PNG images unlocked via achievements or coins
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth }     from '../contexts/AuthContext';
-import api             from '../utils/api';
-import CharacterAvatar, {
-  ALL_SHOP_ITEMS, SKIN_TONES, DEFAULT_EQUIPPED, itemById, ownedDefaults,
-} from '../components/character/CharacterAvatar';
-import { ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react';
+import { useAuth }   from '../contexts/AuthContext';
+import api           from '../utils/api';
+import CharacterAvatar from '../components/character/CharacterAvatar';
+import { ALL_CHARACTERS, characterById, DEFAULT_CHARACTER_ID, RARITY_CONFIG } from '../components/character/CHARACTER_CATALOG';
+import { ShoppingBag, Lock, Check, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
-const CATEGORIES = [
-  { key: 'all',        label: 'All',          emoji: '✨' },
-  { key: 'hat',        label: 'Hats',         emoji: '🎩' },
-  { key: 'top',        label: 'Tops',         emoji: '👕' },
-  { key: 'accessory',  label: 'Accessories',  emoji: '💎' },
-  { key: 'background', label: 'Backgrounds',  emoji: '🖼️' },
+// ── Rarity order for sorting ──────────────────────────────────
+const RARITY_ORDER = { common: 0, uncommon: 1, rare: 2, epic: 3, mythic: 4 };
+
+const RARITY_FILTERS = [
+  { key: 'all',      label: 'All' },
+  { key: 'common',   label: 'Common'   },
+  { key: 'uncommon', label: 'Uncommon' },
+  { key: 'rare',     label: 'Rare'     },
+  { key: 'mythic',   label: 'Mythic'   },
 ];
 
-const CATEGORY_SLOT = { hat:'hat', top:'top', accessory:'accessory', background:'background' };
+// ── Character Card ────────────────────────────────────────────
+function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
+                         onBuy, onEquip, buying, equipping }) {
+  const rc          = RARITY_CONFIG[char.rarity];
+  const isOwned     = owned;
+  const isEquipped  = equipped;
+  const hasAch      = char.earnedBy && userAchievements?.includes(char.earnedBy);
+  const freeByAch   = char.earnedBy && !isOwned && hasAch;
+  const canAfford   = !isOwned && coinBalance >= (char.cost || 0);
+  const isBuying    = buying === char.id;
+  const isEquipping = equipping === char.id;
+  const isPurchasable = !char.earnedBy || char.cost > 0;
 
+  // Determine locked state
+  const isLocked = !isOwned && !char.isDefault && !freeByAch &&
+                   (!isPurchasable || (!canAfford && char.cost > 0));
+
+  let btnLabel, btnAction, btnDisabled, btnStyle;
+
+  if (isOwned || char.isDefault) {
+    const busy = isEquipping;
+    btnLabel   = busy ? '…' : isEquipped ? '✓ Equipped' : 'Equip';
+    btnAction  = () => onEquip(char);
+    btnDisabled = busy || isEquipped;
+    btnStyle   = {
+      background: isEquipped ? rc.color : 'var(--bg-primary)',
+      color:      isEquipped ? '#fff'   : rc.color,
+      border:     `2px solid ${rc.color}`,
+    };
+  } else if (freeByAch) {
+    btnLabel   = isBuying ? '…' : '🎁 Claim Free';
+    btnAction  = () => onBuy({ ...char, cost: 0 });
+    btnDisabled = isBuying;
+    btnStyle   = { background: '#F59E0B', color: '#fff', border: '2px solid #F59E0B' };
+  } else if (char.earnedBy && !hasAch && char.cost === 0) {
+    // Achievement-only, not yet earned
+    btnLabel   = '🔒 Achievement';
+    btnAction  = () => {};
+    btnDisabled = true;
+    btnStyle   = { background: 'var(--bg-primary)', color: '#9ca3af', border: '2px solid #e5e7eb' };
+  } else {
+    btnLabel   = isBuying ? '…' : canAfford ? `🪙 ${char.cost}` : `🪙 ${char.cost}`;
+    btnAction  = canAfford ? () => onBuy(char) : () => {};
+    btnDisabled = isBuying || !canAfford;
+    btnStyle   = canAfford
+      ? { background: '#F59E0B', color: '#fff', border: '2px solid #F59E0B' }
+      : { background: 'var(--bg-primary)', color: '#9ca3af', border: '2px solid #e5e7eb' };
+  }
+
+  return (
+    <div style={{
+      borderRadius: 20,
+      border: isEquipped
+        ? `2px solid ${rc.color}`
+        : isOwned
+        ? `2px solid ${rc.border}`
+        : '2px solid var(--border-color)',
+      background: isEquipped ? rc.bg : 'var(--bg-card-grad)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: '16px 12px 14px',
+      position: 'relative',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+      boxShadow: isEquipped ? `0 0 16px ${rc.glow}` : 'none',
+      opacity: (!isOwned && !char.isDefault && char.earnedBy && !hasAch && char.cost === 0) ? 0.7 : 1,
+    }}>
+      {/* Rarity badge */}
+      <div style={{
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        padding: '2px 8px',
+        borderRadius: 999,
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        background: rc.bg,
+        color: rc.color,
+        border: `1px solid ${rc.border}`,
+      }}>
+        {rc.label}
+      </div>
+
+      {/* Equipped checkmark */}
+      {isEquipped && (
+        <div style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          background: rc.color,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Check size={11} color="#fff" strokeWidth={3}/>
+        </div>
+      )}
+
+      {/* Character image */}
+      <div style={{
+        width: 88,
+        height: 88,
+        marginTop: 12,
+        marginBottom: 10,
+        position: 'relative',
+      }}>
+        {/* Lock overlay */}
+        {!isOwned && !char.isDefault && char.earnedBy && !hasAch && char.cost === 0 && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 12,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2,
+          }}>
+            <Lock size={22} color="white"/>
+          </div>
+        )}
+        <CharacterAvatar
+          characterId={char.id}
+          size={88}
+          showGlow={isOwned || char.isDefault}
+          animate={isEquipped}
+        />
+      </div>
+
+      {/* Name */}
+      <p style={{
+        fontSize: 13,
+        fontWeight: 800,
+        color: 'var(--text-primary)',
+        margin: '0 0 3px',
+        textAlign: 'center',
+        lineHeight: 1.2,
+      }}>{char.name}</p>
+
+      {/* Desc */}
+      <p style={{
+        fontSize: 10,
+        color: '#9ca3af',
+        margin: '0 0 10px',
+        textAlign: 'center',
+        lineHeight: 1.4,
+        minHeight: 28,
+      }}>{char.desc}</p>
+
+      {/* Unlock hint */}
+      {!isOwned && !char.isDefault && char.earnedBy && !hasAch && (
+        <p style={{
+          fontSize: 9,
+          fontWeight: 700,
+          color: '#F59E0B',
+          margin: '0 0 6px',
+          textAlign: 'center',
+          letterSpacing: '0.03em',
+        }}>
+          🏅 Complete achievement to unlock
+        </p>
+      )}
+
+      {/* Button */}
+      <button
+        onClick={btnAction}
+        disabled={btnDisabled}
+        style={{
+          ...btnStyle,
+          width: '100%',
+          padding: '8px 0',
+          borderRadius: 12,
+          fontSize: 12,
+          fontWeight: 800,
+          cursor: btnDisabled ? 'not-allowed' : 'pointer',
+          opacity: btnDisabled && !isEquipped ? 0.6 : 1,
+          transition: 'opacity 0.15s, transform 0.1s',
+          fontFamily: 'inherit',
+        }}
+        onMouseDown={e => { if (!btnDisabled) e.currentTarget.style.transform = 'scale(0.96)'; }}
+        onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+      >
+        {btnLabel}
+      </button>
+    </div>
+  );
+}
+
+// ── Equipped Preview Panel ────────────────────────────────────
+function EquippedPreview({ equippedId, wardrobeSize, userAchievements }) {
+  const char = characterById(equippedId) || characterById(DEFAULT_CHARACTER_ID);
+  const rc   = RARITY_CONFIG[char?.rarity || 'common'];
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {/* Mobile: collapsible */}
+      <div className="md:hidden" style={{
+        borderRadius: 20,
+        border: `2px solid ${rc.border}`,
+        background: 'var(--bg-card-grad)',
+        overflow: 'hidden',
+        marginBottom: 4,
+      }}>
+        <button onClick={() => setOpen(o => !o)} style={{
+          width: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '12px 16px',
+          background: 'none', border: 'none', cursor: 'pointer',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <CharacterAvatar characterId={equippedId} size={44}/>
+            <div style={{ textAlign: 'left' }}>
+              <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>
+                {char?.name}
+              </p>
+              <p style={{ fontSize: 10, color: rc.color, margin: 0, fontWeight: 700 }}>
+                {rc.label} · Equipped
+              </p>
+            </div>
+          </div>
+          {open ? <ChevronUp size={18} style={{ color: '#9ca3af' }}/> : <ChevronDown size={18} style={{ color: '#9ca3af' }}/>}
+        </button>
+        {open && (
+          <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center' }}>
+            <CharacterAvatar characterId={equippedId} size={140} showGlow animate/>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: sticky sidebar */}
+      <div className="hidden md:flex" style={{
+        width: 220,
+        flexShrink: 0,
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 12,
+        borderRadius: 24,
+        padding: '20px 16px',
+        border: `2px solid ${rc.border}`,
+        background: rc.bg,
+        position: 'sticky',
+        top: 16,
+        boxShadow: `0 0 24px ${rc.glow}`,
+        transition: 'border-color 0.3s, box-shadow 0.3s',
+      }}>
+        <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>
+          Active Buddy
+        </p>
+        <CharacterAvatar characterId={equippedId} size={160} showGlow animate/>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', margin: '0 0 2px' }}>
+            {char?.name}
+          </p>
+          <span style={{
+            display: 'inline-block',
+            padding: '2px 10px',
+            borderRadius: 999,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            background: 'var(--bg-card-grad)',
+            color: rc.color,
+            border: `1px solid ${rc.border}`,
+          }}>{rc.label}</span>
+        </div>
+        <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
+          {char?.desc}
+        </p>
+        <div style={{
+          width: '100%',
+          padding: '10px 12px',
+          borderRadius: 12,
+          background: 'var(--bg-card-grad)',
+          border: '1px solid var(--border-color)',
+          textAlign: 'center',
+        }}>
+          <p style={{ fontSize: 10, color: '#9ca3af', margin: '0 0 2px' }}>Collection</p>
+          <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+            {wardrobeSize} <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af' }}>/ {ALL_CHARACTERS.length}</span>
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────
 export default function ShopPage() {
   const { user, refreshUser, patchUser } = useAuth();
 
-  const [wardrobe,    setWardrobe]    = useState([]);
-  const [equipped,    setEquipped]    = useState({ ...DEFAULT_EQUIPPED });
-  const [category,    setCategory]    = useState('all');
-  const [buying,      setBuying]      = useState(null);
-  const [equipping,   setEquipping]   = useState(null);
-  const [toast,       setToast]       = useState(null);
-  const [loading,     setLoading]     = useState(true);
-  const [previewOpen, setPreviewOpen] = useState(false);
-
-  const load = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      const res = await api.get('/users/wardrobe');
-      setWardrobe(res.data.wardrobe   || ownedDefaults);
-      setEquipped({ ...DEFAULT_EQUIPPED, ...(res.data.equipped || {}) });
-    } catch (_) {
-      setWardrobe(ownedDefaults);
-    } finally { setLoading(false); }
-  }, [user?.id]);
-
-  useEffect(() => { load(); }, [load]);
+  const [wardrobe,   setWardrobe]   = useState([DEFAULT_CHARACTER_ID]);
+  const [equippedId, setEquippedId] = useState(DEFAULT_CHARACTER_ID);
+  const [filter,     setFilter]     = useState('all');
+  const [buying,     setBuying]     = useState(null);
+  const [equipping,  setEquipping]  = useState(null);
+  const [toast,      setToast]      = useState(null);
+  const [loading,    setLoading]    = useState(true);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 2500);
   };
 
-  const handleBuy = async (item) => {
-    if (wardrobe.includes(item.id)) return;
-    const currentCoins = user?.coins ?? 0;
-    if (currentCoins < item.cost) { showToast('Not enough coins!', 'error'); return; }
+  const load = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await api.get('/users/wardrobe');
+      const wdr = res.data.wardrobe || [];
+      const eq  = res.data.equipped || {};
 
-    setBuying(item.id);
-    patchUser({ coins: currentCoins - item.cost });
-    setWardrobe(prev => [...prev, item.id]);
+      // Merge defaults — gray blob is always owned
+      const owned = Array.from(new Set([DEFAULT_CHARACTER_ID, ...wdr]));
+      setWardrobe(owned);
+
+      // equipped.character stores the active character ID
+      const activeChar = eq.character || DEFAULT_CHARACTER_ID;
+      setEquippedId(characterById(activeChar) ? activeChar : DEFAULT_CHARACTER_ID);
+    } catch (_) {
+      setWardrobe([DEFAULT_CHARACTER_ID]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleBuy = async (char) => {
+    const currentCoins = user?.coins ?? 0;
+    const cost = char.cost || 0;
+
+    if (cost > 0 && currentCoins < cost) {
+      showToast('Not enough coins!', 'error');
+      return;
+    }
+
+    setBuying(char.id);
+    if (cost > 0) patchUser({ coins: currentCoins - cost });
+    setWardrobe(prev => [...new Set([...prev, char.id])]);
 
     try {
-      await api.post('/users/buy-item', { itemId: item.id, cost: item.cost });
+      await api.post('/users/buy-item', { itemId: char.id, cost });
       refreshUser();
-      showToast(`✨ Got ${item.name}!`);
+      showToast(`✨ Got ${char.name}!`);
     } catch (err) {
-      patchUser({ coins: currentCoins });
-      setWardrobe(prev => prev.filter(id => id !== item.id));
+      if (cost > 0) patchUser({ coins: currentCoins });
+      setWardrobe(prev => prev.filter(id => id !== char.id));
       showToast(err.message || 'Purchase failed', 'error');
-    } finally { setBuying(null); }
+    } finally {
+      setBuying(null);
+    }
   };
 
-  const handleEquip = async (item) => {
-    const slot  = CATEGORY_SLOT[item.category];
-    const isOn  = equipped[slot] === item.id;
-    const newId = isOn
-      ? (item.category === 'hat'        ? 'hat_none'
-       : item.category === 'accessory'  ? 'acc_none'
-       : item.category === 'background' ? 'bg_white'
-       : 'top_sky')
-      : item.id;
-    setEquipped(prev => ({ ...prev, [slot]: newId }));
-    setEquipping(item.id);
-    try { await api.post('/users/equip-item', { category: item.category, itemId: newId }); }
-    catch (_) {}
-    finally { setEquipping(null); }
+  const handleEquip = async (char) => {
+    if (equippedId === char.id) return;
+    const prev = equippedId;
+    setEquippedId(char.id);
+    setEquipping(char.id);
+    try {
+      await api.post('/users/equip-item', { category: 'character', itemId: char.id });
+    } catch (_) {
+      setEquippedId(prev);
+    } finally {
+      setEquipping(null);
+    }
   };
 
-  const owned      = (id) => wardrobe.includes(id) || ownedDefaults.includes(id);
-  const canBuy     = (item) => !owned(item.id) && (user?.coins ?? 0) >= item.cost;
-  const isEquipped = (item) => equipped[CATEGORY_SLOT[item.category]] === item.id;
-  const items      = ALL_SHOP_ITEMS.filter(i => category === 'all' || i.category === category);
-
-  const equipSkin = (st) => {
-    setEquipped(prev => ({ ...prev, skin: st.id }));
-    api.post('/users/equip-item', { category: 'skin', itemId: st.id }).catch(() => {});
-  };
-
+  const owned      = (id) => wardrobe.includes(id);
   const coinBalance = user?.coins ?? 0;
 
+  // Filter + sort
+  const displayed = ALL_CHARACTERS
+    .filter(c => filter === 'all' || c.rarity === filter)
+    .sort((a, b) => {
+      // Owned first, then by rarity, then by cost
+      const aOwned = owned(a.id) ? 0 : 1;
+      const bOwned = owned(b.id) ? 0 : 1;
+      if (aOwned !== bOwned) return aOwned - bOwned;
+      return (RARITY_ORDER[a.rarity] || 0) - (RARITY_ORDER[b.rarity] || 0);
+    });
+
+  const ownedCount = ALL_CHARACTERS.filter(c => owned(c.id)).length;
+
   if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:192 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
       <div className="w-8 h-8 border-4 border-sky border-t-transparent rounded-full animate-spin"/>
     </div>
   );
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in" style={{ display:'flex', flexDirection:'column', gap:30 }}>
+    <div className="max-w-5xl mx-auto animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Toast */}
       {toast && (
         <div style={{
-          position:'fixed', top:24, left:'50%', transform:'translateX(-50%)',
-          zIndex:9999, padding:'12px 20px', borderRadius:16,
-          fontWeight:700, color:'#fff', fontSize:14,
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, padding: '12px 20px', borderRadius: 16,
+          fontWeight: 700, color: '#fff', fontSize: 14,
           background: toast.type === 'error' ? '#ef4444' : '#22c55e',
-          boxShadow:'0 4px 20px rgba(0,0,0,0.2)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+          whiteSpace: 'nowrap',
         }}>
           {toast.msg}
         </div>
       )}
 
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="font-display" style={{ fontSize:28, color:'var(--text-primary)', display:'flex', alignItems:'center', gap:8, margin:0 }}>
-            <ShoppingBag size={24} style={{ color:'#60B8F5' }}/> Shop
+          <h1 className="font-display" style={{ fontSize: 28, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+            <ShoppingBag size={24} style={{ color: '#60B8F5' }}/> Buddy Shop
           </h1>
-          <p style={{ fontSize:12, color:'#9ca3af', margin:'2px 0 0' }}>Spend coins to dress up your Buddy!</p>
+          <p style={{ fontSize: 12, color: '#9ca3af', margin: '3px 0 0' }}>
+            {ownedCount} of {ALL_CHARACTERS.length} collected
+          </p>
         </div>
-        <div style={{
-          display:'flex', alignItems:'center', gap:6, padding:'8px 14px',
-          borderRadius:999, fontWeight:700, fontSize:14, flexShrink:0,
-          background:'rgba(251,191,36,0.15)', color:'#D97706',
-          border:'1px solid rgba(251,191,36,0.3)',
-        }}>
-          <span>🪙</span>
-          <span style={{ minWidth: 20, textAlign: 'right' }}>{coinBalance}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* Coin balance */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '8px 14px', borderRadius: 999, fontWeight: 700, fontSize: 14,
+            background: 'rgba(251,191,36,0.15)', color: '#D97706',
+            border: '1px solid rgba(251,191,36,0.3)',
+          }}>
+            <span>🪙</span>
+            <span>{coinBalance}</span>
+          </div>
         </div>
       </div>
 
-            {/* ── How to Earn Coins — at the very bottom ── */}
+      {/* Collection progress bar */}
       <div style={{
-        borderRadius:24, padding:'16px 20px',
-        border:'1px solid var(--border-color)',
-        background:'var(--bg-card-grad)',
-        marginTop: 8,
+        borderRadius: 16, padding: '12px 16px',
+        background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)',
       }}>
-        <h3 className="font-display" style={{ fontSize:17, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
-          🪙 How to Earn Coins
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <Sparkles size={12} style={{ display: 'inline', marginRight: 4, color: '#F59E0B' }}/>
+            Collection Progress
+          </span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af' }}>
+            {ownedCount} / {ALL_CHARACTERS.length}
+          </span>
+        </div>
+        <div style={{ height: 8, borderRadius: 999, background: 'var(--border-color)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            borderRadius: 999,
+            background: 'linear-gradient(90deg, #60B8F5, #A855F7, #F97316)',
+            width: `${Math.round((ownedCount / ALL_CHARACTERS.length) * 100)}%`,
+            transition: 'width 0.7s ease',
+          }}/>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, gap: 8, flexWrap: 'wrap' }}>
+          {Object.entries(RARITY_CONFIG).map(([key, rc]) => {
+            const total = ALL_CHARACTERS.filter(c => c.rarity === key).length;
+            const got   = ALL_CHARACTERS.filter(c => c.rarity === key && owned(c.id)).length;
+            if (!total) return null;
+            return (
+              <span key={key} style={{ fontSize: 10, fontWeight: 700, color: rc.color }}>
+                {rc.label}: {got}/{total}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main layout */}
+      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+
+        {/* Preview */}
+        <EquippedPreview
+          equippedId={equippedId}
+          wardrobeSize={ownedCount}
+          userAchievements={user?.achievements || []}
+        />
+
+        {/* Grid panel */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+          {/* Rarity filter pills */}
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            {RARITY_FILTERS.map(f => {
+              const rc = RARITY_CONFIG[f.key];
+              const isActive = filter === f.key;
+              return (
+                <button key={f.key} onClick={() => setFilter(f.key)}
+                  style={{
+                    padding: '7px 14px', borderRadius: 999, fontSize: 12, fontWeight: 800,
+                    whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer',
+                    border: isActive ? `2px solid ${rc?.color || '#60B8F5'}` : '2px solid var(--border-color)',
+                    background: isActive ? (rc?.bg || 'rgba(96,184,245,0.15)') : 'var(--bg-card-grad)',
+                    color: isActive ? (rc?.color || '#60B8F5') : '#9ca3af',
+                    transition: 'all 0.15s',
+                    fontFamily: 'inherit',
+                  }}>
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Character grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+            gap: 10,
+          }}>
+            {displayed.map(char => (
+              <CharacterCard
+                key={char.id}
+                char={char}
+                owned={owned(char.id) || char.isDefault}
+                equipped={equippedId === char.id}
+                coinBalance={coinBalance}
+                userAchievements={user?.achievements || []}
+                onBuy={handleBuy}
+                onEquip={handleEquip}
+                buying={buying}
+                equipping={equipping}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* How to earn coins */}
+      <div style={{
+        borderRadius: 20, padding: '16px 20px',
+        border: '1px solid var(--border-color)',
+        background: 'var(--bg-card-grad)',
+      }}>
+        <h3 className="font-display" style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          🪙 How to Get Coins & Characters
         </h3>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
           {[
-            { icon:'🎮', title:'Play Activities',     desc:'Earn coins = 1.5× your XP reward' },
-            { icon:'🏆', title:'Unlock Achievements', desc:'Bonus coins for each achievement' },
-            { icon:'🎀', title:'Achievement Items',   desc:'Some items are free with their achievement' },
+            { icon: '🎮', title: 'Play Activities',     desc: 'Earn coins — 1.5× your XP reward each game'    },
+            { icon: '🏆', title: 'Unlock Achievements', desc: 'Bonus coins + free characters for milestones'   },
+            { icon: '🎁', title: 'Achievement Buddies',  desc: 'Some characters are free with their achievement' },
           ].map(({ icon, title, desc }) => (
-            <div key={title} style={{ display:'flex', alignItems:'flex-start', gap:12, padding:12, borderRadius:16, background:'var(--bg-primary)', border:'1px solid var(--border-color)' }}>
-              <span style={{ fontSize:22, flexShrink:0 }}>{icon}</span>
+            <div key={title} style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              padding: '10px 12px', borderRadius: 14,
+              background: 'var(--bg-primary)', border: '1px solid var(--border-color)',
+            }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>{icon}</span>
               <div>
-                <p style={{ fontWeight:700, fontSize:13, color:'var(--text-primary)', margin:0 }}>{title}</p>
-                <p style={{ fontSize:11, color:'#9ca3af', margin:'2px 0 0', lineHeight:1.4 }}>{desc}</p>
+                <p style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-primary)', margin: 0 }}>{title}</p>
+                <p style={{ fontSize: 10, color: '#9ca3af', margin: '2px 0 0', lineHeight: 1.4 }}>{desc}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      {/* ── MOBILE buddy preview (collapsible) ── */}
-      <div className="md:hidden" style={{
-        borderRadius:20, border:'1px solid var(--border-color)',
-        background:'var(--bg-card-grad)', overflow:'hidden',
-      }}>
-        <button onClick={() => setPreviewOpen(o => !o)}
-          style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', background:'none', border:'none', cursor:'pointer' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ width:40, height:40, borderRadius:12, overflow:'hidden', flexShrink:0 }}>
-              <CharacterAvatar equipped={equipped} size={40}/>
-            </div>
-            <div style={{ textAlign:'left' }}>
-              <p style={{ fontWeight:700, fontSize:14, color:'var(--text-primary)', margin:0 }}>Your Buddy</p>
-              <p style={{ fontSize:11, color:'#9ca3af', margin:0 }}>· {itemById(equipped.top)?.name || 'Sky Blue'}</p>
-            </div>
-          </div>
-          {previewOpen ? <ChevronUp size={18} style={{ color:'#9ca3af' }}/> : <ChevronDown size={18} style={{ color:'#9ca3af' }}/>}
-        </button>
-
-        {previewOpen && (
-          <div style={{ padding:'0 16px 16px', borderTop:'1px solid var(--border-color)' }}>
-            <div style={{ display:'flex', gap:16, paddingTop:16 }}>
-              <div style={{ flexShrink:0 }}>
-                <CharacterAvatar equipped={equipped} size={120}/>
-              </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <p style={{ fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Skin Tone</p>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
-                  {SKIN_TONES.map(st => (
-                    <button key={st.id} onClick={() => equipSkin(st)} title={st.name}
-                      style={{ width:28, height:28, borderRadius:'50%', border: equipped.skin === st.id ? '2.5px solid #60B8F5' : '2px solid transparent', background:st.fill, cursor:'pointer', flexShrink:0, transform: equipped.skin === st.id ? 'scale(1.15)' : 'scale(1)' }}/>
-                  ))}
-                </div>
-                {['hat','top','accessory','background'].map(slot => {
-                  const itm = itemById(equipped[slot]);
-                  return itm ? (
-                    <div key={slot} style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginBottom:4 }}>
-                      <span style={{ color:'#9ca3af', textTransform:'capitalize' }}>{slot}</span>
-                      <span style={{ fontWeight:600, color:'var(--text-primary)' }}>{itm.preview} {itm.name}</span>
-                    </div>
-                  ) : null;
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── MAIN LAYOUT ── */}
-      <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
-
-        {/* Desktop sidebar */}
-        <div className="hidden md:flex" style={{ width:250, flexShrink:0, flexDirection:'column', alignItems:'center', gap:16, borderRadius:24, padding:20, border:'1px solid var(--border-color)', background:'var(--bg-card-grad)', position:'sticky', top:16 }}>
-          <p className="font-display" style={{ fontSize:16, color:'var(--text-primary)', margin:0 }}>Your Buddy</p>
-          <CharacterAvatar equipped={equipped} size={220}/>
-          <div style={{ width:'100%' }}>
-            <p style={{ fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Skin Tone</p>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:6 }}>
-              {SKIN_TONES.map(st => (
-                <button key={st.id} onClick={() => equipSkin(st)} title={st.name}
-                  style={{ width:28, height:28, borderRadius:'50%', border: equipped.skin === st.id ? '2.5px solid #60B8F5' : '2px solid transparent', background:st.fill, cursor:'pointer', transform: equipped.skin === st.id ? 'scale(1.1)' : 'scale(1)' }}/>
-              ))}
-            </div>
-          </div>
-          <div style={{ width:'100%' }}>
-            {['hat','top','accessory','background'].map(slot => {
-              const itm = itemById(equipped[slot]);
-              return itm ? (
-                <div key={slot} style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:4 }}>
-                  <span style={{ color:'#9ca3af', textTransform:'capitalize' }}>{slot}</span>
-                  <span style={{ fontWeight:600, color:'var(--text-primary)' }}>{itm.preview} {itm.name}</span>
-                </div>
-              ) : null;
-            })}
-          </div>
-        </div>
-
-        {/* Items panel */}
-        <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:0 }}>
-
-          {/* Category pills */}
-          <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:8, marginBottom:8 }}>
-            {CATEGORIES.map(c => (
-              <button key={c.key} onClick={() => setCategory(c.key)}
-                style={{
-                  display:'flex', alignItems:'center', gap:6,
-                  padding:'8px 14px', borderRadius:20, fontSize:13, fontWeight:700,
-                  whiteSpace:'nowrap', flexShrink:0, cursor:'pointer', border:'none',
-                  background: category === c.key ? '#60B8F5' : '#f3f4f6',
-                  color: category === c.key ? '#fff' : '#4b5563',
-                }}>
-                <span>{c.emoji}</span><span>{c.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Item rows */}
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {items.map(item => {
-              const isOwned = owned(item.id);
-              const isEq    = isEquipped(item);
-              const hasAch  = user?.achievements?.includes(item.earnedBy);
-              const freeByAch = item.earnedBy && !isOwned && hasAch;
-              const affordable = !isOwned && coinBalance >= item.cost;
-
-              const borderColor = isEq ? '#60B8F5' : isOwned ? '#6ee7b7' : '#e5e7eb';
-              const bgColor = isEq ? 'rgba(96,184,245,0.07)' : isOwned ? 'rgba(110,231,183,0.07)' : 'var(--bg-card-grad)';
-
-              let btnLabel, btnBg, btnColor, btnAction, btnDisabled;
-              if (isOwned || item.isDefault) {
-                btnLabel   = equipping === item.id ? '…' : isEq ? '✓ On' : 'Equip';
-                btnBg      = isEq ? '#60B8F5' : '#f3f4f6';
-                btnColor   = isEq ? '#fff' : '#4b5563';
-                btnAction  = () => handleEquip(item);
-                btnDisabled = !!equipping;
-              } else if (freeByAch) {
-                btnLabel   = buying === item.id ? '…' : '🎁 Free';
-                btnBg      = '#fbbf24';
-                btnColor   = '#fff';
-                btnAction  = () => handleBuy({ ...item, cost: 0 });
-                btnDisabled = !!buying;
-              } else {
-                btnLabel   = buying === item.id ? '…' : `🪙 ${item.cost}`;
-                btnBg      = affordable ? '#fbbf24' : '#e5e7eb';
-                btnColor   = affordable ? '#fff' : '#9ca3af';
-                btnAction  = () => affordable && handleBuy(item);
-                btnDisabled = !!buying || !affordable;
-              }
-
-              return (
-                <div key={item.id} style={{
-                  display:'flex', alignItems:'center', gap:10,
-                  padding:'10px 12px', borderRadius:16,
-                  border:`2px solid ${borderColor}`,
-                  background: bgColor,
-                  transition: 'border-color 0.2s, background 0.2s',
-                }}>
-                  <span style={{ fontSize:22, width:28, textAlign:'center', flexShrink:0, lineHeight:1 }}>
-                    {item.preview}
-                  </span>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontWeight:700, fontSize:14, color:'var(--text-primary)', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {item.name}
-                    </p>
-                    <p style={{ fontSize:10, fontWeight:600, margin:'2px 0 0', color:
-                      item.earnedBy
-                        ? (hasAch ? '#f59e0b' : '#9ca3af')
-                        : isOwned && !item.isDefault ? '#10b981'
-                        : '#9ca3af'
-                    }}>
-                      {item.earnedBy
-                        ? (hasAch ? '🏅 Achievement' : '🔒 Locked')
-                        : isOwned && !item.isDefault ? 'Owned'
-                        : item.cost > 0 ? `🪙 ${item.cost}`
-                        : ''}
-                    </p>
-                  </div>
-                  <button
-                    onClick={btnAction}
-                    disabled={btnDisabled}
-                    style={{
-                      background: btnBg, color: btnColor,
-                      border: 'none', borderRadius: 10,
-                      padding: '7px 12px', fontSize: 12, fontWeight: 700,
-                      whiteSpace: 'nowrap', flexShrink: 0,
-                      cursor: btnDisabled ? 'not-allowed' : 'pointer',
-                      opacity: btnDisabled ? 0.6 : 1,
-                      minWidth: 56,
-                    }}>
-                    {btnLabel}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-
-
     </div>
   );
 }
