@@ -2,6 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Browser tab favicon — uses the white logo as default -->
+    <!-- Place readablelogowhite.png and readablelogoblack.png in /public/ -->
+    <link rel="icon" type="image/png" href="/readablelogowhite.png" />
+    <!-- Fallback SVG icon if PNG is not found -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ReadAble - Interactive Reading Comprehension for Everyone" />
@@ -13,6 +17,32 @@
       rel="stylesheet"
     />
     <title>ReadAble</title>
+    <script>
+      // Dynamically switch favicon based on theme preference
+      // This runs before React loads to avoid flash
+      (function() {
+        function updateFavicon() {
+          const html = document.documentElement;
+          const isDark = html.classList.contains('dark') || 
+                         html.getAttribute('data-theme') === 'night' ||
+                         window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const favicon = document.querySelector('link[rel="icon"][type="image/png"]');
+          if (favicon) {
+            favicon.href = isDark ? '/readablelogoblack.png' : '/readablelogowhite.png';
+          }
+        }
+        
+        // Watch for theme changes on the html element
+        const observer = new MutationObserver(updateFavicon);
+        observer.observe(document.documentElement, { 
+          attributes: true, 
+          attributeFilter: ['class', 'data-theme'] 
+        });
+        
+        // Initial check
+        updateFavicon();
+      })();
+    </script>
   </head>
   <body class="font-body">
     <div id="root"></div>
