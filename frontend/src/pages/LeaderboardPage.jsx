@@ -1,26 +1,69 @@
 // ============================================================
 // LeaderboardPage — fully responsive top readers list
+// Fixed: added characterById import, coin SVG icon
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
+import { characterById } from '../components/character/CHARACTER_CATALOG';
 import { Trophy, Star, User, X, BookOpen, CheckCircle, TrendingUp, Flame } from 'lucide-react';
 
-function AvatarDisplay({ equipped, username, size = 36 }) {
-  const characterId = equipped?.character || 'char_common_gray';
-  const char = characterById(characterId);
-  const src  = char
-    ? `/characters/${char.file}`
-    : `/characters/char_common_gray.png`;
- 
+// ── Coin SVG icon ─────────────────────────────────────────────
+function CoinIcon({ size = 14, style = {} }) {
   return (
-    <img
-      src={src}
-      alt={char?.name || username?.[0] || '?'}
-      style={{ width: size, height: size, objectFit: 'contain' }}
-      onError={e => { e.currentTarget.style.opacity = '0.3'; }}
-    />
+    <svg
+      width={size} height={size} viewBox="0 0 24 24"
+      fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={style}
+    >
+      <circle cx="12" cy="12" r="10" fill="#F59E0B" />
+      <circle cx="12" cy="12" r="8" fill="#FBBF24" />
+      <text
+        x="12" y="16" textAnchor="middle"
+        fontSize="10" fontWeight="bold" fill="#92400E"
+        fontFamily="Arial, sans-serif"
+      >$</text>
+    </svg>
+  );
+}
+
+// ── Avatar display — supports equipped character or legacy avatar ──
+function AvatarDisplay({ equipped, avatar, username, size = 36 }) {
+  const characterId = equipped?.character || null;
+
+  if (characterId) {
+    const char = characterById(characterId);
+    const src  = char
+      ? `/characters/${char.file}`
+      : `/characters/char_common_gray.png`;
+    return (
+      <img
+        src={src}
+        alt={char?.name || username?.[0] || '?'}
+        style={{ width: size, height: size, objectFit: 'contain' }}
+        onError={e => { e.currentTarget.style.opacity = '0.3'; }}
+      />
+    );
+  }
+
+  // Fallback: photo or emoji avatar
+  const isPhoto = avatar && avatar.startsWith('data:');
+  if (isPhoto) {
+    return (
+      <img src={avatar} alt="avatar"
+        style={{ width: size, height: size, objectFit: 'cover' }}/>
+    );
+  }
+
+  return (
+    <div style={{
+      width: size, height: size,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.5, lineHeight: 1,
+    }}>
+      {avatar && avatar.length <= 4 ? avatar : (username?.[0]?.toUpperCase() || '?')}
+    </div>
   );
 }
 
@@ -87,7 +130,12 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
                 style={{ borderColor:'var(--border-color)' }}>
                 <div className="w-16 h-16 rounded-2xl overflow-hidden mb-3 flex items-center justify-center
                                 bg-gradient-to-br from-sky/20 to-indigo-100 dark:from-sky/10 dark:to-indigo-900/30">
-                  <AvatarDisplay avatar={data.user?.avatar} username={data.user?.username} size={64}/>
+                  <AvatarDisplay
+                    equipped={data.user?.equipped}
+                    avatar={data.user?.avatar}
+                    username={data.user?.username}
+                    size={64}
+                  />
                 </div>
                 <h3 className="font-display text-xl text-gray-800 dark:text-gray-100">{data.user?.username}</h3>
                 <div className="flex items-center gap-3 mt-1">
@@ -106,9 +154,9 @@ function UserProfileModal({ username, viewerUsername, onClose }) {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
-                  { icon:<BookOpen size={15} className="text-sky"/>,         label:'Played',    val:allPlayed    },
-                  { icon:<CheckCircle size={15} className="text-emerald-500"/>, label:'Done',   val:allCompleted },
-                  { icon:<TrendingUp size={15} className="text-indigo-500"/>, label:'Avg',     val:`${allAvg}%` },
+                  { icon:<BookOpen size={15} className="text-sky"/>,            label:'Played',  val:allPlayed    },
+                  { icon:<CheckCircle size={15} className="text-emerald-500"/>, label:'Done',    val:allCompleted },
+                  { icon:<TrendingUp size={15} className="text-indigo-500"/>,   label:'Avg',     val:`${allAvg}%` },
                 ].map(({ icon, label, val }) => (
                   <div key={label} className="rounded-2xl p-3 text-center border"
                     style={{ background:'var(--bg-primary)', borderColor:'var(--border-color)' }}>
@@ -145,10 +193,10 @@ const PODIUM_META = [
 ];
 
 export default function LeaderboardPage() {
-  const { user }                    = useAuth();
-  const [leaders,  setLeaders]      = useState([]);
-  const [loading,  setLoading]      = useState(true);
-  const [selected, setSelected]     = useState(null);
+  const { user }                = useAuth();
+  const [leaders,  setLeaders]  = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     api.get('/users/leaderboard')
@@ -183,7 +231,12 @@ export default function LeaderboardPage() {
                   className="mb-1.5 rounded-xl bg-gradient-to-br from-sky/20 to-indigo-100
                              dark:from-sky/10 dark:to-indigo-900/30 overflow-hidden
                              flex items-center justify-center ring-2 ring-white/30">
-                  <AvatarDisplay avatar={leader.equipped} username={leader.username} size={sz}/>
+                  <AvatarDisplay
+                    equipped={leader.equipped}
+                    avatar={leader.avatar}
+                    username={leader.username}
+                    size={sz}
+                  />
                 </div>
                 <div className={`w-full rounded-t-xl text-center ${m.height} bg-gradient-to-b ${m.bg} flex flex-col items-center justify-center gap-0.5 px-1`}>
                   <p className={`font-display text-xs ${m.text}`}>{m.label}</p>
@@ -219,7 +272,12 @@ export default function LeaderboardPage() {
               <div className="w-9 h-9 flex-shrink-0 rounded-xl overflow-hidden
                               bg-gradient-to-br from-sky/20 to-indigo-100
                               dark:from-sky/10 dark:to-indigo-900/30 flex items-center justify-center">
-                <AvatarDisplay avatar={leader.avatar} username={leader.username} size={36}/>
+                <AvatarDisplay
+                  equipped={leader.equipped}
+                  avatar={leader.avatar}
+                  username={leader.username}
+                  size={36}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`font-bold text-sm truncate ${isMe ? 'text-sky' : 'text-gray-800 dark:text-gray-100'}`}>
