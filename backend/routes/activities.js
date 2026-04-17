@@ -147,42 +147,42 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
     }
 
     // 9. Auto-unlock characters from new achievements
-  if (newAchievements.length > 0) {
-    const ACHIEVEMENT_CHARACTER_UNLOCKS = {
-      first_star:    ['char_common_blue'],
-      complete_5:    ['char_common_dalmatian'],
-      xp_100:        ['char_uncommon_greenglass'],
-      level_3:       ['char_uncommon_student'],
-      five_streak:   ['char_uncommon_hero'],
-      complete_10:   ['char_uncommon_ranger'],
-      xp_500:        ['char_rare_painter'],
-      complete_25:   ['char_rare_baker'],
-      ten_streak:    ['char_rare_bluebonnet'],
-      level_10:      ['char_rare_guitar'],
-      completionist: ['char_mythic_shadowmonarch'],
-      xp_1000:       ['char_mythic_sunarmor'],
-    };
+    if (newAchievements.length > 0) {
+      const ACHIEVEMENT_CHARACTER_UNLOCKS = {
+        first_star:    ['char_common_blue'],
+        complete_5:    ['char_common_dalmatian'],
+        xp_100:        ['char_uncommon_greenglass'],
+        level_3:       ['char_uncommon_student'],
+        five_streak:   ['char_uncommon_hero'],
+        complete_10:   ['char_uncommon_ranger'],
+        xp_500:        ['char_rare_painter'],
+        complete_25:   ['char_rare_baker'],
+        ten_streak:    ['char_rare_bluebonnet'],
+        level_10:      ['char_rare_guitar'],
+        completionist: ['char_mythic_shadowmonarch'],
+        xp_1000:       ['char_mythic_sunarmor'],
+      };
  
-    const achKeys = newAchievements.map(a => a.key);
-    const currentWardrobe = await client.query(
-      'SELECT wardrobe FROM users WHERE id=$1', [userId]
-    );
-    const alreadyOwned = currentWardrobe.rows[0]?.wardrobe || [];
- 
-    const toUnlock = [];
-    achKeys.forEach(k => {
-      (ACHIEVEMENT_CHARACTER_UNLOCKS[k] || []).forEach(charId => {
-        if (!alreadyOwned.includes(charId)) toUnlock.push(charId);
-      });
-    });
- 
-    if (toUnlock.length > 0) {
-      await client.query(
-        `UPDATE users SET wardrobe = wardrobe || $1::jsonb WHERE id=$2`,
-        [JSON.stringify(toUnlock), userId]
+      const achKeys = newAchievements.map(a => a.key);
+      const currentWardrobe = await client.query(
+        'SELECT wardrobe FROM users WHERE id=$1', [userId]
       );
+      const alreadyOwned = currentWardrobe.rows[0]?.wardrobe || [];
+ 
+      const toUnlock = [];
+      achKeys.forEach(k => {
+        (ACHIEVEMENT_CHARACTER_UNLOCKS[k] || []).forEach(charId => {
+          if (!alreadyOwned.includes(charId)) toUnlock.push(charId);
+        });
+      });
+ 
+      if (toUnlock.length > 0) {
+        await client.query(
+          `UPDATE users SET wardrobe = wardrobe || $1::jsonb WHERE id=$2`,
+          [JSON.stringify(toUnlock), userId]
+        );
+      }
     }
-  }
  
 module.exports = { ACHIEVEMENT_CHARACTER_UNLOCKS };
 
