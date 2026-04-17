@@ -1,8 +1,9 @@
 // ============================================================
 // ShopPage.jsx — Fixed:
-// 1. Active buddy image fills its container (no floating/gap)
-// 2. All character cards have a visible rarity-colored border
-// 3. Corrected coin pricing: common=50, uncommon=100-150, rare=200-300
+// 1. NO float animation on any buddy (active or available)
+// 2. Border on available buddy image containers (matching active buddy style)
+// 3. Mobile filter buttons wrap properly (no horizontal scroll)
+// 4. Improved border visibility across all themes
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
@@ -104,7 +105,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
     btnDisabled   = true;
     btnBgColor    = 'rgba(100,100,120,0.18)';
     btnTextColor  = '#9ca3af';
-    btnBorderColor= 'rgba(156,163,175,0.35)';
+    btnBorderColor= 'rgba(156,163,175,0.5)';
   } else if (isOwned || char.isDefault) {
     btnContent    = isEquipping ? '…' : isEquipped ? <><Check size={13} strokeWidth={3} /> Equipped</> : 'Equip';
     btnAction     = () => onEquip(char);
@@ -125,15 +126,15 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
     btnDisabled   = isBuying || !canAfford;
     btnBgColor    = canAfford ? '#f59e0b' : 'rgba(100,100,120,0.18)';
     btnTextColor  = canAfford ? '#ffffff' : '#9ca3af';
-    btnBorderColor= canAfford ? '#d97706' : 'rgba(156,163,175,0.35)';
+    btnBorderColor= canAfford ? '#d97706' : 'rgba(156,163,175,0.5)';
   }
 
-  // Always show a colored rarity border so cards never look borderless
+  // Card border — rarity colored, always visible
   const cardBorder = isEquipped
     ? `2.5px solid ${rc.color}`
     : isOwned
-    ? `2px solid ${rc.color}80`   // owned: solid rarity color at 50% opacity
-    : `2px solid ${rc.color}50`;  // unowned: rarity color at 30% opacity (still visible)
+    ? `2px solid ${rc.color}80`
+    : `2px solid ${rc.color}50`;
 
   return (
     <div style={{
@@ -157,7 +158,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         position: 'absolute', top: 8, left: 8, zIndex: 3,
         padding: '2px 7px', borderRadius: 999,
         fontSize: 8, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
-        background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`,
+        background: rc.bg, color: rc.color, border: `1.5px solid ${rc.border}`,
         pointerEvents: 'none', whiteSpace: 'nowrap',
       }}>{rc.label}</div>
 
@@ -173,7 +174,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         </div>
       )}
 
-      {/* Character image box */}
+      {/* Character image box — ALWAYS has a rarity border, NO animation */}
       <div style={{
         width: '100%',
         height: 110,
@@ -190,7 +191,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         position: 'relative',
         background: isEquipped
           ? `linear-gradient(180deg, ${rc.bg} 0%, transparent 100%)`
-          : 'transparent',
+          : `linear-gradient(180deg, ${rc.bg}60 0%, transparent 100%)`,
       }}>
         {lockedByAch && (
           <div style={{
@@ -209,12 +210,27 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
             </div>
           </div>
         )}
-        <CharacterAvatar
-          characterId={char.id}
-          size={68}
-          showGlow={isOwned || char.isDefault}
-          animate={isEquipped}
-        />
+        {/* Inner image border — always visible, rarity colored */}
+        <div style={{
+          width: 72,
+          height: 72,
+          borderRadius: 14,
+          border: `2px solid ${rc.color}60`,
+          background: `${rc.bg}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          boxShadow: `0 2px 8px ${rc.glow}`,
+        }}>
+          {/* animate=false for ALL cards — no floating animation */}
+          <CharacterAvatar
+            characterId={char.id}
+            size={60}
+            showGlow={isOwned || char.isDefault}
+            animate={false}
+          />
+        </div>
       </div>
 
       {/* Text info */}
@@ -304,7 +320,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
           background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* ── Fixed 48×48 image container, image fills it ── */}
+            {/* Fixed 48×48 image container with rarity border */}
             <div style={{
               width: 48, height: 48, flexShrink: 0,
               border: `2px solid ${rc.color}`,
@@ -313,7 +329,8 @@ function EquippedPreview({ equippedId, ownedCount }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden',
             }}>
-              <CharacterAvatar characterId={equippedId} size={44} />
+              {/* animate=false — no floating */}
+              <CharacterAvatar characterId={equippedId} size={44} animate={false} />
             </div>
             <div style={{ textAlign: 'left' }}>
               <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>{char?.name}</p>
@@ -325,10 +342,9 @@ function EquippedPreview({ equippedId, ownedCount }) {
         {open && (
           <div style={{
             padding: '0 16px 16px',
-            borderTop: '1px solid var(--border-color)',
+            borderTop: `1px solid ${rc.color}40`,
             display: 'flex', justifyContent: 'center',
           }}>
-            {/* ── Image fills the expanded preview area ── */}
             <div style={{
               width: 140, height: 140,
               border: `2px solid ${rc.color}`,
@@ -338,7 +354,8 @@ function EquippedPreview({ equippedId, ownedCount }) {
               overflow: 'hidden',
               marginTop: 12,
             }}>
-              <CharacterAvatar characterId={equippedId} size={130} showGlow animate />
+              {/* animate=false — no floating in expanded view either */}
+              <CharacterAvatar characterId={equippedId} size={130} showGlow animate={false} />
             </div>
           </div>
         )}
@@ -356,7 +373,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
       }}>
         <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>Active Buddy</p>
 
-        {/* ── Fixed image container: image fills edge-to-edge ── */}
+        {/* Image container with rarity border — NO animation */}
         <div style={{
           width: 160,
           height: 160,
@@ -367,10 +384,10 @@ function EquippedPreview({ equippedId, ownedCount }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          overflow: 'hidden',          // clip so image never floats outside
+          overflow: 'hidden',
         }}>
-          {/* size=156 so it nearly fills the 160px box with a tiny gap for the border */}
-          <CharacterAvatar characterId={equippedId} size={156} showGlow animate />
+          {/* animate=false — no floating */}
+          <CharacterAvatar characterId={equippedId} size={156} showGlow animate={false} />
         </div>
 
         <div style={{ textAlign: 'center', width: '100%' }}>
@@ -384,7 +401,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
           <span style={{
             display: 'inline-block', padding: '2px 10px', borderRadius: 999,
             fontSize: 9, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
-            background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`,
+            background: rc.bg, color: rc.color, border: `1.5px solid ${rc.border}`,
           }}>{rc.label}</span>
         </div>
 
@@ -396,7 +413,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
 
         <div style={{
           width: '100%', padding: '10px 12px', borderRadius: 12,
-          background: 'var(--bg-primary)', border: '1px solid var(--border-color)', textAlign: 'center',
+          background: 'var(--bg-primary)', border: '2px solid var(--border-color)', textAlign: 'center',
         }}>
           <p style={{ fontSize: 10, color: '#9ca3af', margin: '0 0 2px' }}>Collection</p>
           <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
@@ -529,14 +546,14 @@ export default function ShopPage() {
           display:'flex', alignItems:'center', gap:6, padding:'8px 14px',
           borderRadius:999, fontWeight:700, fontSize:14,
           background:'rgba(251,191,36,0.15)', color:'#D97706',
-          border:'2px solid rgba(251,191,36,0.4)',
+          border:'2px solid rgba(251,191,36,0.5)',
         }}>
           <CoinIcon size={16}/><span>{coinBalance}</span>
         </div>
       </div>
 
       {/* How to get coins */}
-      <div style={{ borderRadius:20, padding:'16px 20px', border:'1px solid var(--border-color)', background:'var(--bg-card-grad)' }}>
+      <div style={{ borderRadius:20, padding:'16px 20px', border:'2px solid var(--border-color)', background:'var(--bg-card-grad)' }}>
         <h3 className="font-display" style={{ fontSize:16, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
           How to Get Coins &amp; Buddies
         </h3>
@@ -548,7 +565,7 @@ export default function ShopPage() {
           ].map(({ icon, title, desc }) => (
             <div key={title} style={{
               display:'flex', alignItems:'flex-start', gap:10, padding:'10px 12px',
-              borderRadius:14, background:'var(--bg-primary)', border:'1px solid var(--border-color)',
+              borderRadius:14, background:'var(--bg-primary)', border:'2px solid var(--border-color)',
             }}>
               <span style={{ fontSize:20, flexShrink:0 }}>{icon}</span>
               <div>
@@ -561,7 +578,7 @@ export default function ShopPage() {
       </div>
 
       {/* Collection progress */}
-      <div style={{ borderRadius:16, padding:'12px 16px', background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
+      <div style={{ borderRadius:16, padding:'12px 16px', background:'var(--bg-card-grad)', border:'2px solid var(--border-color)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
           <span style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)' }}>
             <Sparkles size={12} style={{ display:'inline', marginRight:4, color:'#F59E0B' }}/>
@@ -593,11 +610,13 @@ export default function ShopPage() {
 
         <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:14 }}>
 
-          {/* Filter pills */}
+          {/* ── Filter pills — FIXED for mobile: wrap grid, never scrolls sideways ── */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${RARITY_FILTERS.length}, 1fr)`,
-            gap: 6, width: '100%',
+            // On mobile: wrap into 2 rows automatically (minmax ensures no overflow)
+            gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))',
+            gap: 6,
+            width: '100%',
           }}>
             {RARITY_FILTERS.map(f => {
               const rc = RARITY_CONFIG[f.key];
@@ -609,10 +628,13 @@ export default function ShopPage() {
                     whiteSpace:'nowrap', cursor:'pointer', fontFamily:'inherit',
                     border: isActive
                       ? `2px solid ${rc?.color || '#60B8F5'}`
-                      : '2px solid rgba(156,163,175,0.25)',
+                      : '2px solid var(--border-color)',
                     background: isActive ? (rc?.bg || 'rgba(96,184,245,0.18)') : 'var(--bg-card-grad)',
                     color: isActive ? (rc?.color || '#60B8F5') : 'var(--text-muted, #9ca3af)',
                     transition:'all 0.15s', textAlign:'center',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}>
                   {f.label}
                 </button>
