@@ -1,37 +1,33 @@
 // ============================================================
-// LeaderboardPage — fully responsive top readers list
-// Fixed: added characterById import, coin SVG icon
+// LeaderboardPage — fixed: default avatar is gray character PNG,
+// never a letter initial. Equipped character always takes priority.
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { characterById } from '../components/character/CHARACTER_CATALOG';
-import { Trophy, Star, User, X, BookOpen, CheckCircle, TrendingUp, Flame } from 'lucide-react';
+import { characterById, DEFAULT_CHARACTER_ID, ALL_CHARACTERS } from '../components/character/CHARACTER_CATALOG';
+import { Trophy, Star, X, BookOpen, CheckCircle, TrendingUp, Flame } from 'lucide-react';
 
 // ── Coin SVG icon ─────────────────────────────────────────────
 function CoinIcon({ size = 14, style = {} }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24"
-      fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={style}
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
       <circle cx="12" cy="12" r="10" fill="#F59E0B" />
       <circle cx="12" cy="12" r="8" fill="#FBBF24" />
-      <text
-        x="12" y="16" textAnchor="middle"
-        fontSize="10" fontWeight="bold" fill="#92400E"
-        fontFamily="Arial, sans-serif"
-      >$</text>
+      <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="bold"
+        fill="#92400E" fontFamily="Arial, sans-serif">$</text>
     </svg>
   );
 }
 
-// ── Avatar display — supports equipped character or legacy avatar ──
+// ── Avatar display — always PNG, never a letter ───────────────
+// Priority: equipped character → photo data URL → gray default PNG
 function AvatarDisplay({ equipped, avatar, username, size = 36 }) {
   const characterId = equipped?.character || null;
 
+  // 1. Equipped character PNG
   if (characterId) {
     const char = characterById(characterId);
     const src  = char
@@ -40,30 +36,30 @@ function AvatarDisplay({ equipped, avatar, username, size = 36 }) {
     return (
       <img
         src={src}
-        alt={char?.name || username?.[0] || '?'}
+        alt={char?.name || username || 'Character'}
         style={{ width: size, height: size, objectFit: 'contain' }}
-        onError={e => { e.currentTarget.style.opacity = '0.3'; }}
+        onError={e => { e.currentTarget.src = '/characters/char_common_gray.png'; }}
       />
     );
   }
 
-  // Fallback: photo or emoji avatar
-  const isPhoto = avatar && avatar.startsWith('data:');
-  if (isPhoto) {
+  // 2. Photo avatar (data URL)
+  if (avatar && avatar.startsWith('data:')) {
     return (
       <img src={avatar} alt="avatar"
         style={{ width: size, height: size, objectFit: 'cover' }}/>
     );
   }
 
+  // 3. Default: gray character PNG (never a letter)
+  const defaultChar = characterById(DEFAULT_CHARACTER_ID);
   return (
-    <div style={{
-      width: size, height: size,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.5, lineHeight: 1,
-    }}>
-      {(avatar && !/^[a-zA-Z]+$/.test(avatar)) ? avatar : (username?.[0]?.toUpperCase() || '?')}
-    </div>
+    <img
+      src={defaultChar ? `/characters/${defaultChar.file}` : '/characters/char_common_gray.png'}
+      alt="Character"
+      style={{ width: size, height: size, objectFit: 'contain' }}
+      onError={e => { e.currentTarget.style.opacity = '0.3'; }}
+    />
   );
 }
 
