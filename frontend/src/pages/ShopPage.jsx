@@ -576,7 +576,7 @@ export default function ShopPage() {
         background: 'var(--bg-card-grad)',
       }}>
         <h3 className="font-display" style={{ fontSize:16, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
-          🪙 How to Get Coins &amp; Buddies
+          How to Get Coins &amp; Buddies
         </h3>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:10 }}>
           {[
