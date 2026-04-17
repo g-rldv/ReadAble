@@ -1,12 +1,12 @@
 // ============================================================
 // ProfilePage — robust at all text sizes (small → xlarge)
-// All layout-critical text uses fixed px inline styles so it
-// never inherits the global html font-size scaling.
+// Fixed: added characterById import, coin SVG icon
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
+import { characterById } from '../components/character/CHARACTER_CATALOG';
 import {
   Star, Flame, CheckCircle, BookOpen, TrendingUp, User,
   Camera, Edit2, Check, X, History, Trophy,
@@ -42,24 +42,68 @@ const GROUP_LABELS = {
   streak:'Streaks', progress:'Progress', skill:'Skills',
 };
 
-// ── Avatar display ────────────────────────────────────────────
-function AvatarDisplay({ equipped, username, size = 80 }) {
-  const characterId = equipped?.character || 'char_common_gray';
-  const char = characterById(characterId);
-  const src  = char
-    ? `/characters/${char.file}`
-    : `/characters/char_common_gray.png`;
- 
+// ── Coin SVG icon (no emoji, always renders correctly) ────────
+function CoinIcon({ size = 14, style = {} }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: 14, overflow: 'hidden',
-                  background: 'rgba(96,184,245,0.08)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <img
-        src={src}
-        alt={char?.name || username?.[0] || '?'}
-        style={{ width: '90%', height: '90%', objectFit: 'contain' }}
-        onError={e => { e.currentTarget.style.opacity = '0.3'; }}
-      />
+    <svg
+      width={size} height={size} viewBox="0 0 24 24"
+      fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={style}
+    >
+      <circle cx="12" cy="12" r="10" fill="#F59E0B" />
+      <circle cx="12" cy="12" r="8" fill="#FBBF24" />
+      <text
+        x="12" y="16" textAnchor="middle"
+        fontSize="10" fontWeight="bold" fill="#92400E"
+        fontFamily="Arial, sans-serif"
+      >$</text>
+    </svg>
+  );
+}
+
+// ── Avatar display ────────────────────────────────────────────
+function AvatarDisplay({ equipped, avatar, username, size = 80 }) {
+  // Support both equipped object and legacy emoji/photo avatar string
+  const characterId = equipped?.character || null;
+
+  if (characterId) {
+    const char = characterById(characterId);
+    const src  = char
+      ? `/characters/${char.file}`
+      : `/characters/char_common_gray.png`;
+    return (
+      <div style={{ width: size, height: size, borderRadius: 14, overflow: 'hidden',
+                    background: 'rgba(96,184,245,0.08)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img
+          src={src}
+          alt={char?.name || username?.[0] || '?'}
+          style={{ width: '90%', height: '90%', objectFit: 'contain' }}
+          onError={e => { e.currentTarget.style.opacity = '0.3'; }}
+        />
+      </div>
+    );
+  }
+
+  // Fallback: emoji or photo avatar
+  const isPhoto = avatar && avatar.startsWith('data:');
+  if (isPhoto) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: 14, overflow: 'hidden' }}>
+        <img src={avatar} alt="avatar"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 14,
+      background: 'linear-gradient(135deg, rgba(96,184,245,0.2), rgba(107,203,119,0.15))',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.5,
+    }}>
+      {avatar && avatar.length <= 4 ? avatar : (username?.[0]?.toUpperCase() || '?')}
     </div>
   );
 }
@@ -219,7 +263,6 @@ function StatCard({ Icon, iconCls, bg, label, val, loading }) {
       <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center mb-2`}>
         <Icon size={15} className={iconCls}/>
       </div>
-      {/* clamp so these don't overflow at xlarge */}
       <div className="font-display text-gray-800 dark:text-gray-100 tabular-nums"
         style={{ fontSize: 'clamp(16px, 4vw, 24px)', lineHeight: 1.1 }}>
         {val}
@@ -230,21 +273,16 @@ function StatCard({ Icon, iconCls, bg, label, val, loading }) {
 }
 
 // ── Achievement Row (mobile list) ─────────────────────────────
-// All sizes in fixed px — never scales with html font-size.
 function AchRow({ ach, earned }) {
   const AchIcon = GROUP_ICONS[ach.group] || Star;
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      padding: '12px 14px',
-      borderRadius: 16,
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '12px 14px', borderRadius: 16,
       border: `2px solid ${earned ? '#fcd34d' : 'var(--border-color)'}`,
       background: earned ? 'rgba(251,191,36,0.07)' : 'var(--bg-card-grad)',
       opacity: earned ? 1 : 0.5,
     }}>
-      {/* Icon */}
       <div style={{
         width: 36, height: 36, borderRadius: 10, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -252,8 +290,6 @@ function AchRow({ ach, earned }) {
       }}>
         <AchIcon size={16} className={earned ? 'text-amber-500' : 'text-gray-400'}/>
       </div>
-
-      {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
           className="text-gray-800 dark:text-gray-100">
@@ -263,8 +299,6 @@ function AchRow({ ach, earned }) {
           {ach.desc}
         </p>
       </div>
-
-      {/* Badge */}
       {earned && (
         <span style={{
           fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 999,
@@ -355,11 +389,10 @@ export default function ProfilePage() {
   const allAvg       = Math.round(parseFloat(stats?.stats?.avg_score ?? 0));
   const sortedAch    = [...ACHIEVEMENTS].sort((a, b) => (unlocked.has(b.key) ? 1 : 0) - (unlocked.has(a.key) ? 1 : 0));
 
-  // ── Mobile Tab Bar — all fixed px ────────────────────────────
   const TABS = [
-    { key:'profile',      Icon:User,      label:'Profile'      },
-    { key:'stats',        Icon:TrendingUp, label:'Stats'       },
-    { key:'achievements', Icon:Trophy,    label:'Badges'       },
+    { key:'profile',      Icon:User,       label:'Profile'  },
+    { key:'stats',        Icon:TrendingUp, label:'Stats'    },
+    { key:'achievements', Icon:Trophy,     label:'Badges'   },
   ];
 
   return (
@@ -371,15 +404,14 @@ export default function ProfilePage() {
         <div className="absolute inset-0 opacity-10"
           style={{ backgroundImage:'radial-gradient(circle at 20% 50%,#fff 1px,transparent 1px)', backgroundSize:'40px 40px' }}/>
 
-        {/* ── Mobile hero — 100% fixed px, never inherits html font-size ── */}
+        {/* ── Mobile hero ── */}
         <div className="md:hidden relative" style={{ padding: '16px 16px 0', fontSize: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-
-            {/* Avatar — fixed 64×64 always */}
+            {/* Avatar */}
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <div style={{ width: 64, height: 64, borderRadius: 14, overflow: 'hidden',
                             boxShadow: '0 0 0 3px rgba(255,255,255,0.35)' }}>
-                <AvatarDisplay avatar={user?.avatar} username={user?.username} size={64}/>
+                <AvatarDisplay equipped={user?.equipped} avatar={user?.avatar} username={user?.username} size={64}/>
               </div>
               <button onClick={() => setShowAvatarModal(true)} style={{
                 position: 'absolute', bottom: -3, right: -3,
@@ -447,7 +479,6 @@ export default function ProfilePage() {
               )}
               {usernameErr && <p style={{ fontSize: 10, color: '#fca5a5', margin: '0 0 3px' }}>{usernameErr}</p>}
 
-              {/* Level + XP badges — fixed px, can never inherit scaling */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{
                   fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
@@ -467,9 +498,18 @@ export default function ProfilePage() {
                   </svg>
                   {user?.xp || 0} XP
                 </span>
+                {/* Coin display with SVG icon */}
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
+                  background: 'rgba(251,191,36,0.3)', borderRadius: 999,
+                  padding: '2px 8px', lineHeight: 1.4,
+                  display: 'flex', alignItems: 'center', gap: 3,
+                }}>
+                  <CoinIcon size={10}/>
+                  {user?.coins || 0}
+                </span>
               </div>
 
-              {/* Email — fixed 10px, truncated */}
               <p style={{
                 fontSize: 10, color: 'rgba(255,255,255,0.6)',
                 margin: '4px 0 0', overflow: 'hidden',
@@ -480,7 +520,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* XP progress bar — all fixed px */}
+          {/* XP progress bar */}
           <div style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4,
                           fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
@@ -500,7 +540,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-6">
             <div className="relative flex-shrink-0">
               <div className="w-24 h-24 rounded-2xl ring-4 ring-white/40 overflow-hidden">
-                <AvatarDisplay avatar={user?.avatar} username={user?.username} size={96}/>
+                <AvatarDisplay equipped={user?.equipped} avatar={user?.avatar} username={user?.username} size={96}/>
               </div>
               <button onClick={() => setShowAvatarModal(true)}
                 className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white text-sky
@@ -549,6 +589,11 @@ export default function ProfilePage() {
                 <Star size={11} className="text-amber-200 fill-amber-200"/>
                 <span className="text-xs font-bold text-white">{user?.xp || 0} XP</span>
               </div>
+              {/* Coin row with SVG icon */}
+              <div className="flex items-center justify-center gap-1 mt-1.5 bg-amber-400/20 rounded-full px-3 py-1">
+                <CoinIcon size={11}/>
+                <span className="text-xs font-bold text-white">{user?.coins || 0} coins</span>
+              </div>
             </div>
           </div>
           <div className="mt-6">
@@ -564,25 +609,20 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ══ MOBILE TAB BAR — fixed px, never wraps ════════════ */}
+      {/* ══ MOBILE TAB BAR ════════════════════════════════════ */}
       <div className="md:hidden flex rounded-2xl overflow-hidden"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
         {TABS.map(({ key, Icon, label }) => (
           <button key={key} onClick={() => setActiveTab(key)}
             style={{
-              flex: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '12px 4px',
-              fontSize: 13, fontWeight: 700,
-              whiteSpace: 'nowrap',
-              border: 'none', cursor: 'pointer',
-              borderRadius: 0,
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '12px 4px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+              border: 'none', cursor: 'pointer', borderRadius: 0,
               background: activeTab === key ? '#60B8F5' : 'transparent',
               color: activeTab === key ? '#fff' : '#9ca3af',
               transition: 'background 0.15s, color 0.15s',
             }}>
-            <Icon size={14} style={{ flexShrink: 0 }}/>
-            {label}
+            <Icon size={14} style={{ flexShrink: 0 }}/>{label}
           </button>
         ))}
       </div>
@@ -593,7 +633,6 @@ export default function ProfilePage() {
           <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"    val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
           <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed" val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
         </div>
-        {/* Earned achievements preview */}
         <div className="rounded-3xl p-4 border" style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-gray-800 dark:text-gray-100" style={{ fontSize: 18 }}>Achievements</h2>
