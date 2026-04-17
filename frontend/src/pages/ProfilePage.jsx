@@ -1,12 +1,13 @@
 // ============================================================
-// ProfilePage — robust at all text sizes (small → xlarge)
-// Fixed: added characterById import, coin SVG icon
+// ProfilePage — fixed avatar (uses equipped character PNG,
+// falls back to gray default — never a letter), aligned layout,
+// and live reflection of shop equipped changes.
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { characterById } from '../components/character/CHARACTER_CATALOG';
+import { characterById, DEFAULT_CHARACTER_ID } from '../components/character/CHARACTER_CATALOG';
 import {
   Star, Flame, CheckCircle, BookOpen, TrendingUp, User,
   Camera, Edit2, Check, X, History, Trophy,
@@ -42,69 +43,55 @@ const GROUP_LABELS = {
   streak:'Streaks', progress:'Progress', skill:'Skills',
 };
 
-// ── Coin SVG icon (no emoji, always renders correctly) ────────
+// ── Coin SVG icon ─────────────────────────────────────────────
 function CoinIcon({ size = 14, style = {} }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24"
-      fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={style}
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
       <circle cx="12" cy="12" r="10" fill="#F59E0B" />
       <circle cx="12" cy="12" r="8" fill="#FBBF24" />
-      <text
-        x="12" y="16" textAnchor="middle"
-        fontSize="10" fontWeight="bold" fill="#92400E"
-        fontFamily="Arial, sans-serif"
-      >$</text>
+      <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="bold"
+        fill="#92400E" fontFamily="Arial, sans-serif">$</text>
     </svg>
   );
 }
 
-// ── Avatar display ────────────────────────────────────────────
+// ── Avatar display — always shows character PNG, never a letter ──
+// Priority: equipped character → photo avatar → gray default character
 function AvatarDisplay({ equipped, avatar, username, size = 80 }) {
-  // Support both equipped object and legacy emoji/photo avatar string
   const characterId = equipped?.character || null;
 
+  // 1. Equipped character PNG
   if (characterId) {
     const char = characterById(characterId);
-    const src  = char
-      ? `/characters/${char.file}`
-      : `/characters/char_common_gray.png`;
+    const src  = char ? `/characters/${char.file}` : `/characters/char_common_gray.png`;
     return (
-      <div style={{ width: size, height: size, borderRadius: 14, overflow: 'hidden',
-                    background: 'rgba(96,184,245,0.08)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img
-          src={src}
-          alt={char?.name || username?.[0] || '?'}
-          style={{ width: '90%', height: '90%', objectFit: 'contain' }}
-          onError={e => { e.currentTarget.style.opacity = '0.3'; }}
-        />
-      </div>
+      <img
+        src={src}
+        alt={char?.name || username || 'Character'}
+        style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+        onError={e => { e.currentTarget.src = '/characters/char_common_gray.png'; }}
+      />
     );
   }
 
-  // Fallback: emoji or photo avatar
-  const isPhoto = avatar && avatar.startsWith('data:');
-  if (isPhoto) {
+  // 2. Photo avatar (data URL)
+  if (avatar && avatar.startsWith('data:')) {
     return (
-      <div style={{ width: size, height: size, borderRadius: 14, overflow: 'hidden' }}>
-        <img src={avatar} alt="avatar"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-      </div>
+      <img src={avatar} alt="avatar"
+        style={{ width: size, height: size, objectFit: 'cover', display: 'block' }} />
     );
   }
 
+  // 3. Default: gray character PNG (never a letter initial)
+  const defaultChar = characterById(DEFAULT_CHARACTER_ID);
   return (
-    <div style={{
-      width: size, height: size, borderRadius: 14,
-      background: 'linear-gradient(135deg, rgba(96,184,245,0.2), rgba(107,203,119,0.15))',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.5,
-    }}>
-      {avatar && avatar.length <= 4 ? avatar : (username?.[0]?.toUpperCase() || '?')}
-    </div>
+    <img
+      src={defaultChar ? `/characters/${defaultChar.file}` : '/characters/char_common_gray.png'}
+      alt="Character"
+      style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+      onError={e => { e.currentTarget.style.opacity = '0.3'; }}
+    />
   );
 }
 
@@ -146,7 +133,11 @@ function AvatarModal({ current, onClose, onSave }) {
           <button onClick={onClose}><X size={20} className="text-gray-400"/></button>
         </div>
         <div className="flex justify-center mb-4">
-          <AvatarDisplay avatar={selected} username="?" size={72}/>
+          <div style={{ width: 72, height: 72, borderRadius: 14, overflow: 'hidden',
+                        background: 'rgba(96,184,245,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <AvatarDisplay avatar={selected} username="?" size={72}/>
+          </div>
         </div>
         <div className="grid grid-cols-8 gap-2 mb-4">
           {EMOJI_AVATARS.map(e => (
@@ -381,6 +372,9 @@ export default function ProfilePage() {
   const allAvg       = Math.round(parseFloat(stats?.stats?.avg_score ?? 0));
   const sortedAch    = [...ACHIEVEMENTS].sort((a, b) => (unlocked.has(b.key) ? 1 : 0) - (unlocked.has(a.key) ? 1 : 0));
 
+  // equipped is always kept in sync via AuthContext polling
+  const equipped = user?.equipped || {};
+
   const TABS = [
     { key:'profile',      Icon:User,       label:'Profile'  },
     { key:'stats',        Icon:TrendingUp, label:'Stats'    },
@@ -397,21 +391,24 @@ export default function ProfilePage() {
           style={{ backgroundImage:'radial-gradient(circle at 20% 50%,#fff 1px,transparent 1px)', backgroundSize:'40px 40px' }}/>
 
         {/* ── Mobile hero ── */}
-        <div className="md:hidden relative" style={{ padding: '16px 16px 0', fontSize: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Avatar */}
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 14, overflow: 'hidden',
-                            boxShadow: '0 0 0 3px rgba(255,255,255,0.35)' }}>
-                <AvatarDisplay equipped={user?.equipped} avatar={user?.avatar} username={user?.username} size={64}/>
-              </div>
-              
+        <div className="md:hidden relative" style={{ padding: '16px 16px 16px', fontSize: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+
+            {/* Avatar — fixed size container so nothing shifts */}
+            <div style={{
+              width: 72, height: 72, borderRadius: 16, flexShrink: 0,
+              overflow: 'hidden',
+              background: 'rgba(255,255,255,0.15)',
+              boxShadow: '0 0 0 3px rgba(255,255,255,0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <AvatarDisplay equipped={equipped} avatar={user?.avatar} username={user?.username} size={64}/>
             </div>
 
-            {/* Name + badges */}
+            {/* Name + meta */}
             <div style={{ flex: 1, minWidth: 0 }}>
               {editUsername ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <input value={newUsername}
                     onChange={e => { setNewUsername(e.target.value); setUsernameErr(''); }}
                     style={{
@@ -438,11 +435,12 @@ export default function ProfilePage() {
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                   <h1 style={{
                     fontFamily: '"Fredoka One", cursive',
                     fontSize: 20, color: 'white', lineHeight: 1.1,
                     margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    maxWidth: 'calc(100% - 34px)',
                   }}>
                     {user?.username}
                   </h1>
@@ -454,33 +452,33 @@ export default function ProfilePage() {
                   </button>
                 </div>
               )}
-              {usernameErr && <p style={{ fontSize: 10, color: '#fca5a5', margin: '0 0 3px' }}>{usernameErr}</p>}
+              {usernameErr && <p style={{ fontSize: 10, color: '#fca5a5', margin: '0 0 4px' }}>{usernameErr}</p>}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {/* Badges row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                 <span style={{
-                  fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
+                  fontSize: 11, fontWeight: 700, color: 'white',
                   background: 'rgba(255,255,255,0.2)', borderRadius: 999,
-                  padding: '2px 8px', lineHeight: 1.4,
+                  padding: '2px 8px', lineHeight: 1.5, whiteSpace: 'nowrap',
                 }}>
                   Lv {user?.level || 1}
                 </span>
                 <span style={{
-                  fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
+                  fontSize: 11, fontWeight: 700, color: 'white',
                   background: 'rgba(251,191,36,0.3)', borderRadius: 999,
-                  padding: '2px 8px', lineHeight: 1.4,
-                  display: 'flex', alignItems: 'center', gap: 3,
+                  padding: '2px 8px', lineHeight: 1.5, whiteSpace: 'nowrap',
+                  display: 'inline-flex', alignItems: 'center', gap: 3,
                 }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="#fde68a" stroke="none">
                     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
                   </svg>
                   {user?.xp || 0} XP
                 </span>
-                {/* Coin display with SVG icon */}
                 <span style={{
-                  fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
+                  fontSize: 11, fontWeight: 700, color: 'white',
                   background: 'rgba(251,191,36,0.3)', borderRadius: 999,
-                  padding: '2px 8px', lineHeight: 1.4,
-                  display: 'flex', alignItems: 'center', gap: 3,
+                  padding: '2px 8px', lineHeight: 1.5, whiteSpace: 'nowrap',
+                  display: 'inline-flex', alignItems: 'center', gap: 3,
                 }}>
                   <CoinIcon size={10}/>
                   {user?.coins || 0}
@@ -489,7 +487,7 @@ export default function ProfilePage() {
 
               <p style={{
                 fontSize: 10, color: 'rgba(255,255,255,0.6)',
-                margin: '4px 0 0', overflow: 'hidden',
+                margin: '5px 0 0', overflow: 'hidden',
                 textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {user?.email}
@@ -498,8 +496,8 @@ export default function ProfilePage() {
           </div>
 
           {/* XP progress bar */}
-          <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4,
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5,
                           fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
               <span>To Level {(user?.level || 1) + 1}</span>
               <span>{currentXP}/{xpForLevel} XP</span>
@@ -509,18 +507,22 @@ export default function ProfilePage() {
                             width: `${xpPct}%`, transition: 'width 0.7s' }}/>
             </div>
           </div>
-          <div style={{ height: 14 }}/>
         </div>
 
         {/* ── Desktop hero ── */}
         <div className="hidden md:block relative px-8 pt-8 pb-0">
           <div className="flex items-center gap-6">
-            <div className="relative flex-shrink-0">
-              <div className="w-24 h-24 rounded-2xl ring-4 ring-white/40 overflow-hidden">
-                <AvatarDisplay equipped={user?.equipped} avatar={user?.avatar} username={user?.username} size={96}/>
-              </div>
-
+            {/* Avatar container */}
+            <div style={{
+              width: 96, height: 96, borderRadius: 20, flexShrink: 0,
+              overflow: 'hidden',
+              background: 'rgba(255,255,255,0.15)',
+              boxShadow: '0 0 0 4px rgba(255,255,255,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <AvatarDisplay equipped={equipped} avatar={user?.avatar} username={user?.username} size={96}/>
             </div>
+
             <div className="flex-1 min-w-0">
               {editUsername ? (
                 <div className="flex items-center gap-2 mb-1">
@@ -555,6 +557,7 @@ export default function ProfilePage() {
                 Member since {new Date(user?.created_at || Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})}
               </p>
             </div>
+
             <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center">
               <div className="font-display text-5xl text-white leading-none">{user?.level || 1}</div>
               <div className="text-xs font-bold text-white/70 uppercase tracking-widest mt-1">Level</div>
@@ -562,13 +565,13 @@ export default function ProfilePage() {
                 <Star size={11} className="text-amber-200 fill-amber-200"/>
                 <span className="text-xs font-bold text-white">{user?.xp || 0} XP</span>
               </div>
-              {/* Coin row with SVG icon */}
               <div className="flex items-center justify-center gap-1 mt-1.5 bg-amber-400/20 rounded-full px-3 py-1">
                 <CoinIcon size={11}/>
                 <span className="text-xs font-bold text-white">{user?.coins || 0} coins</span>
               </div>
             </div>
           </div>
+
           <div className="mt-6">
             <div className="flex justify-between text-xs text-white/70 mb-1.5">
               <span>Progress to Level {(user?.level || 1) + 1}</span>
