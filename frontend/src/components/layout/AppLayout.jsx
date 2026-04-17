@@ -1,5 +1,7 @@
 // ============================================================
-// AppLayout.jsx — updated: leaderboard removed from nav
+// AppLayout.jsx — updated:
+// 1. Logo uses readablelogowhite/black PNG based on theme
+// 2. Improved borders throughout for visibility across themes
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -29,6 +31,83 @@ const SIDEBAR_NAV = [
   { to:'/settings',    Icon:Settings,        label:'Settings'    },
 ];
 
+// ── Logo component — uses PNG files, adapts to theme ─────────
+function ReadableLogo({ height = 28, className = '' }) {
+  // Check if dark theme is active via html class or data-theme
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const html = document.documentElement;
+      setIsDark(
+        html.classList.contains('dark') ||
+        html.getAttribute('data-theme') === 'night'
+      );
+    };
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <img
+      src={isDark ? '/readablelogoblack.png' : '/readablelogowhite.png'}
+      alt="ReadAble"
+      style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }}
+      className={className}
+      onError={e => {
+        // Fallback: hide image if not found yet
+        e.currentTarget.style.display = 'none';
+        e.currentTarget.nextSibling && (e.currentTarget.nextSibling.style.display = 'flex');
+      }}
+    />
+  );
+}
+
+// Fallback text logo if PNGs aren't placed yet
+function FallbackLogo({ isDark }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center flex-shrink-0">
+        <BookOpen size={16} className="text-white"/>
+      </div>
+      <span className="font-display text-2xl text-sky">ReadAble</span>
+    </div>
+  );
+}
+
+// Smart logo that tries PNG first, falls back to text
+function SmartLogo({ height = 28, showFallback = false }) {
+  const [failed, setFailed] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const html = document.documentElement;
+      setIsDark(
+        html.classList.contains('dark') ||
+        html.getAttribute('data-theme') === 'night'
+      );
+    };
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
+  if (failed || showFallback) return <FallbackLogo isDark={isDark} />;
+
+  return (
+    <img
+      src={isDark ? '/readablelogoblack.png' : '/readablelogowhite.png'}
+      alt="ReadAble"
+      style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 // ── Bottom nav constants ──────────────────────────────────────
 const BAR_H = 62, POP_H = 16, CIRC = 54, CIRC_R = 27;
 const NUM = BOTTOM_NAV.length, VB_W = NUM * 100, VB_H = BAR_H;
@@ -47,8 +126,19 @@ function buildPath(i) {
 
 function BottomNavBar() {
   const location = useLocation();
-  const isDark = typeof document !== 'undefined' &&
-    document.documentElement.classList.contains('dark');
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      setIsDark(document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'night');
+    };
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+    return () => obs.disconnect();
+  }, []);
+
   const NAV_BG = isDark ? '#1E1840' : '#FFFFFF';
 
   const activeIdx = (() => {
@@ -151,21 +241,22 @@ function LogoutModal({ onConfirm, onCancel }) {
       style={{ background: 'rgba(0,0,0,0.5)' }}
       onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-pop"
-        style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
+        style={{ background: 'var(--bg-card-grad)', border: '2px solid var(--border-color)' }}>
         <h3 className="font-display text-xl text-gray-800 dark:text-gray-100 mb-1">Sign Out?</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Your progress is saved. You can sign back in any time.
         </p>
         <div className="flex gap-3">
           <button onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold
                        text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            style={{ borderColor: 'var(--border-color)' }}>
+            style={{ border: '2px solid var(--border-color)' }}>
             Cancel
           </button>
           <button onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold
-                       hover:bg-rose-600 transition-colors flex items-center justify-center gap-2">
+                       hover:bg-rose-600 transition-colors flex items-center justify-center gap-2"
+            style={{ border: '2px solid #dc2626' }}>
             <LogOut size={16}/> Sign Out
           </button>
         </div>
@@ -187,6 +278,7 @@ function MusicPicker({ settings, updateSettings }) {
         const a = settings.bg_music_theme === key;
         return (
           <button key={key} onClick={() => updateSettings({ bg_music_theme: key })}
+            style={{ border: a ? '2px solid #a855f7' : '2px solid var(--border-color)' }}
             className={`flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-bold transition-all
                         ${a ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
             <I size={14}/>{l}
@@ -200,17 +292,20 @@ function MusicPicker({ settings, updateSettings }) {
 function BottomControls({ soundOn, settings, toggleSound, updateSettings,
                           isFullscreen, toggleFullscreen, onLogoutClick }) {
   return (
-    <div className="px-4 pb-6 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1 flex-shrink-0">
+    <div className="px-4 pb-6 pt-3 space-y-1 flex-shrink-0"
+      style={{ borderTop: '2px solid var(--border-color)' }}>
       <button onClick={toggleSound}
         className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                   text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                   text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+        style={{ border: '2px solid var(--border-color)' }}>
         {soundOn ? <Volume2 size={20} className="text-emerald-500 flex-shrink-0"/> : <VolumeX size={20} className="flex-shrink-0"/>}
         <span className="text-gray-700 dark:text-gray-300">Sound: {soundOn ? 'On' : 'Off'}</span>
       </button>
 
       {soundOn && (
         <div className="px-1 pb-1">
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/60 mb-1.5">
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl mb-1.5"
+            style={{ background: 'var(--bg-primary)', border: '2px solid var(--border-color)' }}>
             <div className="flex items-center gap-2">
               <Music size={14} className={settings.bg_music_enabled ? 'text-purple-500' : 'text-gray-400'}/>
               <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Music</span>
@@ -228,14 +323,16 @@ function BottomControls({ soundOn, settings, toggleSound, updateSettings,
 
       <button onClick={toggleFullscreen}
         className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                   text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                   text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+        style={{ border: '2px solid var(--border-color)' }}>
         {isFullscreen ? <Minimize size={20} className="text-indigo-500 flex-shrink-0"/> : <Maximize2 size={20} className="flex-shrink-0"/>}
         <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
       </button>
 
       <button onClick={onLogoutClick}
         className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                   text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+                   text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+        style={{ border: '2px solid rgba(239,68,68,0.4)' }}>
         <LogOut size={20}/>Sign Out
       </button>
     </div>
@@ -249,17 +346,16 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center flex-shrink-0">
-            <BookOpen size={16} className="text-white"/>
-          </div>
-          <span className="font-display text-2xl text-sky">ReadAble</span>
-        </div>
+      <div className="px-5 py-4 flex-shrink-0"
+        style={{ borderBottom: '2px solid var(--border-color)' }}>
+        <SmartLogo height={32} />
       </div>
 
-      <div className="px-4 py-4 mx-3 mt-3 rounded-2xl border border-sky/20 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg,rgba(77,150,255,0.08),rgba(107,203,119,0.06))' }}>
+      <div className="px-4 py-4 mx-3 mt-3 rounded-2xl flex-shrink-0"
+        style={{
+          background: 'linear-gradient(135deg,rgba(77,150,255,0.08),rgba(107,203,119,0.06))',
+          border: '2px solid var(--border-color)',
+        }}>
         <div className="flex items-center gap-3">
           <SidebarCharacter equippedCharacterId={equippedCharId} username={user?.username} size={40}/>
           <div className="flex-1 min-w-0">
@@ -267,11 +363,13 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
             <p className="text-xs text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-0.5">
+            <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-0.5"
+              style={{ border: '1px solid rgba(251,191,36,0.4)' }}>
               <Star size={11} className="text-amber-500 fill-amber-500"/>
               <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
             </div>
-            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 rounded-full px-2 py-0.5">
+            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 rounded-full px-2 py-0.5"
+              style={{ border: '1px solid rgba(251,191,36,0.3)' }}>
               <CoinIcon size={12} />
               <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{user?.coins || 0}</span>
             </div>
@@ -294,7 +392,10 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
                 isActive
                   ? 'bg-sky text-white shadow-md shadow-sky/25'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}>
+              }`}
+            style={({ isActive }) => ({
+              border: isActive ? '2px solid rgba(96,184,245,0.5)' : '2px solid transparent',
+            })}>
             <Icon size={20}/>{label}
           </NavLink>
         ))}
@@ -358,7 +459,7 @@ export default function AppLayout() {
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
       <aside className="hidden md:flex w-64 flex-shrink-0 flex-col shadow-card"
-        style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-color)' }}>
+        style={{ background: 'var(--bg-sidebar)', borderRight: '2px solid var(--border-color)' }}>
         <DesktopSidebar
           user={user} settings={settings} soundOn={soundOn} xpPct={xpPct} currentXP={currentXP}
           toggleSound={toggleSound} updateSettings={updateSettings}
@@ -374,33 +475,22 @@ export default function AppLayout() {
           style={{
             height: 52, padding: '0 16px',
             background: 'var(--bg-sidebar)',
-            borderBottom: '1px solid var(--border-color)',
+            borderBottom: '2px solid var(--border-color)',
             fontFamily: 'inherit', boxSizing: 'border-box',
           }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             width: '100%', height: '100%', gap: 8,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 8, background: '#60B8F5',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <BookOpen size={15} color="white" />
-              </div>
-              <span style={{
-                fontFamily: '"Fredoka One", cursive', fontSize: 19,
-                color: '#60B8F5', lineHeight: 1, whiteSpace: 'nowrap',
-              }}>
-                ReadAble
-              </span>
-            </div>
+            <SmartLogo height={26} />
 
             <div style={{ flexShrink: 0 }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '5px 10px', borderRadius: 10,
-                background: 'var(--border-color)', whiteSpace: 'nowrap',
+                background: 'var(--border-color)',
+                border: '1px solid var(--border-color)',
+                whiteSpace: 'nowrap',
               }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="none" style={{ flexShrink: 0 }}>
                   <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
