@@ -7,21 +7,20 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import { Trophy, Star, User, X, BookOpen, CheckCircle, TrendingUp, Flame } from 'lucide-react';
 
-function AvatarDisplay({ avatar, username, size = 36 }) {
-  const isImage = !!avatar && (avatar.startsWith('data:') || avatar.startsWith('http'));
-  if (isImage) return (
-    <img src={avatar} alt="avatar" className="w-full h-full object-cover"
-      onError={e => { e.currentTarget.style.display = 'none'; }}/>
-  );
-  const isEmoji = avatar && /\p{Emoji_Presentation}/u.test(avatar);
-  if (isEmoji) {
-    const s = size >= 56 ? 'text-3xl' : size >= 36 ? 'text-xl' : 'text-base';
-    return <span className={s}>{avatar}</span>;
-  }
+function AvatarDisplay({ equipped, username, size = 36 }) {
+  const characterId = equipped?.character || 'char_common_gray';
+  const char = characterById(characterId);
+  const src  = char
+    ? `/characters/${char.file}`
+    : `/characters/char_common_gray.png`;
+ 
   return (
-    <span className={`font-bold text-sky/60 ${size >= 56 ? 'text-2xl' : 'text-sm'}`}>
-      {username?.[0]?.toUpperCase() || '?'}
-    </span>
+    <img
+      src={src}
+      alt={char?.name || username?.[0] || '?'}
+      style={{ width: size, height: size, objectFit: 'contain' }}
+      onError={e => { e.currentTarget.style.opacity = '0.3'; }}
+    />
   );
 }
 
@@ -184,7 +183,7 @@ export default function LeaderboardPage() {
                   className="mb-1.5 rounded-xl bg-gradient-to-br from-sky/20 to-indigo-100
                              dark:from-sky/10 dark:to-indigo-900/30 overflow-hidden
                              flex items-center justify-center ring-2 ring-white/30">
-                  <AvatarDisplay avatar={leader.avatar} username={leader.username} size={sz}/>
+                  <AvatarDisplay avatar={leader.equipped} username={leader.username} size={sz}/>
                 </div>
                 <div className={`w-full rounded-t-xl text-center ${m.height} bg-gradient-to-b ${m.bg} flex flex-col items-center justify-center gap-0.5 px-1`}>
                   <p className={`font-display text-xs ${m.text}`}>{m.label}</p>
