@@ -72,7 +72,7 @@ settingsRouter.put('/', requireAuth, async (req, res) => {
 usersRouter.get('/leaderboard', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT username, level, xp, avatar, achievements FROM users ORDER BY xp DESC LIMIT 25`
+      `SELECT username, level, xp, avatar, achievements, COALESCE(equipped, '{}'::jsonb) as equipped FROM users ORDER BY xp DESC LIMIT 25`
     );
     res.json({ leaderboard: result.rows });
   } catch (err) {
