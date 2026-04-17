@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
 import api           from '../utils/api';
 import CharacterAvatar from '../components/character/CharacterAvatar';
+import CoinIcon from '../components/ui/CoinIcon';
 import {
   ALL_CHARACTERS,
   characterById,
@@ -327,7 +328,7 @@ export default function ShopPage() {
           background:'rgba(251,191,36,0.15)', color:'#D97706',
           border:'1px solid rgba(251,191,36,0.3)',
         }}>
-          <span>🪙</span><span>{coinBalance}</span>
+          <CoinIcon size={16} /><span>{coinBalance}</span>
         </div>
       </div>
 
