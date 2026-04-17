@@ -1,5 +1,8 @@
 // ============================================================
 // ShopPage.jsx — Character collection shop
+// Fix: handleEquip now calls patchUser({ equipped: { character: id } })
+// so ProfilePage, AppLayout sidebar, and LeaderboardPage all update
+// immediately without needing a page refresh or poll cycle.
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
@@ -34,35 +37,34 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
   const canAfford   = !isOwned && coinBalance >= (char.cost || 0);
   const isBuying    = buying === char.id;
   const isEquipping = equipping === char.id;
-  // Achievement-only = earnedBy set AND cost is 0
   const achOnly     = !!char.earnedBy && char.cost === 0;
 
   let btnLabel, btnAction, btnDisabled, btnBg, btnColor, btnBorder;
 
   if (isOwned || char.isDefault) {
-    btnLabel   = isEquipping ? '…' : isEquipped ? '✓ Equipped' : 'Equip';
-    btnAction  = () => onEquip(char);
+    btnLabel    = isEquipping ? '…' : isEquipped ? '✓ Equipped' : 'Equip';
+    btnAction   = () => onEquip(char);
     btnDisabled = isEquipping || isEquipped;
-    btnBg      = isEquipped ? rc.color : 'var(--bg-primary)';
-    btnColor   = isEquipped ? '#fff'   : rc.color;
-    btnBorder  = rc.color;
+    btnBg       = isEquipped ? rc.color : 'var(--bg-primary)';
+    btnColor    = isEquipped ? '#fff'   : rc.color;
+    btnBorder   = rc.color;
   } else if (freeByAch) {
-    btnLabel   = isBuying ? '…' : '🎁 Claim Free';
-    btnAction  = () => onBuy({ ...char, cost: 0 });
+    btnLabel    = isBuying ? '…' : '🎁 Claim Free';
+    btnAction   = () => onBuy({ ...char, cost: 0 });
     btnDisabled = isBuying;
     btnBg = '#F59E0B'; btnColor = '#fff'; btnBorder = '#F59E0B';
   } else if (achOnly && !hasAch) {
-    btnLabel   = '🔒 Achievement';
-    btnAction  = () => {};
+    btnLabel    = '🔒 Achievement';
+    btnAction   = () => {};
     btnDisabled = true;
     btnBg = 'var(--bg-primary)'; btnColor = '#9ca3af'; btnBorder = '#e5e7eb';
   } else {
-    btnLabel   = isBuying ? '…' : `🪙 ${char.cost}`;
-    btnAction  = canAfford ? () => onBuy(char) : () => {};
+    btnLabel    = isBuying ? '…' : `🪙 ${char.cost}`;
+    btnAction   = canAfford ? () => onBuy(char) : () => {};
     btnDisabled = isBuying || !canAfford;
-    btnBg      = canAfford ? '#F59E0B' : 'var(--bg-primary)';
-    btnColor   = canAfford ? '#fff'    : '#9ca3af';
-    btnBorder  = canAfford ? '#F59E0B' : '#e5e7eb';
+    btnBg       = canAfford ? '#F59E0B' : 'var(--bg-primary)';
+    btnColor    = canAfford ? '#fff'    : '#9ca3af';
+    btnBorder   = canAfford ? '#F59E0B' : '#e5e7eb';
   }
 
   const dimmed = achOnly && !hasAch && !isOwned;
@@ -250,6 +252,14 @@ export default function ShopPage() {
     }
   }, [user?.id]);
 
+  // Keep local equippedId in sync if user.equipped changes externally
+  useEffect(() => {
+    const charId = user?.equipped?.character;
+    if (charId && characterById(charId)) {
+      setEquippedId(charId);
+    }
+  }, [user?.equipped?.character]);
+
   useEffect(() => { load(); }, [load]);
 
   const handleBuy = async (char) => {
@@ -273,10 +283,21 @@ export default function ShopPage() {
   const handleEquip = async (char) => {
     if (equippedId === char.id) return;
     const prev = equippedId;
+    // 1. Update local shop UI immediately
     setEquippedId(char.id);
     setEquipping(char.id);
-    try { await api.post('/users/equip-item', { category: 'character', itemId: char.id }); }
-    catch (_) { setEquippedId(prev); }
+    // 2. Update global user state so ProfilePage / AppLayout / Leaderboard
+    //    all re-render with the new character without waiting for the poll
+    patchUser({ equipped: { ...(user?.equipped || {}), character: char.id } });
+    try {
+      await api.post('/users/equip-item', { category: 'character', itemId: char.id });
+      // Refresh to confirm server state
+      refreshUser();
+    } catch (_) {
+      // Revert on error
+      setEquippedId(prev);
+      patchUser({ equipped: { ...(user?.equipped || {}), character: prev } });
+    }
     finally { setEquipping(null); }
   };
 
