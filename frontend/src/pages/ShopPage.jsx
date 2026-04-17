@@ -1,9 +1,8 @@
 // ============================================================
 // ShopPage.jsx — Fixed:
-// 1. PNG images properly contained, no overlap with text/labels
-// 2. Category filter buttons span full buddy grid width
-// 3. Achievement-only items show lock overlay + hover modal (no coin option)
-// 4. Buttons are theme-aware (visible in light, dark, high-contrast)
+// 1. Active buddy image fills its container (no floating/gap)
+// 2. All character cards have a visible rarity-colored border
+// 3. Corrected coin pricing: common=50, uncommon=100-150, rare=200-300
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
@@ -16,7 +15,7 @@ import {
   DEFAULT_CHARACTER_ID,
   RARITY_CONFIG,
 } from '../components/character/CHARACTER_CATALOG';
-import { ShoppingBag, Check, ChevronDown, ChevronUp, Sparkles, Lock, Trophy, Info } from 'lucide-react';
+import { ShoppingBag, Check, ChevronDown, ChevronUp, Sparkles, Lock, Trophy } from 'lucide-react';
 
 const RARITY_ORDER   = { common:0, uncommon:1, rare:2, epic:3, mythic:4 };
 const RARITY_FILTERS = [
@@ -27,7 +26,6 @@ const RARITY_FILTERS = [
   { key:'mythic',   label:'Mythic'   },
 ];
 
-// Achievement key → human-readable label map
 const ACH_LABELS = {
   first_star:    'Complete your first activity',
   complete_5:    'Complete 5 activities',
@@ -43,7 +41,7 @@ const ACH_LABELS = {
   level_10:      'Reach Level 10',
 };
 
-// ── Achievement Hover Modal ───────────────────────────────────
+// ── Achievement Hover Tooltip ─────────────────────────────────
 function AchievementTooltip({ earnedBy, visible }) {
   if (!visible) return null;
   const label = ACH_LABELS[earnedBy] || earnedBy;
@@ -74,31 +72,14 @@ function AchievementTooltip({ earnedBy, visible }) {
         </span>
       </div>
       <span style={{ color: '#c7d2fe' }}>{label}</span>
-      {/* Arrow */}
-      <div style={{
-        position: 'absolute',
-        bottom: -6,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 12,
-        height: 6,
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          width: 10,
-          height: 10,
-          background: '#1e1b4b',
-          transform: 'rotate(45deg)',
-          transformOrigin: 'top left',
-          marginLeft: 1,
-        }} />
+      <div style={{ position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)', width: 12, height: 6, overflow: 'hidden' }}>
+        <div style={{ width: 10, height: 10, background: '#1e1b4b', transform: 'rotate(45deg)', transformOrigin: 'top left', marginLeft: 1 }} />
       </div>
     </div>
   );
 }
 
-// ── Character Card ─────────────────────────────────────────────
-// Fixed layout: image in fixed-height box, text always below, no overlap
+// ── Character Card ────────────────────────────────────────────
 function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
                          onBuy, onEquip, buying, equipping }) {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -114,13 +95,10 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
   const isBuying    = buying === char.id;
   const isEquipping = equipping === char.id;
 
-  // ── Button configuration ──────────────────────────────────
   let btnContent, btnAction, btnDisabled;
-  // These are explicit CSS values, not theme variables, so they work in all themes
   let btnBgColor, btnTextColor, btnBorderColor;
 
   if (lockedByAch) {
-    // Locked — show info button that triggers tooltip
     btnContent    = <><Lock size={12} style={{ flexShrink: 0 }} /> Achievement Only</>;
     btnAction     = () => {};
     btnDisabled   = true;
@@ -142,7 +120,6 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
     btnTextColor  = '#ffffff';
     btnBorderColor= '#d97706';
   } else {
-    // Normal coin purchase
     btnContent    = isBuying ? '…' : <><CoinIcon size={11} /> {char.cost}</>;
     btnAction     = canAfford ? () => onBuy(char) : () => {};
     btnDisabled   = isBuying || !canAfford;
@@ -151,34 +128,40 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
     btnBorderColor= canAfford ? '#d97706' : 'rgba(156,163,175,0.35)';
   }
 
+  // Always show a colored rarity border so cards never look borderless
+  const cardBorder = isEquipped
+    ? `2.5px solid ${rc.color}`
+    : isOwned
+    ? `2px solid ${rc.color}80`   // owned: solid rarity color at 50% opacity
+    : `2px solid ${rc.color}50`;  // unowned: rarity color at 30% opacity (still visible)
+
   return (
     <div style={{
       borderRadius: 16,
-      border: isEquipped
-        ? `2px solid ${rc.color}`
-        : `2px solid ${isOwned ? rc.border : 'rgba(156,163,175,0.2)'}`,
-      background: isEquipped
-        ? rc.bg
-        : 'var(--bg-card-grad)',
+      border: cardBorder,
+      background: isEquipped ? rc.bg : 'var(--bg-card-grad)',
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'visible',        // allow tooltip to overflow
+      overflow: 'visible',
       position: 'relative',
       transition: 'border-color 0.2s, box-shadow 0.2s',
-      boxShadow: isEquipped ? `0 0 16px ${rc.glow}` : 'none',
+      boxShadow: isEquipped
+        ? `0 0 16px ${rc.glow}`
+        : isOwned
+        ? `0 2px 8px ${rc.glow}`
+        : 'none',
     }}>
 
-      {/* ── Rarity badge — top left, inside card ── */}
+      {/* Rarity badge */}
       <div style={{
         position: 'absolute', top: 8, left: 8, zIndex: 3,
         padding: '2px 7px', borderRadius: 999,
         fontSize: 8, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
         background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`,
-        pointerEvents: 'none',
-        whiteSpace: 'nowrap',
+        pointerEvents: 'none', whiteSpace: 'nowrap',
       }}>{rc.label}</div>
 
-      {/* ── Equipped check — top right ── */}
+      {/* Equipped check */}
       {isEquipped && (
         <div style={{
           position: 'absolute', top: 8, right: 8, zIndex: 3,
@@ -190,7 +173,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         </div>
       )}
 
-      {/* ── Character image: fixed height box, centered, never overflows ── */}
+      {/* Character image box */}
       <div style={{
         width: '100%',
         height: 110,
@@ -198,20 +181,17 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        // top padding leaves room for rarity badge; bottom padding separates from text
         paddingTop: 28,
         paddingBottom: 8,
         paddingLeft: 8,
         paddingRight: 8,
         boxSizing: 'border-box',
-        overflow: 'hidden',        // strictly clip image
+        overflow: 'hidden',
         position: 'relative',
-        // subtle gradient bg matching rarity when equipped
         background: isEquipped
           ? `linear-gradient(180deg, ${rc.bg} 0%, transparent 100%)`
           : 'transparent',
       }}>
-        {/* Lock overlay for achievement-only locked characters */}
         {lockedByAch && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 4,
@@ -224,13 +204,11 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
               background: 'rgba(30,27,75,0.85)',
               border: '2px solid rgba(139,92,246,0.5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexDirection: 'column', gap: 1,
             }}>
               <Lock size={16} color="#a78bfa" strokeWidth={2.5} />
             </div>
           </div>
         )}
-
         <CharacterAvatar
           characterId={char.id}
           size={68}
@@ -239,41 +217,31 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         />
       </div>
 
-      {/* ── Text info block — always below image, never overlaps ── */}
+      {/* Text info */}
       <div style={{
         padding: '4px 10px 12px',
         display: 'flex',
         flexDirection: 'column',
         gap: 3,
         flex: 1,
-        // Divider line between image area and text
-        borderTop: '1px solid rgba(156,163,175,0.12)',
+        borderTop: `1px solid ${rc.color}25`,
       }}>
         <p style={{
           fontSize: 13, fontWeight: 800,
           color: 'var(--text-primary)',
-          margin: 0, textAlign: 'center',
-          lineHeight: 1.2,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          margin: 0, textAlign: 'center', lineHeight: 1.2,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {char.name}
         </p>
         <p style={{
           fontSize: 10, color: '#9ca3af',
-          margin: 0, textAlign: 'center',
-          lineHeight: 1.4,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-          minHeight: 26,
+          margin: 0, textAlign: 'center', lineHeight: 1.4,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden', minHeight: 26,
         }}>
           {char.desc}
         </p>
-
-        {/* Achievement hint for non-locked owned-by-achievement chars */}
         {freeByAch && (
           <p style={{
             fontSize: 9, fontWeight: 700, color: '#f59e0b',
@@ -284,38 +252,24 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
           </p>
         )}
 
-        {/* ── Action button with tooltip wrapper ── */}
+        {/* Action button */}
         <div style={{ position: 'relative', marginTop: 5 }}
           onMouseEnter={() => lockedByAch && setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
-        >
+          onMouseLeave={() => setShowTooltip(false)}>
           <AchievementTooltip earnedBy={char.earnedBy} visible={showTooltip && lockedByAch} />
-
           <button
             onClick={btnAction}
             disabled={btnDisabled}
             style={{
-              width: '100%',
-              padding: '8px 4px',
-              borderRadius: 10,
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: btnDisabled && !lockedByAch ? 'not-allowed'
-                    : lockedByAch ? 'help'
-                    : 'pointer',
+              width: '100%', padding: '8px 4px', borderRadius: 10,
+              fontSize: 12, fontWeight: 800,
+              cursor: btnDisabled && !lockedByAch ? 'not-allowed' : lockedByAch ? 'help' : 'pointer',
               opacity: (btnDisabled && !isEquipped && !lockedByAch) ? 0.6 : 1,
               transition: 'opacity 0.15s, transform 0.1s',
               fontFamily: 'inherit',
-              background: btnBgColor,
-              color: btnTextColor,
-              border: `2px solid ${btnBorderColor}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 5,
-              boxSizing: 'border-box',
-              // Never invisible — always has a visible border
-              minHeight: 34,
+              background: btnBgColor, color: btnTextColor, border: `2px solid ${btnBorderColor}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              boxSizing: 'border-box', minHeight: 34,
             }}
             onMouseDown={e => { if (!btnDisabled) e.currentTarget.style.transform = 'scale(0.96)'; }}
             onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -328,7 +282,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
   );
 }
 
-// ── Preview Panel ─────────────────────────────────────────────
+// ── Preview Panel (Active Buddy) ──────────────────────────────
 function EquippedPreview({ equippedId, ownedCount }) {
   const char = characterById(equippedId) || characterById(DEFAULT_CHARACTER_ID);
   const rc   = RARITY_CONFIG[char?.rarity || 'common'];
@@ -339,7 +293,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
       {/* Mobile collapsible */}
       <div className="md:hidden" style={{
         borderRadius: 20,
-        border: `2px solid ${rc.border}`,
+        border: `2px solid ${rc.color}`,
         background: 'var(--bg-card-grad)',
         overflow: 'hidden',
         marginBottom: 4,
@@ -347,19 +301,19 @@ function EquippedPreview({ equippedId, ownedCount }) {
         <button onClick={() => setOpen(o => !o)} style={{
           width: '100%', display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', padding: '12px 16px',
-          background: 'none', border: 'none', cursor: 'pointer',
-          fontFamily: 'inherit',
+          background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* ── Fixed 48×48 image container, image fills it ── */}
             <div style={{
               width: 48, height: 48, flexShrink: 0,
-              border: `2px solid ${rc.border}`,
+              border: `2px solid ${rc.color}`,
               borderRadius: 12,
               background: rc.bg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden',
             }}>
-              <CharacterAvatar characterId={equippedId} size={38} />
+              <CharacterAvatar characterId={equippedId} size={44} />
             </div>
             <div style={{ textAlign: 'left' }}>
               <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>{char?.name}</p>
@@ -374,7 +328,18 @@ function EquippedPreview({ equippedId, ownedCount }) {
             borderTop: '1px solid var(--border-color)',
             display: 'flex', justifyContent: 'center',
           }}>
-            <CharacterAvatar characterId={equippedId} size={140} showGlow animate />
+            {/* ── Image fills the expanded preview area ── */}
+            <div style={{
+              width: 140, height: 140,
+              border: `2px solid ${rc.color}`,
+              borderRadius: 16,
+              background: rc.bg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+              marginTop: 12,
+            }}>
+              <CharacterAvatar characterId={equippedId} size={130} showGlow animate />
+            </div>
           </div>
         )}
       </div>
@@ -383,7 +348,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
       <div className="hidden md:flex" style={{
         width: 210, flexShrink: 0, flexDirection: 'column', alignItems: 'center', gap: 12,
         borderRadius: 24, padding: '20px 16px',
-        border: `2px solid ${rc.border}`,
+        border: `2px solid ${rc.color}`,
         background: 'var(--bg-card-grad)',
         position: 'sticky', top: 16,
         boxShadow: `0 0 24px ${rc.glow}`,
@@ -391,16 +356,21 @@ function EquippedPreview({ equippedId, ownedCount }) {
       }}>
         <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>Active Buddy</p>
 
-        {/* Fixed image box with border */}
+        {/* ── Fixed image container: image fills edge-to-edge ── */}
         <div style={{
-          width: 150, height: 150, flexShrink: 0,
-          border: `2px solid ${rc.border}`,
+          width: 160,
+          height: 160,
+          flexShrink: 0,
+          border: `2px solid ${rc.color}`,
           borderRadius: 18,
           background: rc.bg,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',          // clip so image never floats outside
         }}>
-          <CharacterAvatar characterId={equippedId} size={120} showGlow animate />
+          {/* size=156 so it nearly fills the 160px box with a tiny gap for the border */}
+          <CharacterAvatar characterId={equippedId} size={156} showGlow animate />
         </div>
 
         <div style={{ textAlign: 'center', width: '100%' }}>
@@ -473,9 +443,7 @@ export default function ShopPage() {
 
   useEffect(() => {
     const charId = user?.equipped?.character;
-    if (charId && characterById(charId)) {
-      setEquippedId(charId);
-    }
+    if (charId && characterById(charId)) setEquippedId(charId);
   }, [user?.equipped?.character]);
 
   useEffect(() => { load(); }, [load]);
@@ -547,7 +515,7 @@ export default function ShopPage() {
         }}>{toast.msg}</div>
       )}
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
         <div>
           <h1 className="font-display" style={{ fontSize:28, color:'var(--text-primary)', display:'flex', alignItems:'center', gap:8, margin:0 }}>
@@ -557,32 +525,26 @@ export default function ShopPage() {
             {ownedCount} of {ALL_CHARACTERS.length} collected
           </p>
         </div>
-        {/* Coin balance — always visible with explicit colors */}
         <div style={{
           display:'flex', alignItems:'center', gap:6, padding:'8px 14px',
           borderRadius:999, fontWeight:700, fontSize:14,
-          background:'rgba(251,191,36,0.15)',
-          color:'#D97706',
+          background:'rgba(251,191,36,0.15)', color:'#D97706',
           border:'2px solid rgba(251,191,36,0.4)',
         }}>
           <CoinIcon size={16}/><span>{coinBalance}</span>
         </div>
       </div>
 
-      {/* ── HOW TO GET COINS ── */}
-      <div style={{
-        borderRadius: 20, padding: '16px 20px',
-        border: '1px solid var(--border-color)',
-        background: 'var(--bg-card-grad)',
-      }}>
+      {/* How to get coins */}
+      <div style={{ borderRadius:20, padding:'16px 20px', border:'1px solid var(--border-color)', background:'var(--bg-card-grad)' }}>
         <h3 className="font-display" style={{ fontSize:16, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
           How to Get Coins &amp; Buddies
         </h3>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:10 }}>
           {[
-            { icon:'🎮', title:'Play Activities',     desc:'Earn coins equal to 1.5× your XP reward'      },
-            { icon:'🏆', title:'Unlock Achievements', desc:'Bonus coins + free buddies for milestones'     },
-            { icon:'🎁', title:'Achievement Buddies', desc:'Some buddies unlock free with achievements'   },
+            { icon:'🎮', title:'Play Activities',     desc:'Earn coins equal to 1.5× your XP reward'     },
+            { icon:'🏆', title:'Unlock Achievements', desc:'Bonus coins + free buddies for milestones'    },
+            { icon:'🎁', title:'Achievement Buddies', desc:'Some buddies unlock free with achievements'  },
           ].map(({ icon, title, desc }) => (
             <div key={title} style={{
               display:'flex', alignItems:'flex-start', gap:10, padding:'10px 12px',
@@ -598,7 +560,7 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* ── Collection progress ── */}
+      {/* Collection progress */}
       <div style={{ borderRadius:16, padding:'12px 16px', background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
           <span style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)' }}>
@@ -625,37 +587,32 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* ── Main layout: preview + grid ── */}
+      {/* Main layout */}
       <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
         <EquippedPreview equippedId={equippedId} ownedCount={ownedCount}/>
 
         <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:14 }}>
 
-          {/* ── Filter pills — spans full width of grid ── */}
-          {/* Use CSS grid so pills are equal width and span the full container */}
+          {/* Filter pills */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${RARITY_FILTERS.length}, 1fr)`,
-            gap: 6,
-            width: '100%',
+            gap: 6, width: '100%',
           }}>
             {RARITY_FILTERS.map(f => {
               const rc = RARITY_CONFIG[f.key];
               const isActive = filter === f.key;
-              // Use explicit colors so buttons are always readable
-              const activeBg     = rc?.bg     || 'rgba(96,184,245,0.18)';
-              const activeColor  = rc?.color  || '#60B8F5';
-              const activeBorder = rc?.color  || '#60B8F5';
               return (
                 <button key={f.key} onClick={() => setFilter(f.key)}
                   style={{
                     padding:'8px 4px', borderRadius:12, fontSize:11, fontWeight:800,
                     whiteSpace:'nowrap', cursor:'pointer', fontFamily:'inherit',
-                    border: isActive ? `2px solid ${activeBorder}` : '2px solid rgba(156,163,175,0.25)',
-                    background: isActive ? activeBg : 'var(--bg-card-grad)',
-                    color: isActive ? activeColor : 'var(--text-muted, #9ca3af)',
-                    transition:'all 0.15s',
-                    textAlign: 'center',
+                    border: isActive
+                      ? `2px solid ${rc?.color || '#60B8F5'}`
+                      : '2px solid rgba(156,163,175,0.25)',
+                    background: isActive ? (rc?.bg || 'rgba(96,184,245,0.18)') : 'var(--bg-card-grad)',
+                    color: isActive ? (rc?.color || '#60B8F5') : 'var(--text-muted, #9ca3af)',
+                    transition:'all 0.15s', textAlign:'center',
                   }}>
                   {f.label}
                 </button>
@@ -663,13 +620,11 @@ export default function ShopPage() {
             })}
           </div>
 
-          {/* ── Character grid ── */}
-          {/* overflow:visible so tooltips can escape card boundaries */}
+          {/* Character grid */}
           <div style={{
             display:'grid',
             gridTemplateColumns:'repeat(auto-fill, minmax(138px, 1fr))',
-            gap:12,
-            overflow: 'visible',
+            gap:12, overflow:'visible',
           }}>
             {displayed.map(char => (
               <CharacterCard
