@@ -43,22 +43,23 @@ const GROUP_LABELS = {
 };
 
 // ── Avatar display ────────────────────────────────────────────
-function AvatarDisplay({ avatar, username, size = 80 }) {
-  const isImage = avatar && (avatar.startsWith('data:') || avatar.startsWith('http'));
-  if (isImage) return (
-    <img src={avatar} alt="avatar" className="rounded-2xl object-cover flex-shrink-0"
-      style={{ width: size, height: size }}
-      onError={e => { e.currentTarget.style.display = 'none'; }}/>
-  );
-  const isEmoji = avatar && /\p{Emoji_Presentation}/u.test(avatar);
+function AvatarDisplay({ equipped, username, size = 80 }) {
+  const characterId = equipped?.character || 'char_common_gray';
+  const char = characterById(characterId);
+  const src  = char
+    ? `/characters/${char.file}`
+    : `/characters/char_common_gray.png`;
+ 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-coral to-sunny flex items-center justify-center flex-shrink-0"
-      style={{ width: size, height: size }}>
-      {isEmoji
-        ? <span style={{ fontSize: size * 0.45 }}>{avatar}</span>
-        : <span className="font-bold text-white" style={{ fontSize: size * 0.38 }}>
-            {username?.[0]?.toUpperCase() || '?'}
-          </span>}
+    <div style={{ width: size, height: size, borderRadius: 14, overflow: 'hidden',
+                  background: 'rgba(96,184,245,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <img
+        src={src}
+        alt={char?.name || username?.[0] || '?'}
+        style={{ width: '90%', height: '90%', objectFit: 'contain' }}
+        onError={e => { e.currentTarget.style.opacity = '0.3'; }}
+      />
     </div>
   );
 }
