@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth }     from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { characterById } from '../components/character/CHARACTER_CATALOG';
 import {
   LayoutDashboard, BookOpen, Trophy, User, Settings,
   LogOut, Volume2, VolumeX, Star, X,
@@ -267,7 +268,7 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
       <div className="px-4 py-4 mx-3 mt-3 rounded-2xl border border-sky/20 flex-shrink-0"
         style={{ background: 'linear-gradient(135deg,rgba(77,150,255,0.08),rgba(107,203,119,0.06))' }}>
         <div className="flex items-center gap-3">
-          <SidebarAvatar avatar={user?.avatar} username={user?.username}/>
+          <SidebarAvatar characterId={user?.equipped?.character} username={user?.username}/>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm truncate text-gray-800 dark:text-gray-200">{user?.username}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
