@@ -1,7 +1,6 @@
 // ============================================================
 // GamePage — loads activity, renders correct game, shows result
-// Fixed: picture_choice added, safe result.details guard,
-//        coinsAwarded display, content string-parse guard
+// Fixed: auth header always sent, progress refresh after submit
 // ============================================================
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -30,8 +29,6 @@ const DIFF_STYLE = {
   hard:   'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
 };
 
-// ── Safe content parser ───────────────────────────────────────
-// Guard against content being returned as a string instead of object
 function parseContent(activity) {
   if (!activity) return activity;
   if (typeof activity.content === 'string') {
@@ -43,13 +40,9 @@ function parseContent(activity) {
   return activity;
 }
 
-// ── Collapsible answer summary ────────────────────────────────
 function AnswerSummary({ details, type }) {
   const [open, setOpen] = React.useState(false);
-
-  // Safe guard — details may be undefined if using old backend
   if (!details || details.length === 0) return null;
-
   const wrongCount = details.filter(d => !d.ok).length;
 
   const ItemRow = ({ d, i }) => (
@@ -123,7 +116,7 @@ function AnswerSummary({ details, type }) {
 export default function GamePage() {
   const { id }          = useParams();
   const navigate        = useNavigate();
-  const { refreshUser } = useAuth();
+  const { token, refreshUser } = useAuth();
   const { speak, settings } = useSettings();
 
   const [activity,   setActivity]   = useState(null);
@@ -133,6 +126,13 @@ export default function GamePage() {
   const [result,     setResult]     = useState(null);
   const [gameKey,    setGameKey]    = useState(0);
   const resultRef = useRef(null);
+
+  // Ensure auth header is set for all API calls
+  useEffect(() => {
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, [token]);
 
   useEffect(() => {
     setLoading(true);
@@ -153,14 +153,25 @@ export default function GamePage() {
     if (submitting) return;
     setSubmitting(true);
     try {
+      // Ensure token is fresh in headers
+      if (token) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
       const res  = await api.post(`/activities/${id}/submit`, { answer });
       const data = res.data;
       setResult(data);
       if (data.isCorrect) launchConfetti();
       speak(data.feedback);
+      // Refresh user so XP/coins/streak update everywhere
       await refreshUser();
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 120);
-    } catch (_) {}
+    } catch (err) {
+      console.error('[GamePage/Submit]', err);
+      // Show a helpful error if auth failed
+      if (err.status === 401) {
+        navigate('/login');
+      }
+    }
     finally { setSubmitting(false); }
   };
 
@@ -173,7 +184,6 @@ export default function GamePage() {
     </div>
   );
 
-  // If activity type isn't in our map, show a friendly error instead of blank
   const GameComponent = GAME_COMPONENTS[activity?.type];
   if (!GameComponent && activity) {
     return (
@@ -249,7 +259,6 @@ export default function GamePage() {
           style={{ background:'var(--bg-card-grad)',
             borderColor: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#FFD93D' : '#FF6B6B' }}>
 
-          {/* Score header */}
           <div className="text-center mb-4">
             <div className="text-5xl mb-2 animate-bounce">
               {result.isCorrect ? '🏆' : result.score >= 60 ? '⭐' : '💪'}
@@ -262,7 +271,6 @@ export default function GamePage() {
             </p>
           </div>
 
-          {/* Rewards row */}
           <div className="flex flex-wrap justify-center gap-2 mb-3">
             {(result.xpAwarded ?? 0) > 0 && (
               <span className="inline-flex items-center gap-2 bg-sky/15 text-sky px-4 py-1.5 rounded-full font-bold text-sm">
@@ -276,7 +284,6 @@ export default function GamePage() {
             )}
           </div>
 
-          {/* New achievements */}
           {result.newAchievements?.length > 0 && (
             <div className="mb-3 space-y-1.5">
               {result.newAchievements.map(ach => (
@@ -290,10 +297,8 @@ export default function GamePage() {
             </div>
           )}
 
-          {/* Per-answer breakdown — safe guard on details */}
           <AnswerSummary details={result.details} type={activity?.type}/>
 
-          {/* Action buttons */}
           <div className="flex gap-3 justify-center flex-wrap mt-5">
             <button onClick={handleReset}
               className="btn-game bg-sky text-white flex items-center gap-2 text-sm">
