@@ -1,7 +1,8 @@
 // ============================================================
 // Auth Context
-// Fix: coins added to mergeUser comparison so coin changes
-// trigger a re-render without needing a full page refresh.
+// Fix: coins + equipped tracked so any equip change in ShopPage
+// immediately reflects in ProfilePage, AppLayout, LeaderboardPage.
+// equipped defaults to {} so AvatarDisplay always has a valid object.
 // ============================================================
 import React, {
   createContext, useContext, useState,
@@ -11,6 +12,18 @@ import api from '../utils/api';
 
 const AuthContext = createContext(null);
 const POLL_MS = 30_000;
+
+// Normalise a raw user object so downstream code never sees undefined
+// for coins / wardrobe / equipped.
+function normaliseUser(u) {
+  if (!u) return u;
+  return {
+    ...u,
+    coins:    u.coins    ?? 0,
+    wardrobe: u.wardrobe ?? [],
+    equipped: u.equipped ?? {},
+  };
+}
 
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
@@ -22,17 +35,20 @@ export function AuthProvider({ children }) {
 
   const mergeUser = useCallback((next) => {
     if (!next) return;
+    const normalised = normaliseUser(next);
     setUser(prev => {
-      if (!prev) return next;
+      if (!prev) return normalised;
       const same =
-        prev.xp           === next.xp      &&
-        prev.level        === next.level   &&
-        prev.streak       === next.streak  &&
-        prev.coins        === next.coins   &&   // ← coins now tracked
-        prev.username     === next.username &&
-        prev.avatar       === next.avatar  &&
-        (prev.achievements?.length ?? 0) === (next.achievements?.length ?? 0);
-      return same ? prev : next;
+        prev.xp           === normalised.xp           &&
+        prev.level        === normalised.level         &&
+        prev.streak       === normalised.streak        &&
+        prev.coins        === normalised.coins         &&
+        prev.username     === normalised.username      &&
+        prev.avatar       === normalised.avatar        &&
+        // Deep-compare equipped.character so equip changes re-render
+        (prev.equipped?.character) === (normalised.equipped?.character) &&
+        (prev.achievements?.length ?? 0) === (normalised.achievements?.length ?? 0);
+      return same ? prev : normalised;
     });
   }, []);
 
@@ -96,7 +112,7 @@ export function AuthProvider({ children }) {
     tokenRef.current = t;
     await syncLocalSettings();
     setToken(t);
-    setUser(u);
+    setUser(normaliseUser(u));
     return u;
   }, []); // eslint-disable-line
 
@@ -108,7 +124,7 @@ export function AuthProvider({ children }) {
     tokenRef.current = t;
     await syncLocalSettings();
     setToken(t);
-    setUser(u);
+    setUser(normaliseUser(u));
     return u;
   }, []); // eslint-disable-line
 
@@ -124,9 +140,10 @@ export function AuthProvider({ children }) {
   const refreshUser = useCallback(() => fetchUser(), [fetchUser]);
 
   // Optimistically update a subset of user fields without an API call.
-  // Used by ShopPage so coin deductions reflect instantly.
+  // Used by ShopPage so coin deductions + equip changes reflect instantly
+  // across ProfilePage, AppLayout sidebar, Leaderboard, etc.
   const patchUser = useCallback((updates) => {
-    setUser(prev => prev ? { ...prev, ...updates } : prev);
+    setUser(prev => prev ? normaliseUser({ ...prev, ...updates }) : prev);
   }, []);
 
   return (
