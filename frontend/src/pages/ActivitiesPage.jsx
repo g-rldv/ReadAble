@@ -1,7 +1,6 @@
 // ============================================================
-// ActivitiesPage — browse & filter with 3-D pick-up card hover
-// Unlock logic: complete ALL easy in a category → unlock medium
-//               complete ALL medium in a category → unlock hard
+// ActivitiesPage — fixed filter bar (full-width, even spacing)
+// + unlock logic + working submission flow
 // ============================================================
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -14,33 +13,32 @@ const DIFF = {
   medium: { bar:'bg-amber-400',   border:'#fbbf24', pill:'bg-amber-400 text-white',   activePill:'bg-amber-500 text-white',   glow:'rgba(251,191,36,0.30)',  label:'Medium' },
   hard:   { bar:'bg-rose-500',    border:'#f43f5e', pill:'bg-rose-500 text-white',     activePill:'bg-rose-600 text-white',     glow:'rgba(244,63,94,0.30)',  label:'Hard'   },
 };
+
 const TYPES = [
   { key:'all',           label:'All Games'      },
   { key:'word_match',    label:'Word Match'     },
-  { key:'fill_blank',    label:'Fill the Blank' },
+  { key:'fill_blank',    label:'Fill Blank'     },
   { key:'sentence_sort', label:'Sentence Sort'  },
   { key:'picture_word',  label:'Picture & Word' },
 ];
+
 const DIFFS = [
   { key:'all',    label:'All'    },
   { key:'easy',   label:'Easy'   },
   { key:'medium', label:'Medium' },
   { key:'hard',   label:'Hard'   },
 ];
+
 const DIFF_ORDER = { easy:0, medium:1, hard:2 };
 const TYPE_ORDER = { word_match:0, fill_blank:1, sentence_sort:2, picture_word:3 };
 
 // ── Unlock helpers ────────────────────────────────────────────
-// Returns { medium: bool, hard: bool } for a given category
 function getUnlocked(typeKey, activities, progress) {
   const inType = activities.filter(a => a.type === typeKey);
-
   const easyAll  = inType.filter(a => a.difficulty === 'easy');
   const medAll   = inType.filter(a => a.difficulty === 'medium');
-
   const easyDone   = easyAll.every(a => progress[a.id]?.completed);
   const mediumDone = medAll.length > 0 && medAll.every(a => progress[a.id]?.completed);
-
   return {
     medium: easyAll.length > 0 && easyDone,
     hard:   medAll.length  > 0 && mediumDone,
@@ -53,10 +51,10 @@ function getUnlocked(typeKey, activities, progress) {
 
 function lockReason(difficulty, unlocked) {
   if (difficulty === 'medium') {
-    return `Complete all ${unlocked.easyTotal} Easy activities in this category to unlock Medium!`;
+    return `Complete all ${unlocked.easyTotal} Easy activities to unlock Medium!`;
   }
   if (difficulty === 'hard') {
-    return `Complete all ${unlocked.mediumTotal} Medium activities in this category to unlock Hard!`;
+    return `Complete all ${unlocked.mediumTotal} Medium activities to unlock Hard!`;
   }
   return 'Complete previous activities to unlock!';
 }
@@ -88,23 +86,16 @@ function ActivityCard({ activity, progress, isLocked, lockMsg }) {
     ? 'transform 0.1s ease-out, box-shadow 0.1s ease-out'
     : 'transform 0.38s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease';
 
-  // ── Locked card ──────────────────────────────────────────
   if (isLocked) {
     return (
-      <div
-        ref={cardRef}
+      <div ref={cardRef}
         style={{
           boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
           background: 'var(--bg-card-grad)',
-          position: 'relative',
-          overflow: 'hidden',
+          position: 'relative', overflow: 'hidden',
         }}
-        className="rounded-2xl flex flex-col cursor-not-allowed select-none"
-      >
-        {/* Difficulty bar — faded */}
+        className="rounded-2xl flex flex-col cursor-not-allowed select-none">
         <div className={`h-1.5 w-full flex-shrink-0 ${d.bar} opacity-30`}/>
-
-        {/* Card content — heavily dimmed */}
         <div className="p-4 flex flex-col gap-2 flex-1 opacity-20 pointer-events-none">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full capitalize ${d.pill}`}>{d.label}</span>
@@ -113,14 +104,7 @@ function ActivityCard({ activity, progress, isLocked, lockMsg }) {
           <h3 className="font-bold text-sm text-gray-800 dark:text-gray-100 leading-snug">{activity.title}</h3>
           <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 flex-1">{activity.description}</p>
         </div>
-
-        {/* Dark overlay on top */}
-        <div
-          className="absolute inset-0 rounded-2xl"
-          style={{ background: 'rgba(0,0,0,0.55)' }}
-        />
-
-        {/* Lock badge — centred on top of overlay */}
+        <div className="absolute inset-0 rounded-2xl" style={{ background: 'rgba(0,0,0,0.55)' }} />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 px-3">
           <div className="w-10 h-10 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center flex-shrink-0">
             <Lock size={18} className="text-white" />
@@ -133,7 +117,6 @@ function ActivityCard({ activity, progress, isLocked, lockMsg }) {
     );
   }
 
-  // ── Unlocked card ────────────────────────────────────────
   return (
     <Link ref={cardRef} to={`/game/${activity.id}`}
       onMouseEnter={() => setHovered(true)}
@@ -171,7 +154,6 @@ function TypeSection({ typeKey, activities, progress, allActivities }) {
   const unlocked = getUnlocked(typeKey, allActivities, progress);
   const sorted   = [...activities].sort((a,b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty]);
 
-  // Progress hint line shown under section heading
   let hint = null;
   if (!unlocked.medium) {
     hint = `${unlocked.easyDone}/${unlocked.easyTotal} Easy done — finish all to unlock Medium`;
@@ -213,19 +195,6 @@ function TypeSection({ typeKey, activities, progress, allActivities }) {
         })}
       </div>
     </section>
-  );
-}
-
-function FilterPill({ active, onClick, children, activeClass }) {
-  return (
-    <button onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0
-        ${active
-          ? activeClass || 'bg-sky text-white shadow-sm'
-          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-        }`}>
-      {children}
-    </button>
   );
 }
 
@@ -274,7 +243,6 @@ export default function ActivitiesPage() {
 
   const completedCount = Object.values(progress).filter(p => p.completed).length;
 
-  // Show global hint in filter bar only if any category still has locked tiers
   const anyLocked = ['word_match','fill_blank','sentence_sort','picture_word'].some(t => {
     const u = getUnlocked(t, activities, progress);
     return !u.medium || !u.hard;
@@ -287,34 +255,65 @@ export default function ActivitiesPage() {
         <p className="text-sm text-gray-400 mt-0.5">{completedCount} of {activities.length} completed</p>
       </div>
 
-      {/* Filter bar */}
+      {/* ── Filter bar ── */}
       <div className="rounded-2xl p-3 md:p-4 space-y-3"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {TYPES.map(t => (
-            <FilterPill key={t.key} active={activeType === t.key} onClick={() => setActiveType(t.key)}
-              activeClass="bg-indigo-500 text-white shadow-sm">
-              {t.label}
-            </FilterPill>
-          ))}
+
+        {/* Game type row — evenly spaced, full width */}
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${TYPES.length}, 1fr)` }}>
+          {TYPES.map(t => {
+            const isActive = activeType === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setActiveType(t.key)}
+                className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center leading-tight
+                  ${isActive
+                    ? 'bg-indigo-500 text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
+
         <div className="border-t" style={{ borderColor:'var(--border-color)' }}/>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wide mr-1">Level</span>
-          {DIFFS.map(d => (
-            <FilterPill key={d.key} active={activeDiff === d.key} onClick={() => setActiveDiff(d.key)}
-              activeClass={d.key !== 'all' ? DIFF[d.key]?.activePill : 'bg-gray-600 text-white shadow-sm'}>
-              {d.key !== 'all' ? (
-                <span className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${DIFF[d.key]?.bar}`}/>
-                  {d.label}
-                </span>
-              ) : d.label}
-            </FilterPill>
-          ))}
+
+        {/* Difficulty row — evenly spaced, full width */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wide flex-shrink-0">Level</span>
+          <div className="grid gap-2 flex-1" style={{ gridTemplateColumns: `repeat(${DIFFS.length}, 1fr)` }}>
+            {DIFFS.map(d => {
+              const isActive = activeDiff === d.key;
+              const diffCfg  = DIFF[d.key];
+              return (
+                <button
+                  key={d.key}
+                  onClick={() => setActiveDiff(d.key)}
+                  className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center
+                    ${isActive
+                      ? d.key !== 'all'
+                        ? diffCfg?.activePill || 'bg-gray-600 text-white shadow-sm'
+                        : 'bg-gray-700 text-white shadow-sm'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    }`}
+                >
+                  {d.key !== 'all' ? (
+                    <span className="flex items-center justify-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${diffCfg?.bar || ''}`}/>
+                      {d.label}
+                    </span>
+                  ) : d.label}
+                </button>
+              );
+            })}
+          </div>
           {(activeType !== 'all' || activeDiff !== 'all') && (
-            <button onClick={() => { setActiveType('all'); setActiveDiff('all'); }}
-              className="ml-auto text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <button
+              onClick={() => { setActiveType('all'); setActiveDiff('all'); }}
+              className="flex-shrink-0 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2">
               Clear
             </button>
           )}
@@ -351,7 +350,6 @@ export default function ActivitiesPage() {
           ))}
         </div>
       ) : (
-        // Single-type filtered view
         <div className="space-y-8">
           {['word_match','fill_blank','sentence_sort','picture_word']
             .filter(t => grouped[t]?.length > 0)
