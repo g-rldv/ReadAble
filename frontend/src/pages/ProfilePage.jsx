@@ -343,8 +343,6 @@ export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
   const [stats,           setStats]           = useState(null);
   const [statsLoading,    setStatsLoading]    = useState(true);
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [savingAvatar,    setSavingAvatar]    = useState(false);
   const [editUsername,    setEditUsername]    = useState(false);
   const [newUsername,     setNewUsername]     = useState(user?.username || '');
   const [usernameErr,     setUsernameErr]     = useState('');
@@ -360,12 +358,6 @@ export default function ProfilePage() {
       .catch(() => setStats(null))
       .finally(() => setStatsLoading(false));
   }, [user?.id, user?.xp, user?.streak]);
-
-  const handleSaveAvatar = async (avatar) => {
-    setSavingAvatar(true); setShowAvatarModal(false);
-    try { await api.put('/users/avatar', { avatar }); await refreshUser(); } catch (_) {}
-    setSavingAvatar(false);
-  };
 
   const handleSaveUsername = async () => {
     const trimmed = newUsername.trim();
@@ -413,22 +405,7 @@ export default function ProfilePage() {
                             boxShadow: '0 0 0 3px rgba(255,255,255,0.35)' }}>
                 <AvatarDisplay equipped={user?.equipped} avatar={user?.avatar} username={user?.username} size={64}/>
               </div>
-              <button onClick={() => setShowAvatarModal(true)} style={{
-                position: 'absolute', bottom: -3, right: -3,
-                width: 22, height: 22, borderRadius: '50%',
-                background: 'white', border: 'none', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-              }}>
-                <Camera size={11} style={{ color: '#60B8F5' }}/>
-              </button>
-              {savingAvatar && (
-                <div style={{ position: 'absolute', inset: 0, borderRadius: 14,
-                              background: 'rgba(0,0,0,0.4)', display: 'flex',
-                              alignItems: 'center', justifyContent: 'center' }}>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                </div>
-              )}
+              
             </div>
 
             {/* Name + badges */}
@@ -542,11 +519,7 @@ export default function ProfilePage() {
               <div className="w-24 h-24 rounded-2xl ring-4 ring-white/40 overflow-hidden">
                 <AvatarDisplay equipped={user?.equipped} avatar={user?.avatar} username={user?.username} size={96}/>
               </div>
-              <button onClick={() => setShowAvatarModal(true)}
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white text-sky
-                           flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                <Camera size={15}/>
-              </button>
+
             </div>
             <div className="flex-1 min-w-0">
               {editUsername ? (
@@ -747,9 +720,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {showAvatarModal && (
-        <AvatarModal current={user?.avatar || ''} onClose={() => setShowAvatarModal(false)} onSave={handleSaveAvatar}/>
-      )}
       {showAllAch && (
         <AllAchievementsModal unlocked={unlocked} onClose={() => setShowAllAch(false)}/>
       )}
