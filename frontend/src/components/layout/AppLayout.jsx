@@ -131,20 +131,23 @@ function BottomNavBar() {
 }
 
 // ── Shared helpers ────────────────────────────────────────────
-function SidebarAvatar({ avatar, username }) {
-  const isImage = avatar && (avatar.startsWith('data:') || avatar.startsWith('http'));
-  if (isImage) return (
-    <img src={avatar} alt="avatar"
-      className="w-10 h-10 rounded-2xl object-cover flex-shrink-0"
-      onError={e => { e.currentTarget.style.display = 'none'; }}/>
-  );
-  const isEmoji = avatar && /\p{Emoji_Presentation}/u.test(avatar);
+function SidebarAvatar({ characterId, username }) {
+  const char = characterById(characterId);
+  const src  = char
+    ? `/characters/${char.file}`
+    : `/characters/char_common_gray.png`;
+ 
   return (
-    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky to-indigo-500
-                    flex items-center justify-center text-white font-bold flex-shrink-0">
-      {isEmoji
-        ? <span className="text-xl leading-none">{avatar}</span>
-        : <span className="text-sm">{username?.[0]?.toUpperCase() || '?'}</span>}
+    <div className="w-10 h-10 rounded-2xl overflow-hidden flex-shrink-0
+                    bg-gradient-to-br from-sky/10 to-indigo-100
+                    dark:from-sky/10 dark:to-indigo-900/30
+                    flex items-center justify-center">
+      <img
+        src={src}
+        alt={char?.name || username?.[0] || '?'}
+        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        onError={e => { e.currentTarget.style.display = 'none'; }}
+      />
     </div>
   );
 }
