@@ -1,8 +1,5 @@
 // ============================================================
-// ShopPage.jsx — Character collection shop
-// Fix: handleEquip now calls patchUser({ equipped: { character: id } })
-// so ProfilePage, AppLayout sidebar, and LeaderboardPage all update
-// immediately without needing a page refresh or poll cycle.
+// ShopPage.jsx — How-to section at top, fixed PNG card layout
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
@@ -26,7 +23,7 @@ const RARITY_FILTERS = [
   { key:'mythic',   label:'Mythic'   },
 ];
 
-// ── Character Card ────────────────────────────────────────────
+// ── Character Card — fixed layout, no text/image overlap ─────
 function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
                          onBuy, onEquip, buying, equipping }) {
   const rc          = RARITY_CONFIG[char.rarity];
@@ -76,77 +73,137 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         ? `2px solid ${rc.color}`
         : isOwned ? `2px solid ${rc.border}` : '2px solid var(--border-color)',
       background: isEquipped ? rc.bg : 'var(--bg-card-grad)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      padding: '16px 12px 14px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      overflow: 'hidden',
       position: 'relative',
       transition: 'border-color 0.2s, box-shadow 0.2s',
       boxShadow: isEquipped ? `0 0 16px ${rc.glow}` : 'none',
       opacity: dimmed ? 0.65 : 1,
     }}>
-      {/* Rarity badge */}
+      {/* Rarity badge — top left */}
       <div style={{
-        position: 'absolute', top: 10, left: 10,
+        position: 'absolute', top: 10, left: 10, zIndex: 2,
         padding: '2px 8px', borderRadius: 999,
         fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
         background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`,
+        pointerEvents: 'none',
       }}>{rc.label}</div>
 
-      {/* Equipped check */}
+      {/* Equipped check — top right */}
       {isEquipped && (
         <div style={{
-          position: 'absolute', top: 10, right: 10,
+          position: 'absolute', top: 10, right: 10, zIndex: 2,
           width: 20, height: 20, borderRadius: '50%',
           background: rc.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none',
         }}>
           <Check size={11} color="#fff" strokeWidth={3}/>
         </div>
       )}
 
-      {/* Character image */}
-      <div style={{ width: 88, height: 88, marginTop: 12, marginBottom: 10, position: 'relative' }}>
-        {dimmed && (
-          <div style={{
-            position: 'absolute', inset: 0, borderRadius: 12,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,
-            fontSize: 24,
-          }}>🔒</div>
-        )}
+      {/* Lock overlay for achievement-only locked */}
+      {dimmed && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 3,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 28, pointerEvents: 'none',
+          background: 'rgba(0,0,0,0.15)',
+          borderRadius: 18,
+        }}>🔒</div>
+      )}
+
+      {/* ── Character image — fixed-height box, no overflow ── */}
+      <div style={{
+        width: '100%',
+        height: 110,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 28,     /* room for rarity badge */
+        paddingBottom: 8,
+        flexShrink: 0,
+        background: isEquipped
+          ? `linear-gradient(180deg, ${rc.bg} 0%, transparent 100%)`
+          : 'transparent',
+      }}>
         <CharacterAvatar
-          characterId={char.id} size={88}
+          characterId={char.id}
+          size={72}
           showGlow={isOwned || char.isDefault}
           animate={isEquipped}
         />
       </div>
 
-      <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', textAlign: 'center', lineHeight: 1.2 }}>
-        {char.name}
-      </p>
-      <p style={{ fontSize: 10, color: '#9ca3af', margin: '0 0 10px', textAlign: 'center', lineHeight: 1.4, minHeight: 28 }}>
-        {char.desc}
-      </p>
-
-      {!isOwned && !char.isDefault && char.earnedBy && !hasAch && (
-        <p style={{ fontSize: 9, fontWeight: 700, color: '#F59E0B', margin: '0 0 6px', textAlign: 'center' }}>
-          🏅 Unlock via achievement
+      {/* ── Text info — always below image ── */}
+      <div style={{
+        padding: '0 12px 12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        flex: 1,
+      }}>
+        <p style={{
+          fontSize: 13, fontWeight: 800,
+          color: 'var(--text-primary)',
+          margin: 0, textAlign: 'center',
+          lineHeight: 1.2,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {char.name}
         </p>
-      )}
+        <p style={{
+          fontSize: 10, color: '#9ca3af',
+          margin: 0, textAlign: 'center',
+          lineHeight: 1.4,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          minHeight: 28,
+        }}>
+          {char.desc}
+        </p>
 
-      <button
-        onClick={btnAction}
-        disabled={btnDisabled}
-        style={{
-          width: '100%', padding: '8px 0', borderRadius: 12,
-          fontSize: 12, fontWeight: 800, cursor: btnDisabled ? 'not-allowed' : 'pointer',
-          opacity: btnDisabled && !isEquipped ? 0.6 : 1,
-          transition: 'opacity 0.15s, transform 0.1s',
-          fontFamily: 'inherit',
-          background: btnBg, color: btnColor, border: `2px solid ${btnBorder}`,
-        }}
-        onMouseDown={e => { if (!btnDisabled) e.currentTarget.style.transform = 'scale(0.96)'; }}
-        onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-      >
-        {btnLabel}
-      </button>
+        {!isOwned && !char.isDefault && char.earnedBy && !hasAch && (
+          <p style={{
+            fontSize: 9, fontWeight: 700, color: '#F59E0B',
+            margin: '2px 0 0', textAlign: 'center',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            🏅 Unlock via achievement
+          </p>
+        )}
+
+        {/* ── Action button ── */}
+        <button
+          onClick={btnAction}
+          disabled={btnDisabled}
+          style={{
+            width: '100%',
+            marginTop: 6,
+            padding: '8px 0',
+            borderRadius: 12,
+            fontSize: 12,
+            fontWeight: 800,
+            cursor: btnDisabled ? 'not-allowed' : 'pointer',
+            opacity: btnDisabled && !isEquipped ? 0.6 : 1,
+            transition: 'opacity 0.15s, transform 0.1s',
+            fontFamily: 'inherit',
+            background: btnBg,
+            color: btnColor,
+            border: `2px solid ${btnBorder}`,
+            flexShrink: 0,
+          }}
+          onMouseDown={e => { if (!btnDisabled) e.currentTarget.style.transform = 'scale(0.96)'; }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+        >
+          {btnLabel}
+        </button>
+      </div>
     </div>
   );
 }
@@ -161,8 +218,11 @@ function EquippedPreview({ equippedId, ownedCount }) {
     <>
       {/* Mobile collapsible */}
       <div className="md:hidden" style={{
-        borderRadius: 20, border: `2px solid ${rc.border}`,
-        background: 'var(--bg-card-grad)', overflow: 'hidden', marginBottom: 4,
+        borderRadius: 20,
+        border: `2px solid ${rc.border}`,
+        background: 'var(--bg-card-grad)',
+        overflow: 'hidden',
+        marginBottom: 4,
       }}>
         <button onClick={() => setOpen(o => !o)} style={{
           width: '100%', display: 'flex', alignItems: 'center',
@@ -170,7 +230,17 @@ function EquippedPreview({ equippedId, ownedCount }) {
           background: 'none', border: 'none', cursor: 'pointer',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <CharacterAvatar characterId={equippedId} size={44}/>
+            {/* Fixed-size image container with border */}
+            <div style={{
+              width: 44, height: 44, flexShrink: 0,
+              border: `2px solid ${rc.border}`,
+              borderRadius: 12,
+              background: rc.bg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+            }}>
+              <CharacterAvatar characterId={equippedId} size={36}/>
+            </div>
             <div style={{ textAlign: 'left' }}>
               <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>{char?.name}</p>
               <p style={{ fontSize: 10, color: rc.color, margin: 0, fontWeight: 700 }}>{rc.label} · Equipped</p>
@@ -179,7 +249,11 @@ function EquippedPreview({ equippedId, ownedCount }) {
           {open ? <ChevronUp size={18} style={{ color:'#9ca3af' }}/> : <ChevronDown size={18} style={{ color:'#9ca3af' }}/>}
         </button>
         {open && (
-          <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center' }}>
+          <div style={{
+            padding: '0 16px 16px',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex', justifyContent: 'center',
+          }}>
             <CharacterAvatar characterId={equippedId} size={140} showGlow animate/>
           </div>
         )}
@@ -189,22 +263,47 @@ function EquippedPreview({ equippedId, ownedCount }) {
       <div className="hidden md:flex" style={{
         width: 220, flexShrink: 0, flexDirection: 'column', alignItems: 'center', gap: 12,
         borderRadius: 24, padding: '20px 16px',
-        border: `2px solid ${rc.border}`, background: rc.bg,
+        border: `2px solid ${rc.border}`,
+        background: rc.bg,
         position: 'sticky', top: 16,
         boxShadow: `0 0 24px ${rc.glow}`,
         transition: 'border-color 0.3s, box-shadow 0.3s',
       }}>
         <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>Active Buddy</p>
-        <CharacterAvatar characterId={equippedId} size={160} showGlow animate/>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', margin: '0 0 4px' }}>{char?.name}</p>
+
+        {/* Fixed-height image zone — bordered */}
+        <div style={{
+          width: 160, height: 160, flexShrink: 0,
+          border: `2px solid ${rc.border}`,
+          borderRadius: 20,
+          background: 'var(--bg-card-grad)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden',
+        }}>
+          <CharacterAvatar characterId={equippedId} size={136} showGlow animate/>
+        </div>
+
+        <div style={{ textAlign: 'center', width: '100%' }}>
+          <p style={{
+            fontWeight: 800, fontSize: 16, color: 'var(--text-primary)',
+            margin: '0 0 4px',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {char?.name}
+          </p>
           <span style={{
             display: 'inline-block', padding: '2px 10px', borderRadius: 999,
             fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
             background: 'var(--bg-card-grad)', color: rc.color, border: `1px solid ${rc.border}`,
           }}>{rc.label}</span>
         </div>
-        <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>{char?.desc}</p>
+
+        <p style={{
+          fontSize: 11, color: '#9ca3af',
+          textAlign: 'center', margin: 0, lineHeight: 1.5,
+          display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>{char?.desc}</p>
+
         <div style={{
           width: '100%', padding: '10px 12px', borderRadius: 12,
           background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)', textAlign: 'center',
@@ -252,7 +351,6 @@ export default function ShopPage() {
     }
   }, [user?.id]);
 
-  // Keep local equippedId in sync if user.equipped changes externally
   useEffect(() => {
     const charId = user?.equipped?.character;
     if (charId && characterById(charId)) {
@@ -283,18 +381,13 @@ export default function ShopPage() {
   const handleEquip = async (char) => {
     if (equippedId === char.id) return;
     const prev = equippedId;
-    // 1. Update local shop UI immediately
     setEquippedId(char.id);
     setEquipping(char.id);
-    // 2. Update global user state so ProfilePage / AppLayout / Leaderboard
-    //    all re-render with the new character without waiting for the poll
     patchUser({ equipped: { ...(user?.equipped || {}), character: char.id } });
     try {
       await api.post('/users/equip-item', { category: 'character', itemId: char.id });
-      // Refresh to confirm server state
       refreshUser();
     } catch (_) {
-      // Revert on error
       setEquippedId(prev);
       patchUser({ equipped: { ...(user?.equipped || {}), character: prev } });
     }
@@ -323,6 +416,7 @@ export default function ShopPage() {
   return (
     <div className="max-w-5xl mx-auto animate-fade-in" style={{ display:'flex', flexDirection:'column', gap:20 }}>
 
+      {/* Toast */}
       {toast && (
         <div style={{
           position:'fixed', top:24, left:'50%', transform:'translateX(-50%)',
@@ -333,7 +427,7 @@ export default function ShopPage() {
         }}>{toast.msg}</div>
       )}
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
         <div>
           <h1 className="font-display" style={{ fontSize:28, color:'var(--text-primary)', display:'flex', alignItems:'center', gap:8, margin:0 }}>
@@ -349,11 +443,40 @@ export default function ShopPage() {
           background:'rgba(251,191,36,0.15)', color:'#D97706',
           border:'1px solid rgba(251,191,36,0.3)',
         }}>
-          <CoinIcon size={16} /><span>{coinBalance}</span>
+          <CoinIcon size={16}/><span>{coinBalance}</span>
         </div>
       </div>
 
-      {/* Collection progress */}
+      {/* ── HOW TO GET COINS — at the top ── */}
+      <div style={{
+        borderRadius: 20, padding: '16px 20px',
+        border: '1px solid var(--border-color)',
+        background: 'var(--bg-card-grad)',
+      }}>
+        <h3 className="font-display" style={{ fontSize:16, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
+          🪙 How to Get Coins & Buddies
+        </h3>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:10 }}>
+          {[
+            { icon:'🎮', title:'Play Activities',      desc:'Earn coins equal to 1.5× your XP reward'       },
+            { icon:'🏆', title:'Unlock Achievements',  desc:'Bonus coins + free buddies for milestones'      },
+            { icon:'🎁', title:'Achievement Buddies',  desc:'Some characters unlock free with achievements'  },
+          ].map(({ icon, title, desc }) => (
+            <div key={title} style={{
+              display:'flex', alignItems:'flex-start', gap:10, padding:'10px 12px',
+              borderRadius:14, background:'var(--bg-primary)', border:'1px solid var(--border-color)',
+            }}>
+              <span style={{ fontSize:20, flexShrink:0 }}>{icon}</span>
+              <div>
+                <p style={{ fontWeight:700, fontSize:12, color:'var(--text-primary)', margin:0 }}>{title}</p>
+                <p style={{ fontSize:10, color:'#9ca3af', margin:'2px 0 0', lineHeight:1.4 }}>{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Collection progress ── */}
       <div style={{ borderRadius:16, padding:'12px 16px', background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
           <span style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)' }}>
@@ -380,7 +503,7 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Main layout */}
+      {/* ── Main layout: preview + grid ── */}
       <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
         <EquippedPreview equippedId={equippedId} ownedCount={ownedCount}/>
 
@@ -408,7 +531,11 @@ export default function ShopPage() {
           </div>
 
           {/* Character grid */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:10 }}>
+          <div style={{
+            display:'grid',
+            gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))',
+            gap:12,
+          }}>
             {displayed.map(char => (
               <CharacterCard
                 key={char.id}
@@ -424,31 +551,6 @@ export default function ShopPage() {
               />
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* How to earn */}
-      <div style={{ borderRadius:20, padding:'16px 20px', border:'1px solid var(--border-color)', background:'var(--bg-card-grad)' }}>
-        <h3 className="font-display" style={{ fontSize:16, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
-          🪙 How to Get Coins & Buddies
-        </h3>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:10 }}>
-          {[
-            { icon:'🎮', title:'Play Activities',     desc:'Earn coins equal to 1.5× your XP reward'        },
-            { icon:'🏆', title:'Unlock Achievements', desc:'Bonus coins + free buddies for milestones'        },
-            { icon:'🎁', title:'Achievement Buddies',  desc:'Some characters unlock free with achievements'   },
-          ].map(({ icon, title, desc }) => (
-            <div key={title} style={{
-              display:'flex', alignItems:'flex-start', gap:10, padding:'10px 12px',
-              borderRadius:14, background:'var(--bg-primary)', border:'1px solid var(--border-color)',
-            }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>{icon}</span>
-              <div>
-                <p style={{ fontWeight:700, fontSize:12, color:'var(--text-primary)', margin:0 }}>{title}</p>
-                <p style={{ fontSize:10, color:'#9ca3af', margin:'2px 0 0', lineHeight:1.4 }}>{desc}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
