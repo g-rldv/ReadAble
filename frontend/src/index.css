@@ -323,3 +323,110 @@ aside[style*="var(--bg-sidebar)"] {
 /* Hide scrollbar for filter pill rows */
 .scrollbar-none { scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Ensure border-color is always visible (minimum contrast) */
+:root,
+[data-theme="cotton"] {
+  --border-color: #E8C8C0;        /* slightly stronger than before */
+  --border-interactive: #D4A89A;  /* for buttons/cards that need more contrast */
+  --border-focus: #F07050;        /* accent color for focused/active state */
+}
+
+[data-theme="sky"] {
+  --border-color: #F0A8BC;
+  --border-interactive: #E08090;
+  --border-focus: #E83060;
+}
+
+[data-theme="mint"] {
+  --border-color: #88C890;
+  --border-interactive: #68A870;
+  --border-focus: #22A845;
+}
+
+[data-theme="sunshine"] {
+  --border-color: #E8C060;
+  --border-interactive: #C8A040;
+  --border-focus: #D08010;
+}
+
+[data-theme="lavender"] {
+  --border-color: #C0A0E8;
+  --border-interactive: #A080C8;
+  --border-focus: #8040D8;
+}
+
+[data-theme="peach"] {
+  --border-color: #E8A060;
+  --border-interactive: #C88040;
+  --border-focus: #E06818;
+}
+
+[data-theme="bubblegum"] {
+  --border-color: #F080C0;
+  --border-interactive: #D060A0;
+  --border-focus: #D82890;
+}
+
+[data-theme="ocean"] {
+  --border-color: #60C0D8;
+  --border-interactive: #40A0B8;
+  --border-focus: #0898C8;
+}
+
+[data-theme="night"] {
+  --border-color: #4C3890;        /* stronger purple border in dark mode */
+  --border-interactive: #6848C0;
+  --border-focus: #9060F0;
+}
+
+/* ── Base button border rule ─────────────────────────────────
+   Apply to all .btn-game buttons sitewide so they always
+   have a visible border even on light backgrounds.
+   ─────────────────────────────────────────────────────────── */
+.btn-game {
+  border: 2px solid var(--border-interactive, rgba(0,0,0,0.15)) !important;
+}
+
+/* Specific color overrides for btn-game variants */
+.btn-game.bg-sky,
+.btn-game[style*="background-color: #60B8F5"],
+.btn-game[style*="background:#60B8F5"] {
+  border-color: rgba(96,184,245,0.7) !important;
+}
+
+.btn-game.bg-coral {
+  border-color: rgba(249,123,107,0.7) !important;
+}
+
+/* ── Card borders — ensure all cards have a visible border ───
+   Cards use var(--border-color) which is now guaranteed to
+   have enough contrast against var(--bg-card) in all themes.
+   ─────────────────────────────────────────────────────────── */
+.shadow-card {
+  border: 1px solid var(--border-color);
+}
+
+/* ── Input fields — always have a defined border ─────────────*/
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  border: 2px solid var(--border-color) !important;
+  transition: border-color 0.15s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--border-focus, #60B8F5) !important;
+  outline: none;
+}
+
+/* ── Drop zones — always bordered ────────────────────────────*/
+.drop-zone {
+  border-color: var(--border-interactive) !important;
+}
