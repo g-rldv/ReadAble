@@ -1,5 +1,5 @@
 // ============================================================
-// App.jsx — root router + shop route added
+// App.jsx — root router (leaderboard removed)
 // ============================================================
 import React, { Component, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -15,7 +15,6 @@ const ActivitiesPage = React.lazy(() => import('./pages/ActivitiesPage'));
 const GamePage       = React.lazy(() => import('./pages/GamePage'));
 const ProfilePage    = React.lazy(() => import('./pages/ProfilePage'));
 const SettingsPage   = React.lazy(() => import('./pages/SettingsPage'));
-const LeaderboardPage= React.lazy(() => import('./pages/LeaderboardPage'));
 const ShopPage       = React.lazy(() => import('./pages/ShopPage'));
 
 function Spinner({ message = 'Loading…' }) {
@@ -80,7 +79,6 @@ function AppRoutes() {
           <Route path="/game/:id"    element={<GamePage />} />
           <Route path="/profile"     element={<ProfilePage />} />
           <Route path="/settings"    element={<SettingsPage />} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/shop"        element={<ShopPage />} />
         </Route>
 
