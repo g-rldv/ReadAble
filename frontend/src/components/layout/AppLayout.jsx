@@ -6,6 +6,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth }     from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { characterById, DEFAULT_CHARACTER_ID } from '../character/CHARACTER_CATALOG';
+import CoinIcon from '../ui/CoinIcon';
 import {
   LayoutDashboard, BookOpen, Trophy, User, Settings,
   LogOut, Volume2, VolumeX, Star, X,
@@ -273,7 +274,7 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
               <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
             </div>
             <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 rounded-full px-2 py-0.5">
-              <span className="text-xs">🪙</span>
+              <CoinIcon size={12} />
               <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{user?.coins || 0}</span>
             </div>
           </div>
