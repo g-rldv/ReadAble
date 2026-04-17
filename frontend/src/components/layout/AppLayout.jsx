@@ -1,5 +1,5 @@
 // ============================================================
-// AppLayout.jsx — updated to use character PNG in sidebar
+// AppLayout.jsx — updated: leaderboard removed from nav
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -8,7 +8,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { characterById, DEFAULT_CHARACTER_ID } from '../character/CHARACTER_CATALOG';
 import CoinIcon from '../ui/CoinIcon';
 import {
-  LayoutDashboard, BookOpen, Trophy, User, Settings,
+  LayoutDashboard, BookOpen, User, Settings,
   LogOut, Volume2, VolumeX, Star, X,
   Music, Music2, SlidersHorizontal, Sparkles, Maximize2, Minimize,
   ShoppingBag,
@@ -16,7 +16,6 @@ import {
 
 const BOTTOM_NAV = [
   { to:'/dashboard',   Icon:LayoutDashboard, label:'Home'       },
-  { to:'/leaderboard', Icon:Trophy,          label:'Boards'     },
   { to:'/activities',  Icon:BookOpen,        label:'Activities' },
   { to:'/profile',     Icon:User,            label:'Profile'    },
   { to:'/shop',        Icon:ShoppingBag,     label:'Shop'       },
@@ -25,7 +24,6 @@ const BOTTOM_NAV = [
 const SIDEBAR_NAV = [
   { to:'/dashboard',   Icon:LayoutDashboard, label:'Home'        },
   { to:'/activities',  Icon:BookOpen,        label:'Activities'  },
-  { to:'/leaderboard', Icon:Trophy,          label:'Leaderboard' },
   { to:'/profile',     Icon:User,            label:'My Profile'  },
   { to:'/shop',        Icon:ShoppingBag,     label:'Shop'        },
   { to:'/settings',    Icon:Settings,        label:'Settings'    },
@@ -355,7 +353,6 @@ export default function AppLayout() {
   }, []);
 
   const BOTTOM_NAV_HEIGHT = BAR_H + POP_H + 4;
-  const equippedCharId = user?.equipped?.character || DEFAULT_CHARACTER_ID;
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
