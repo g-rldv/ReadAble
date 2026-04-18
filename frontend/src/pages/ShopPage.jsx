@@ -1,7 +1,8 @@
 // ============================================================
-// ShopPage.jsx — Updated:
-// 1. App-icon style dark rounded border on character images
-// 2. Active Buddy preview also uses app-icon border
+// ShopPage.jsx — Fixed:
+// 1. Character PNG fills the AppIconBox (object-fit: cover / contain
+//    with padding=0 so image occupies full tile, not a tiny centered dot)
+// 2. Equip/Buy button text + border adapt to dark themes automatically
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
@@ -69,7 +70,8 @@ function AchievementTooltip({ earnedBy, visible }) {
 }
 
 // ── App-Icon Avatar Box ───────────────────────────────────────
-// Dark border, rounded corners, light background — like the reference image
+// The PNG fills the entire tile. No whitespace padding — the character
+// image uses object-fit:contain so it scales to edges without cropping.
 function AppIconBox({ children, size = 80, equipped = false, locked = false, rarityColor }) {
   return (
     <div style={{
@@ -79,9 +81,8 @@ function AppIconBox({ children, size = 80, equipped = false, locked = false, rar
       border: equipped
         ? `3px solid #1a1a2e`
         : `2.5px solid #1a1a2e`,
-      background: locked
-        ? 'rgba(20,20,30,0.08)'
-        : '#f0f4ff',
+      // Transparent background — the PNG itself provides the visual
+      background: locked ? 'rgba(20,20,30,0.08)' : 'transparent',
       boxShadow: equipped
         ? `0 3px 0 #1a1a2e, 0 6px 16px rgba(0,0,0,0.25)`
         : `0 2px 0 #1a1a2e, 0 4px 10px rgba(0,0,0,0.15)`,
@@ -114,40 +115,59 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
   const isBuying    = buying === char.id;
   const isEquipping = equipping === char.id;
 
+  // ── Button styling — adapts to dark/light theme ──────────────
+  // Uses CSS variable colours so it always reads correctly against the
+  // current background regardless of theme.
   let btnContent, btnAction, btnDisabled;
-  let btnBgColor, btnTextColor, btnBorderColor;
+  let btnStyle;
 
   if (lockedByAch) {
-    btnContent    = <><Lock size={12} style={{ flexShrink: 0 }} /> Achievement Only</>;
-    btnAction     = () => {};
-    btnDisabled   = true;
-    btnBgColor    = 'rgba(100,100,120,0.18)';
-    btnTextColor  = '#9ca3af';
-    btnBorderColor= 'rgba(156,163,175,0.5)';
+    btnContent  = <><Lock size={12} style={{ flexShrink: 0 }} /> Achievement Only</>;
+    btnAction   = () => {};
+    btnDisabled = true;
+    btnStyle = {
+      background: 'rgba(156,163,175,0.15)',
+      color: 'var(--text-muted, #9ca3af)',
+      border: '2px solid rgba(156,163,175,0.4)',
+    };
   } else if (isOwned || char.isDefault) {
-    btnContent    = isEquipping ? '…' : isEquipped ? <><Check size={13} strokeWidth={3} /> Equipped</> : 'Equip';
-    btnAction     = () => onEquip(char);
-    btnDisabled   = isEquipping || isEquipped;
-    btnBgColor    = isEquipped ? '#1a1a2e' : 'transparent';
-    btnTextColor  = isEquipped ? '#ffffff' : '#1a1a2e';
-    btnBorderColor= '#1a1a2e';
+    btnContent  = isEquipping ? '…' : isEquipped ? <><Check size={13} strokeWidth={3} /> Equipped</> : 'Equip';
+    btnAction   = () => onEquip(char);
+    btnDisabled = isEquipping || isEquipped;
+    btnStyle = isEquipped
+      ? {
+          background: '#1a1a2e',
+          color: '#ffffff',
+          border: '2px solid #1a1a2e',
+        }
+      : {
+          // Visible on both light and dark themes
+          background: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+          border: '2px solid var(--border-interactive, #888)',
+        };
   } else if (freeByAch) {
-    btnContent    = isBuying ? '…' : '🎁 Claim Free';
-    btnAction     = () => onBuy({ ...char, cost: 0 });
-    btnDisabled   = isBuying;
-    btnBgColor    = '#f59e0b';
-    btnTextColor  = '#ffffff';
-    btnBorderColor= '#d97706';
+    btnContent  = isBuying ? '…' : '🎁 Claim Free';
+    btnAction   = () => onBuy({ ...char, cost: 0 });
+    btnDisabled = isBuying;
+    btnStyle = {
+      background: '#f59e0b',
+      color: '#ffffff',
+      border: '2px solid #d97706',
+    };
   } else {
-    btnContent    = isBuying ? '…' : <><CoinIcon size={11} /> {char.cost}</>;
-    btnAction     = canAfford ? () => onBuy(char) : () => {};
-    btnDisabled   = isBuying || !canAfford;
-    btnBgColor    = canAfford ? '#f59e0b' : 'rgba(100,100,120,0.18)';
-    btnTextColor  = canAfford ? '#ffffff' : '#9ca3af';
-    btnBorderColor= canAfford ? '#d97706' : 'rgba(156,163,175,0.5)';
+    btnContent  = isBuying ? '…' : <><CoinIcon size={11} /> {char.cost}</>;
+    btnAction   = canAfford ? () => onBuy(char) : () => {};
+    btnDisabled = isBuying || !canAfford;
+    btnStyle = canAfford
+      ? { background: '#f59e0b', color: '#ffffff', border: '2px solid #d97706' }
+      : {
+          background: 'rgba(156,163,175,0.15)',
+          color: 'var(--text-muted, #9ca3af)',
+          border: '2px solid rgba(156,163,175,0.4)',
+        };
   }
 
-  // Card border — rarity tint on outer card
   const cardBorderWidth = isEquipped ? 3 : isOwned ? 2.5 : 2;
   const cardBorderColor = isEquipped
     ? rc.color
@@ -194,7 +214,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         </div>
       )}
 
-      {/* ── App-icon style image area ── */}
+      {/* ── Character image area — PNG fills the full tile ── */}
       <div style={{
         width: '100%',
         paddingTop: 36,
@@ -208,7 +228,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
           ? `linear-gradient(180deg, ${rc.bg} 0%, transparent 100%)`
           : 'transparent',
       }}>
-        {/* Lock overlay for achievement-gated characters */}
+        {/* Lock overlay */}
         {lockedByAch && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 4,
@@ -227,11 +247,11 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
           </div>
         )}
 
-        {/* App-icon box wrapping the character */}
+        {/* AppIconBox: PNG fills the full box */}
         <AppIconBox size={72} equipped={isEquipped} locked={lockedByAch} rarityColor={rc.color}>
           <CharacterAvatar
             characterId={char.id}
-            size={60}
+            size={72}       /* match box size exactly so PNG fills edge-to-edge */
             showGlow={false}
             animate={false}
           />
@@ -257,7 +277,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
           {char.name}
         </p>
         <p style={{
-          fontSize: 10, color: '#9ca3af', margin: 0, textAlign: 'center', lineHeight: 1.4,
+          fontSize: 10, color: 'var(--text-muted, #9ca3af)', margin: 0, textAlign: 'center', lineHeight: 1.4,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           overflow: 'hidden', minHeight: 26,
         }}>
@@ -273,7 +293,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
           </p>
         )}
 
-        {/* Action button */}
+        {/* Action button — theme-adaptive */}
         <div style={{ position: 'relative', marginTop: 5 }}
           onMouseEnter={() => lockedByAch && setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}>
@@ -288,9 +308,9 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
               opacity: (btnDisabled && !isEquipped && !lockedByAch) ? 0.6 : 1,
               transition: 'opacity 0.15s, transform 0.1s',
               fontFamily: 'inherit',
-              background: btnBgColor, color: btnTextColor, border: `2px solid ${btnBorderColor}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
               boxSizing: 'border-box', minHeight: 34,
+              ...btnStyle,
             }}
             onMouseDown={e => { if (!btnDisabled) e.currentTarget.style.transform = 'scale(0.96)'; }}
             onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -323,16 +343,16 @@ function EquippedPreview({ equippedId, ownedCount }) {
           background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* App-icon box for mobile preview */}
+            {/* Full-size preview — PNG fills the box */}
             <AppIconBox size={52} equipped rarityColor={rc.color}>
-              <CharacterAvatar characterId={equippedId} size={42} animate={false} />
+              <CharacterAvatar characterId={equippedId} size={52} animate={false} />
             </AppIconBox>
             <div style={{ textAlign: 'left' }}>
               <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>{char?.name}</p>
               <p style={{ fontSize: 10, color: rc.color, margin: 0, fontWeight: 700 }}>{rc.label} · Equipped</p>
             </div>
           </div>
-          {open ? <ChevronUp size={18} style={{ color:'#9ca3af' }}/> : <ChevronDown size={18} style={{ color:'#9ca3af' }}/>}
+          {open ? <ChevronUp size={18} style={{ color:'var(--text-muted)' }}/> : <ChevronDown size={18} style={{ color:'var(--text-muted)' }}/>}
         </button>
         {open && (
           <div style={{
@@ -340,7 +360,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
             display: 'flex', justifyContent: 'center',
           }}>
             <AppIconBox size={130} equipped rarityColor={rc.color}>
-              <CharacterAvatar characterId={equippedId} size={108} showGlow animate={false} />
+              <CharacterAvatar characterId={equippedId} size={130} showGlow animate={false} />
             </AppIconBox>
           </div>
         )}
@@ -358,9 +378,9 @@ function EquippedPreview({ equippedId, ownedCount }) {
       }}>
         <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>Active Buddy</p>
 
-        {/* App-icon box wrapping the character */}
+        {/* PNG fills the full preview box */}
         <AppIconBox size={150} equipped rarityColor={rc.color}>
-          <CharacterAvatar characterId={equippedId} size={126} showGlow animate={false} />
+          <CharacterAvatar characterId={equippedId} size={150} showGlow animate={false} />
         </AppIconBox>
 
         <div style={{ textAlign: 'center', width: '100%' }}>
@@ -379,7 +399,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
         </div>
 
         <p style={{
-          fontSize: 11, color: '#9ca3af', textAlign: 'center', margin: 0, lineHeight: 1.5,
+          fontSize: 11, color: 'var(--text-muted, #9ca3af)', textAlign: 'center', margin: 0, lineHeight: 1.5,
           display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>{char?.desc}</p>
 
@@ -388,9 +408,9 @@ function EquippedPreview({ equippedId, ownedCount }) {
           background: 'var(--bg-primary)', border: '2px solid #1a1a2e', textAlign: 'center',
           boxShadow: '0 2px 0 #1a1a2e',
         }}>
-          <p style={{ fontSize: 10, color: '#9ca3af', margin: '0 0 2px' }}>Collection</p>
+          <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '0 0 2px' }}>Collection</p>
           <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            {ownedCount} <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af' }}>/ {ALL_CHARACTERS.length}</span>
+            {ownedCount} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)' }}>/ {ALL_CHARACTERS.length}</span>
           </p>
         </div>
       </div>
@@ -511,7 +531,7 @@ export default function ShopPage() {
           <h1 className="font-display" style={{ fontSize:28, color:'var(--text-primary)', display:'flex', alignItems:'center', gap:8, margin:0 }}>
             <ShoppingBag size={24} style={{ color:'#60B8F5' }}/> Buddy Shop
           </h1>
-          <p style={{ fontSize:12, color:'#9ca3af', margin:'3px 0 0' }}>
+          <p style={{ fontSize:12, color:'var(--text-muted)', margin:'3px 0 0' }}>
             {ownedCount} of {ALL_CHARACTERS.length} collected
           </p>
         </div>
@@ -543,7 +563,7 @@ export default function ShopPage() {
               <span style={{ fontSize:20, flexShrink:0 }}>{icon}</span>
               <div>
                 <p style={{ fontWeight:700, fontSize:12, color:'var(--text-primary)', margin:0 }}>{title}</p>
-                <p style={{ fontSize:10, color:'#9ca3af', margin:'2px 0 0', lineHeight:1.4 }}>{desc}</p>
+                <p style={{ fontSize:10, color:'var(--text-muted)', margin:'2px 0 0', lineHeight:1.4 }}>{desc}</p>
               </div>
             </div>
           ))}
@@ -557,7 +577,7 @@ export default function ShopPage() {
             <Sparkles size={12} style={{ display:'inline', marginRight:4, color:'#F59E0B' }}/>
             Collection Progress
           </span>
-          <span style={{ fontSize:12, fontWeight:700, color:'#9ca3af' }}>{ownedCount} / {ALL_CHARACTERS.length}</span>
+          <span style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)' }}>{ownedCount} / {ALL_CHARACTERS.length}</span>
         </div>
         <div style={{ height:8, borderRadius:999, background:'var(--border-color)', overflow:'hidden' }}>
           <div style={{
@@ -590,7 +610,6 @@ export default function ShopPage() {
             gap: 6, width: '100%',
           }}>
             {RARITY_FILTERS.map(f => {
-              const rc = RARITY_CONFIG[f.key];
               const isActive = filter === f.key;
               return (
                 <button key={f.key} onClick={() => setFilter(f.key)}
@@ -598,13 +617,13 @@ export default function ShopPage() {
                     padding:'8px 4px', borderRadius:12, fontSize:11, fontWeight:800,
                     whiteSpace:'nowrap', cursor:'pointer', fontFamily:'inherit',
                     border: isActive
-                      ? `2px solid #1a1a2e`
+                      ? `2px solid var(--text-primary)`
                       : '2px solid var(--border-color)',
-                    background: isActive ? '#1a1a2e' : 'var(--bg-card-grad)',
-                    color: isActive ? '#ffffff' : 'var(--text-muted, #9ca3af)',
+                    background: isActive ? 'var(--text-primary)' : 'var(--bg-card-grad)',
+                    color: isActive ? 'var(--bg-primary)' : 'var(--text-muted, #9ca3af)',
                     transition:'all 0.15s', textAlign:'center',
                     minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-                    boxShadow: isActive ? '0 2px 0 #000' : 'none',
+                    boxShadow: isActive ? '0 2px 0 rgba(0,0,0,0.2)' : 'none',
                   }}>
                   {f.label}
                 </button>
