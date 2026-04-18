@@ -1,6 +1,7 @@
 // ============================================================
-// CharacterAvatar.jsx — renders a character PNG image
-// All character art lives in /public/characters/
+// CharacterAvatar.jsx — PNG fills the container fully.
+// objectFit:'contain' + width/height 100% ensures the character
+// image occupies the entire tile without whitespace borders.
 // ============================================================
 import React from 'react';
 import {
@@ -65,9 +66,11 @@ export default function CharacterAvatar({
         alt={char?.name || 'Character'}
         draggable={false}
         style={{
+          // Fill the entire allocated space so there is no empty padding
           width: '100%',
           height: '100%',
-          objectFit: 'contain',
+          objectFit: 'contain',   // keeps aspect ratio, fills box
+          display: 'block',
           animation: animate ? `charFloat 3s ease-in-out infinite` : 'none',
           filter: (showGlow && rarity !== 'common')
             ? `drop-shadow(0 0 ${Math.round(size * 0.06)}px ${rarConf.color}88)`
