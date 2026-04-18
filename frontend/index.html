@@ -2,10 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Browser tab favicon — uses the white logo as default -->
-    <!-- Place readablelogowhite.png and readablelogoblack.png in /public/ -->
-    <link rel="icon" type="image/png" href="/readablelogowhite.png" />
-    <!-- Fallback SVG icon if PNG is not found -->
+    <!-- Browser tab favicon — circular via canvas -->
+    <link rel="icon" type="image/png" href="/readablelogowhite.png" id="favicon-link" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ReadAble - Interactive Reading Comprehension for Everyone" />
@@ -18,29 +16,74 @@
     />
     <title>ReadAble</title>
     <script>
-      // Dynamically switch favicon based on theme preference
-      // This runs before React loads to avoid flash
-      (function() {
-        function updateFavicon() {
-          const html = document.documentElement;
-          const isDark = html.classList.contains('dark') || 
-                         html.getAttribute('data-theme') === 'night' ||
-                         window.matchMedia('(prefers-color-scheme: dark)').matches;
-          const favicon = document.querySelector('link[rel="icon"][type="image/png"]');
-          if (favicon) {
-            favicon.href = isDark ? '/readablelogoblack.png' : '/readablelogowhite.png';
-          }
+      // Renders the logo PNG onto a canvas with circular clipping,
+      // then sets it as the favicon so the browser tab shows a circle.
+      (function () {
+        var SIZE = 64;
+
+        function makeFaviconUrl(imgSrc, callback) {
+          var img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = function () {
+            var canvas = document.createElement('canvas');
+            canvas.width = SIZE;
+            canvas.height = SIZE;
+            var ctx = canvas.getContext('2d');
+
+            // Clip to a circle
+            ctx.beginPath();
+            ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            // Draw image scaled to fill the circle
+            ctx.drawImage(img, 0, 0, SIZE, SIZE);
+
+            callback(canvas.toDataURL('image/png'));
+          };
+          img.onerror = function () {
+            // Fall back to original if load fails
+            callback(imgSrc);
+          };
+          img.src = imgSrc;
         }
-        
-        // Watch for theme changes on the html element
-        const observer = new MutationObserver(updateFavicon);
-        observer.observe(document.documentElement, { 
-          attributes: true, 
-          attributeFilter: ['class', 'data-theme'] 
+
+        function updateFavicon() {
+          var html  = document.documentElement;
+          var isDark =
+            html.classList.contains('dark') ||
+            html.getAttribute('data-theme') === 'night' ||
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+          // Dark themes → white logo; light themes → black logo
+          var src = isDark ? '/readablelogoblack.png' : '/readablelogowhite.png';
+
+          makeFaviconUrl(src, function (dataUrl) {
+            // Remove existing favicons
+            var existing = document.querySelectorAll('link[rel="icon"]');
+            existing.forEach(function (el) { el.parentNode && el.parentNode.removeChild(el); });
+
+            var link = document.createElement('link');
+            link.rel  = 'icon';
+            link.type = 'image/png';
+            link.href = dataUrl;
+            document.head.appendChild(link);
+          });
+        }
+
+        // Re-run whenever the theme class/attribute changes
+        var observer = new MutationObserver(updateFavicon);
+        observer.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['class', 'data-theme'],
         });
-        
-        // Initial check
-        updateFavicon();
+
+        // Initial call — wait for DOM so the canvas API is available
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', updateFavicon);
+        } else {
+          updateFavicon();
+        }
       })();
     </script>
   </head>
