@@ -13,6 +13,7 @@ import FillBlankGame    from '../components/games/FillBlankGame';
 import SentenceSortGame from '../components/games/SentenceSortGame';
 import PictureWordGame  from '../components/games/PictureWordGame';
 import PictureChoiceGame from '../components/games/PictureChoiceGame';
+import CoinIcon from '../components/ui/CoinIcon';
 import { ArrowLeft, Volume2, RotateCcw, Home, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
 
 const GAME_COMPONENTS = {
@@ -260,9 +261,7 @@ export default function GamePage() {
             borderColor: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#FFD93D' : '#FF6B6B' }}>
 
           <div className="text-center mb-4">
-            <div className="text-5xl mb-2 animate-bounce">
-              {result.isCorrect ? '🏆' : result.score >= 60 ? '⭐' : '💪'}
-            </div>
+            {/* Score only — no trophy emoji to reduce clutter */}
             <div className="font-display text-4xl md:text-5xl mb-1" style={{
               color: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#F0C000' : '#FF6B6B'
             }}>{result.score}%</div>
@@ -279,7 +278,7 @@ export default function GamePage() {
             )}
             {(result.coinsAwarded ?? 0) > 0 && (
               <span className="inline-flex items-center gap-2 bg-amber-400/15 text-amber-700 dark:text-amber-400 px-4 py-1.5 rounded-full font-bold text-sm">
-                🪙 +{result.coinsAwarded} coins!
+                <CoinIcon size={14}/> +{result.coinsAwarded} coins!
               </span>
             )}
           </div>
