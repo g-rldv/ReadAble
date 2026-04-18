@@ -2,6 +2,8 @@
 // LandingPage — hero, trial game with connected progress bars,
 // red/green answer feedback, quick settings
 // Added: Forgot Password flow inside SignInModal
+// Fixed: Logo uses white PNG on dark themes, black PNG on light themes
+//        "ReadAble" text shown beside logo
 // ============================================================
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -17,6 +19,71 @@ import {
 } from 'lucide-react';
 import { launchConfetti } from '../utils/confetti';
 import api from '../utils/api';
+
+// ── Theme darkness detection ──────────────────────────────────
+function useIsDark() {
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const html = document.documentElement;
+      setIsDark(
+        html.classList.contains('dark') ||
+        html.getAttribute('data-theme') === 'night'
+      );
+    };
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-theme'],
+    });
+    return () => observer.disconnect();
+  }, []);
+  return isDark;
+}
+
+// ── Smart Logo for Landing Page ───────────────────────────────
+// Dark theme  → white logo PNG
+// Light theme → black logo PNG
+// Always shows "ReadAble" text beside it
+function LandingLogo({ height = 32 }) {
+  const isDark = useIsDark();
+  const [failed, setFailed] = useState(false);
+  const src = isDark ? '/readablelogowhite.png' : '/readablelogoblack.png';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {!failed ? (
+        <img
+          key={src}
+          src={src}
+          alt="ReadAble"
+          style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div style={{
+          width: height, height: height, borderRadius: 8,
+          background: '#60B8F5',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <BookOpen size={height * 0.6} color="white" />
+        </div>
+      )}
+      <span style={{
+        fontFamily: '"Fredoka One", cursive',
+        fontSize: height * 1.0,
+        lineHeight: 1,
+        color: isDark ? '#F0ECFF' : '#2C1810',
+        letterSpacing: '-0.01em',
+        whiteSpace: 'nowrap',
+      }}>
+        ReadAble
+      </span>
+    </div>
+  );
+}
 
 // ── Trial game data ───────────────────────────────────────────
 const TRIAL_ITEMS = [
@@ -209,7 +276,6 @@ function SignInLoadingOverlay() {
 }
 
 // ── Forgot Password View (inside SignInModal) ─────────────────
-// Steps: 'email' → 'otp' → 'newpass' → 'done'
 function ForgotPasswordView({ onBack }) {
   const [step,     setStep]     = useState('email');
   const [email,    setEmail]    = useState('');
@@ -221,69 +287,47 @@ function ForgotPasswordView({ onBack }) {
   const [loading,  setLoading]  = useState(false);
   const [resendCd, startResend] = useResendCooldown();
 
-  // Step 1 — send OTP
   const sendOTP = async (e) => {
     e?.preventDefault();
     if (!email.trim()) return;
     setLoading(true);
-    try {
-      await api.post('/auth/send-otp', { email: email.trim(), type: 'reset' });
-    } catch (_) {
-      // always advance — prevents account enumeration
-    } finally {
-      setLoading(false);
-      setStep('otp');
-      startResend();
-    }
+    try { await api.post('/auth/send-otp', { email: email.trim(), type: 'reset' }); } catch (_) {}
+    finally { setLoading(false); setStep('otp'); startResend(); }
   };
 
-  // Step 2 — verify digits (client-side gate; server validates on reset)
   const verifyOTP = (e) => {
     e.preventDefault();
     if (otp.length < 6) { setOtpErr('Please enter all 6 digits.'); return; }
-    setOtpErr('');
-    setStep('newpass');
+    setOtpErr(''); setStep('newpass');
   };
 
-  // Step 3 — set new password
   const resetPassword = async (e) => {
     e.preventDefault();
     if (newPass.length < 6)   { setPassErr('Password must be at least 6 characters.'); return; }
     if (newPass !== confirm)   { setPassErr('Passwords do not match.'); return; }
     setPassErr(''); setLoading(true);
     try {
-      await api.post('/auth/reset-password', {
-        email: email.trim(), otp_code: otp, new_password: newPass,
-      });
+      await api.post('/auth/reset-password', { email: email.trim(), otp_code: otp, new_password: newPass });
       setStep('done');
     } catch (err) {
       const msg = err.message || '';
-      if (/invalid|expired|code/i.test(msg)) {
-        setOtpErr(msg);
-        setStep('otp');
-      } else {
-        setPassErr(msg || 'Something went wrong. Please try again.');
-      }
+      if (/invalid|expired|code/i.test(msg)) { setOtpErr(msg); setStep('otp'); }
+      else setPassErr(msg || 'Something went wrong. Please try again.');
     } finally { setLoading(false); }
   };
 
   return (
     <div className="animate-fade-in">
-      {/* Back button */}
       <button onClick={onBack}
-        className="flex items-center gap-1.5 text-xs font-semibold text-gray-400
-                   hover:text-sky mb-4 transition-colors group">
+        className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-sky mb-4 transition-colors group">
         <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
         Back to Sign In
       </button>
 
-      {/* ── Step 1: email ──────────────────────────────── */}
       {step === 'email' && (
         <>
           <h2 className="font-display text-xl mb-0.5 text-gray-900 dark:text-white">Forgot Password?</h2>
-          <p className="text-xs text-gray-500 mb-4">
-            Enter your email and we'll send you a reset code.
-          </p>
+          <p className="text-xs text-gray-500 mb-4">Enter your email and we'll send you a reset code.</p>
           <form onSubmit={sendOTP}>
             <AuthInput label="Email address" type="email" name="email" value={email}
               onChange={e => setEmail(e.target.value)} placeholder="you@example.com" icon={Mail}/>
@@ -295,7 +339,6 @@ function ForgotPasswordView({ onBack }) {
         </>
       )}
 
-      {/* ── Step 2: OTP ────────────────────────────────── */}
       {step === 'otp' && (
         <>
           <div className="flex items-center gap-2 mb-0.5">
@@ -303,9 +346,7 @@ function ForgotPasswordView({ onBack }) {
             <h2 className="font-display text-xl text-gray-900 dark:text-white">Check your email</h2>
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            We sent a 6-digit code to{' '}
-            <strong className="text-gray-700 dark:text-gray-200">{email}</strong>.
-            It expires in 10 minutes.
+            We sent a 6-digit code to <strong className="text-gray-700 dark:text-gray-200">{email}</strong>. It expires in 10 minutes.
           </p>
           <form onSubmit={verifyOTP}>
             <div className="mb-4">
@@ -313,15 +354,12 @@ function ForgotPasswordView({ onBack }) {
               {otpErr && <p className="text-xs text-rose-500 mt-2 text-center">{otpErr}</p>}
             </div>
             <button type="submit" disabled={otp.length < 6}
-              className="btn-game w-full bg-sky text-white text-sm disabled:opacity-50">
-              Verify Code
-            </button>
+              className="btn-game w-full bg-sky text-white text-sm disabled:opacity-50">Verify Code</button>
           </form>
           <div className="text-center mt-3">
             {resendCd > 0
               ? <p className="text-xs text-gray-400">Resend in {resendCd}s</p>
-              : <button onClick={sendOTP}
-                  className="text-xs font-semibold text-sky hover:underline inline-flex items-center gap-1">
+              : <button onClick={sendOTP} className="text-xs font-semibold text-sky hover:underline inline-flex items-center gap-1">
                   <RefreshCw size={11} /> Resend code
                 </button>
             }
@@ -329,18 +367,15 @@ function ForgotPasswordView({ onBack }) {
         </>
       )}
 
-      {/* ── Step 3: new password ───────────────────────── */}
       {step === 'newpass' && (
         <>
           <h2 className="font-display text-xl mb-0.5 text-gray-900 dark:text-white">New Password</h2>
           <p className="text-xs text-gray-500 mb-4">Choose a new password for your account.</p>
           <form onSubmit={resetPassword}>
             <AuthInput label="New password" type="password" name="np" value={newPass}
-              onChange={e => setNewPass(e.target.value)}
-              placeholder="At least 6 characters" icon={Lock}/>
+              onChange={e => setNewPass(e.target.value)} placeholder="At least 6 characters" icon={Lock}/>
             <AuthInput label="Confirm password" type="password" name="cp" value={confirm}
-              onChange={e => setConfirm(e.target.value)}
-              placeholder="Repeat your new password" icon={Lock} error={passErr}/>
+              onChange={e => setConfirm(e.target.value)} placeholder="Repeat your new password" icon={Lock} error={passErr}/>
             <button type="submit" disabled={loading}
               className="btn-game w-full bg-sky text-white text-sm mt-1 disabled:opacity-60">
               {loading ? 'Resetting…' : 'Reset Password'}
@@ -349,21 +384,14 @@ function ForgotPasswordView({ onBack }) {
         </>
       )}
 
-      {/* ── Step 4: done ───────────────────────────────── */}
       {step === 'done' && (
         <div className="text-center py-4">
-          <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30
-                          flex items-center justify-center mx-auto mb-3">
+          <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-3">
             <Check size={28} className="text-emerald-500" />
           </div>
           <h3 className="font-display text-xl text-gray-800 dark:text-gray-100 mb-1">Password reset!</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
-            Your password has been updated. You can now sign in.
-          </p>
-          <button onClick={onBack}
-            className="btn-game bg-sky text-white text-sm w-full">
-            Back to Sign In
-          </button>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">Your password has been updated. You can now sign in.</p>
+          <button onClick={onBack} className="btn-game bg-sky text-white text-sm w-full">Back to Sign In</button>
         </div>
       )}
     </div>
@@ -399,15 +427,9 @@ function SignInModal({ onClose, onSwitchToRegister }) {
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
 
-        {/* Header — hidden while loading */}
         {!loading && (
           <div className="flex items-center justify-between px-5 pt-5 pb-1">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center">
-                <BookOpen size={16} className="text-white"/>
-              </div>
-              <span className="font-display text-lg text-sky">ReadAble</span>
-            </div>
+            <LandingLogo height={24} />
             <button onClick={onClose}
               className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <X size={18} className="text-gray-400"/>
@@ -416,14 +438,11 @@ function SignInModal({ onClose, onSwitchToRegister }) {
         )}
 
         <div className="px-6 pb-6 pt-3">
-          {/* Loading overlay while signing in */}
           {loading ? (
             <SignInLoadingOverlay/>
           ) : showForgot ? (
-            /* ── Forgot password view ── */
             <ForgotPasswordView onBack={() => setShowForgot(false)} />
           ) : (
-            /* ── Main sign-in form ── */
             <>
               <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Welcome back!</h2>
               <p className="text-xs text-gray-500 mb-4">Sign in to continue your journey</p>
@@ -432,15 +451,12 @@ function SignInModal({ onClose, onSwitchToRegister }) {
                   onChange={handle} placeholder="you@example.com" icon={Mail}/>
                 <AuthInput label="Password" type="password" name="password" value={form.password}
                   onChange={handle} placeholder="Your password" icon={Lock}/>
-
-                {/* Forgot password link */}
                 <div className="flex justify-end -mt-2 mb-3">
                   <button type="button" onClick={() => setShowForgot(true)}
                     className="text-xs font-semibold text-sky hover:underline transition-colors">
                     Forgot password?
                   </button>
                 </div>
-
                 {error && (
                   <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600
                                   dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-800">
@@ -448,15 +464,11 @@ function SignInModal({ onClose, onSwitchToRegister }) {
                   </div>
                 )}
                 <button type="submit" disabled={loading}
-                  className="btn-game w-full bg-sky text-white text-sm disabled:opacity-60">
-                  Sign In
-                </button>
+                  className="btn-game w-full bg-sky text-white text-sm disabled:opacity-60">Sign In</button>
               </form>
               <p className="text-center text-xs text-gray-500 mt-4">
                 No account?{' '}
-                <button onClick={onSwitchToRegister} className="text-sky font-bold hover:underline">
-                  Create one free
-                </button>
+                <button onClick={onSwitchToRegister} className="text-sky font-bold hover:underline">Create one free</button>
               </p>
             </>
           )}
@@ -502,7 +514,6 @@ function RegisterLoadingOverlay() {
 }
 
 // ── Register Modal ────────────────────────────────────────────
-// Step 'form' → send OTP → step 'otp' → verify OTP → create account
 function RegisterModal({ onClose, onSwitchToLogin }) {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -529,7 +540,6 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
     return e;
   };
 
-  // Step 1: validate form → send OTP
   const submitForm = async (e) => {
     e.preventDefault();
     const errs = validate();
@@ -537,8 +547,7 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
     setLoading(true);
     try {
       await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' });
-      setStep('otp');
-      startResend();
+      setStep('otp'); startResend();
     } catch (err) {
       const raw = err.message || '';
       if (/already exists|already taken/i.test(raw)) setErrors({ email: 'An account with that email already exists.' });
@@ -548,15 +557,10 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
 
   const resendOTP = async () => {
     setLoading(true);
-    try {
-      await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' });
-      startResend();
-      setOtpErr('');
-    } catch (_) {}
-    finally { setLoading(false); }
+    try { await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' }); startResend(); setOtpErr(''); }
+    catch (_) {} finally { setLoading(false); }
   };
 
-  // Step 2: verify OTP → register account
   const submitOTP = async (e) => {
     e.preventDefault();
     if (otp.length < 6) { setOtpErr('Please enter all 6 digits.'); return; }
@@ -581,12 +585,7 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
 
         {!loading && (
           <div className="flex items-center justify-between px-5 pt-5 pb-1">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-coral flex items-center justify-center">
-                <BookOpen size={16} className="text-white"/>
-              </div>
-              <span className="font-display text-lg text-coral">ReadAble</span>
-            </div>
+            <LandingLogo height={24} />
             <button onClick={onClose}
               className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <X size={18} className="text-gray-400"/>
@@ -616,8 +615,7 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
                     {errors.general}
                   </div>
                 )}
-                <button type="submit"
-                  className="btn-game w-full bg-coral text-white text-sm mt-1">
+                <button type="submit" className="btn-game w-full bg-coral text-white text-sm mt-1">
                   Send Verification Code →
                 </button>
               </form>
@@ -627,25 +625,19 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
               </p>
             </>
           ) : (
-            /* Step 2: OTP */
             <div className="animate-fade-in">
               <button onClick={() => { setStep('form'); setOtp(''); setOtpErr(''); }}
-                className="flex items-center gap-1.5 text-xs font-semibold text-gray-400
-                           hover:text-sky mb-4 transition-colors group">
+                className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-sky mb-4 transition-colors group">
                 <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform"/>
                 Edit details
               </button>
-
               <div className="flex items-center gap-2 mb-0.5">
                 <ShieldCheck size={18} className="text-coral flex-shrink-0"/>
                 <h2 className="font-display text-xl text-gray-900 dark:text-white">Verify your email</h2>
               </div>
               <p className="text-xs text-gray-500 mb-4">
-                We sent a 6-digit code to{' '}
-                <strong className="text-gray-700 dark:text-gray-200">{form.email}</strong>.
-                Enter it below to confirm your account.
+                We sent a 6-digit code to <strong className="text-gray-700 dark:text-gray-200">{form.email}</strong>. Enter it below to confirm your account.
               </p>
-
               <form onSubmit={submitOTP}>
                 <div className="mb-4">
                   <OTPInput value={otp} onChange={v => { setOtp(v); setOtpErr(''); }}/>
@@ -656,7 +648,6 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
                   Start Learning! 🎉
                 </button>
               </form>
-
               <div className="text-center mt-3">
                 {resendCd > 0
                   ? <p className="text-xs text-gray-400">Resend in {resendCd}s</p>
@@ -728,7 +719,6 @@ export default function LandingPage() {
   const { speak } = useSettings();
   const navigate  = useNavigate();
 
-  // Trial game state
   const [trialStep,    setTrialStep]    = useState(0);
   const [trialScore,   setTrialScore]   = useState(0);
   const [selected,     setSelected]     = useState(null);
@@ -749,7 +739,6 @@ export default function LandingPage() {
   const current   = TRIAL_ITEMS[trialStep];
   const isPerfect = trialDone && trialScore === TRIAL_ITEMS.length;
 
-  // ── Handle answer pick ─────────────────────────────────────
   const handlePick = (opt) => {
     if (selected !== null) return;
     setSelected(opt);
@@ -784,10 +773,7 @@ export default function LandingPage() {
 
       {/* ── Nav ─────────────────────────────────────────── */}
       <nav className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto w-full">
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center"><BookOpen size={16} className="text-white"/></div>
-          <span className="font-display text-2xl text-sky">ReadAble</span>
-        </div>
+        <LandingLogo height={28} />
         <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="relative">
             <button onClick={()=>setShowSettings(s=>!s)}
@@ -813,8 +799,6 @@ export default function LandingPage() {
 
       {/* ── Hero ────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-8 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-
-        {/* Left copy */}
         <div className="animate-slide-up w-full min-w-0">
           <div className="inline-flex items-center gap-2 bg-sunny/20 text-yellow-700 dark:text-yellow-300 px-4 py-1.5 rounded-full text-sm font-bold mb-5">
             <Zap size={14} className="fill-current"/> Made for everyone
@@ -851,7 +835,6 @@ export default function LandingPage() {
         <div className="animate-pop w-full min-w-0">
           <div className="rounded-3xl p-4 md:p-6 shadow-xl border-2 border-sky/20 overflow-hidden w-full"
             style={{ background:'var(--bg-card-grad)' }}>
-
             <div className="flex items-center justify-between mb-4 gap-2">
               <h3 className="font-display text-lg sm:text-xl text-gray-800 dark:text-gray-200 flex items-center gap-1.5 min-w-0">
                 <Gamepad2 size={18} className="text-sky flex-shrink-0"/>
@@ -862,7 +845,6 @@ export default function LandingPage() {
 
             {!trialDone ? (
               <>
-                {/* Progress bars */}
                 <div className="flex gap-2 mb-6">
                   {TRIAL_ITEMS.map((_, i) => {
                     const result    = stepResults[i];
@@ -871,37 +853,24 @@ export default function LandingPage() {
                     if      (result === 'correct') bg = 'bg-emerald-400';
                     else if (result === 'wrong')   bg = 'bg-rose-500';
                     else if (isCurrent)            bg = 'bg-sky animate-pulse';
-                    return (
-                      <div key={i} className={`flex-1 h-2.5 rounded-full transition-all duration-400 ${bg}`}/>
-                    );
+                    return <div key={i} className={`flex-1 h-2.5 rounded-full transition-all duration-400 ${bg}`}/>;
                   })}
                 </div>
 
-                <p className="text-center text-sm font-semibold text-gray-500 mb-3">
-                  What is this? Tap the right answer!
-                </p>
-
+                <p className="text-center text-sm font-semibold text-gray-500 mb-3">What is this? Tap the right answer!</p>
                 <div className="text-center text-7xl mb-6 animate-float" role="img">{current.emoji}</div>
 
                 <div className="grid grid-cols-2 gap-3">
                   {current.options.map(opt => {
                     const isSel  = selected === opt;
                     const isCorr = opt === current.answer;
-
                     let cls = 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-transparent hover:bg-sky/10 hover:text-sky hover:border-sky/40';
-
                     if (showFeedback) {
-                      if (isSel && isCorr) {
-                        cls = 'bg-emerald-500 text-white border-2 border-emerald-400 scale-105 shadow-lg shadow-emerald-500/30';
-                      } else if (isSel && !isCorr) {
-                        cls = 'bg-rose-600 text-white border-2 border-rose-400 shake shadow-lg shadow-rose-600/30';
-                      } else if (!isSel && isCorr && selected !== null) {
-                        cls = 'bg-emerald-400/20 text-emerald-600 dark:text-emerald-300 border-2 border-emerald-400/60';
-                      } else {
-                        cls = 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-2 border-transparent opacity-50';
-                      }
+                      if (isSel && isCorr) cls = 'bg-emerald-500 text-white border-2 border-emerald-400 scale-105 shadow-lg shadow-emerald-500/30';
+                      else if (isSel && !isCorr) cls = 'bg-rose-600 text-white border-2 border-rose-400 shake shadow-lg shadow-rose-600/30';
+                      else if (!isSel && isCorr && selected !== null) cls = 'bg-emerald-400/20 text-emerald-600 dark:text-emerald-300 border-2 border-emerald-400/60';
+                      else cls = 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-2 border-transparent opacity-50';
                     }
-
                     return (
                       <button key={opt} onClick={()=>handlePick(opt)}
                         className={`py-4 rounded-2xl font-bold text-sm transition-all duration-200 ${cls}`}>
@@ -912,11 +881,9 @@ export default function LandingPage() {
                 </div>
               </>
             ) : (
-              // ── Result screen ──────────────────────────────
               <div className="text-center py-4 animate-result-reveal">
                 <div className="relative w-20 h-20 mx-auto mb-4">
-                  <div className={`absolute inset-0 rounded-full animate-glow-ring
-                    ${isPerfect?'bg-amber-400/40':trialScore>=2?'bg-yellow-400/30':'bg-emerald-400/30'}`}/>
+                  <div className={`absolute inset-0 rounded-full animate-glow-ring ${isPerfect?'bg-amber-400/40':trialScore>=2?'bg-yellow-400/30':'bg-emerald-400/30'}`}/>
                   <div className={`relative w-20 h-20 rounded-full flex items-center justify-center animate-icon-spin shadow-lg
                     ${isPerfect?'bg-gradient-to-br from-amber-300 to-amber-500':trialScore>=2?'bg-gradient-to-br from-yellow-300 to-yellow-500':'bg-gradient-to-br from-emerald-400 to-emerald-600'}`}>
                     {isPerfect?<Trophy size={36} className="text-white drop-shadow"/>
@@ -924,13 +891,11 @@ export default function LandingPage() {
                       :<Check size={36} className="text-white drop-shadow" strokeWidth={3}/>}
                   </div>
                 </div>
-
                 <div className="flex items-center justify-center gap-2 mb-3">
                   {stepResults.map((r, i) => (
                     <div key={i} className={`w-3 h-3 rounded-full ${r==='correct'?'bg-emerald-400':r==='wrong'?'bg-rose-500':'bg-gray-300'}`}/>
                   ))}
                 </div>
-
                 <div className="animate-score-sweep">
                   {isPerfect && <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-500 mb-1">✦ Perfect Score ✦</p>}
                   <h4 className="font-display text-3xl mb-1 text-gray-800 dark:text-gray-100">
@@ -940,7 +905,6 @@ export default function LandingPage() {
                     {isPerfect?'You nailed every question! Sign up to track your progress.':'Sign up to access more games and see how you improve!'}
                   </p>
                 </div>
-
                 <button onClick={()=>setShowRegister(true)}
                   className={`mt-5 btn-game inline-flex items-center gap-2 mx-auto text-white ${isPerfect?'animate-shimmer':'bg-coral'}`}>
                   {isPerfect?'Claim Your Score!':'Save My Progress'}
@@ -970,7 +934,7 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-    
+
       {/* ── Modals ──────────────────────────────────────── */}
       {showLogin    && <SignInModal    onClose={()=>setShowLogin(false)}    onSwitchToRegister={()=>{ setShowLogin(false); setShowRegister(true); }}/>}
       {showRegister && <RegisterModal onClose={()=>setShowRegister(false)} onSwitchToLogin={()=>{ setShowRegister(false); setShowLogin(true); }}/>}
