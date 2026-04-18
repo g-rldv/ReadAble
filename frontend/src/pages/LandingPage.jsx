@@ -1,9 +1,8 @@
 // ============================================================
-// LandingPage — hero, trial game with connected progress bars,
-// red/green answer feedback, quick settings
-// Added: Forgot Password flow inside SignInModal
-// Fixed: Logo uses white PNG on dark themes, black PNG on light themes
-//        "ReadAble" text shown beside logo
+// LandingPage — Updated:
+// 1. Logo removed from SignIn & Register modals
+// 2. Settings is now a floating modal (not its own page) with logo
+// 3. App-icon rounded style on logo in Quick Settings modal
 // ============================================================
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -16,6 +15,8 @@ import {
   Eye, EyeOff, Mail, Lock, User, Settings,
   Sun, Moon, Sparkles, Leaf, LogIn,
   ArrowLeft, ShieldCheck, RefreshCw,
+  Type, Music, Music2, SlidersHorizontal, Candy,
+  Droplets,
 } from 'lucide-react';
 import { launchConfetti } from '../utils/confetti';
 import api from '../utils/api';
@@ -42,11 +43,8 @@ function useIsDark() {
   return isDark;
 }
 
-// ── Smart Logo for Landing Page ───────────────────────────────
-// Dark theme  → white logo PNG
-// Light theme → black logo PNG
-// Always shows "ReadAble" text beside it
-function LandingLogo({ height = 32 }) {
+// ── Smart Logo ────────────────────────────────────────────────
+function SmartLogo({ height = 32 }) {
   const isDark = useIsDark();
   const [failed, setFailed] = useState(false);
   const src = isDark ? '/readablelogowhite.png' : '/readablelogoblack.png';
@@ -58,12 +56,26 @@ function LandingLogo({ height = 32 }) {
           key={src}
           src={src}
           alt="ReadAble"
-          style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }}
+          style={{
+            height,
+            width: 'auto',
+            display: 'block',
+            objectFit: 'contain',
+            // App-icon style rounded border on logo image
+            border: '2px solid #1a1a2e',
+            borderRadius: Math.round(height * 0.22),
+            boxShadow: '0 2px 0 #1a1a2e',
+            padding: 2,
+            background: isDark ? '#1a1a2e' : '#ffffff',
+          }}
           onError={() => setFailed(true)}
         />
       ) : (
         <div style={{
-          width: height, height: height, borderRadius: 8,
+          width: height, height: height,
+          borderRadius: Math.round(height * 0.22),
+          border: '2px solid #1a1a2e',
+          boxShadow: '0 2px 0 #1a1a2e',
           background: '#60B8F5',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
@@ -110,12 +122,29 @@ const FEATURE_PILLS = [
 ];
 
 const QUICK_THEMES = [
-  { key:'cotton',   Icon:Sun,      label:'Light'  },
-  { key:'sky',      Icon:Heart,    label:'Berry'  },
-  { key:'mint',     Icon:Leaf,     label:'Meadow' },
-  { key:'sunshine', Icon:Cloud,    label:'Sunrise'},
-  { key:'lavender', Icon:Sparkles, label:'Purple' },
-  { key:'night',    Icon:Moon,     label:'Night'  },
+  { key:'cotton',    label:'Light',      Icon:Sun      },
+  { key:'sky',       label:'Berry',      Icon:Heart    },
+  { key:'mint',      label:'Meadow',     Icon:Leaf     },
+  { key:'sunshine',  label:'Sunrise',    Icon:Sun      },
+  { key:'lavender',  label:'Purple',     Icon:Sparkles },
+  { key:'peach',     label:'Mango',      Icon:Candy    },
+  { key:'bubblegum', label:'Bubblegum',  Icon:Heart    },
+  { key:'ocean',     label:'Aqua',       Icon:Droplets },
+  { key:'night',     label:'Night',      Icon:Moon     },
+];
+
+const TEXT_SIZES = [
+  { key:'small',  label:'Small'       },
+  { key:'medium', label:'Medium'      },
+  { key:'large',  label:'Large'       },
+  { key:'xlarge', label:'Extra Large' },
+];
+
+const MUSIC_THEMES = [
+  { key:'calm',    label:'Calm',    Icon:Music             },
+  { key:'playful', label:'Playful', Icon:Music2            },
+  { key:'focus',   label:'Focus',   Icon:SlidersHorizontal },
+  { key:'fantasy', label:'Fantasy', Icon:Sparkles          },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -155,7 +184,7 @@ function AuthInput({ label, type='text', value, onChange, placeholder, name, ico
         {isPwd && (
           <button type="button" onClick={()=>setShow(s=>!s)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            {show?<EyeOff size={15}/>:<Eye size={15}/>}
+            {show?<Eye size={15}/>:<EyeOff size={15}/>}
           </button>
         )}
       </div>
@@ -398,7 +427,7 @@ function ForgotPasswordView({ onBack }) {
   );
 }
 
-// ── Sign-In Modal ─────────────────────────────────────────────
+// ── Sign-In Modal — NO logo inside ───────────────────────────
 function SignInModal({ onClose, onSwitchToRegister }) {
   const { login } = useAuth();
   const navigate  = useNavigate();
@@ -427,9 +456,9 @@ function SignInModal({ onClose, onSwitchToRegister }) {
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
 
+        {/* Close button only — no logo */}
         {!loading && (
-          <div className="flex items-center justify-between px-5 pt-5 pb-1">
-            <LandingLogo height={24} />
+          <div className="flex items-center justify-end px-5 pt-4">
             <button onClick={onClose}
               className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <X size={18} className="text-gray-400"/>
@@ -437,7 +466,7 @@ function SignInModal({ onClose, onSwitchToRegister }) {
           </div>
         )}
 
-        <div className="px-6 pb-6 pt-3">
+        <div className="px-6 pb-6 pt-2">
           {loading ? (
             <SignInLoadingOverlay/>
           ) : showForgot ? (
@@ -513,7 +542,7 @@ function RegisterLoadingOverlay() {
   );
 }
 
-// ── Register Modal ────────────────────────────────────────────
+// ── Register Modal — NO logo inside ──────────────────────────
 function RegisterModal({ onClose, onSwitchToLogin }) {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -583,9 +612,9 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
 
+        {/* Close button only — no logo */}
         {!loading && (
-          <div className="flex items-center justify-between px-5 pt-5 pb-1">
-            <LandingLogo height={24} />
+          <div className="flex items-center justify-end px-5 pt-4">
             <button onClick={onClose}
               className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <X size={18} className="text-gray-400"/>
@@ -593,7 +622,7 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
           </div>
         )}
 
-        <div className="px-6 pb-6 pt-3">
+        <div className="px-6 pb-6 pt-2">
           {loading ? (
             <RegisterLoadingOverlay/>
           ) : step === 'form' ? (
@@ -665,51 +694,206 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
   );
 }
 
-// ── Quick Settings Dropdown ───────────────────────────────────
-function QuickSettings({ onClose }) {
-  const { settings, updateSettings } = useSettings();
+// ── Settings Modal — floating, has logo, full quick settings ─
+function SettingsModal({ onClose }) {
+  const { settings, updateSettings, speak, voices } = useSettings();
+  const [activeTab, setActiveTab] = useState('theme');
+
+  const save = (updates) => updateSettings(updates);
+
+  const tabs = [
+    { key: 'theme', label: 'Theme', Icon: Palette },
+    { key: 'text',  label: 'Text',  Icon: Type    },
+    { key: 'music', label: 'Music', Icon: Music   },
+    { key: 'tts',   label: 'Voice', Icon: Volume2 },
+  ];
+
   return (
-    <>
-      <div className="md:hidden fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/50" onClick={onClose}>
-        <div className="w-full max-w-xs rounded-2xl shadow-2xl overflow-hidden animate-pop"
-          style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}
-          onClick={e=>e.stopPropagation()}>
-          <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor:'var(--border-color)' }}>
-            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Quick Theme</p>
-            <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><X size={16} className="text-gray-400"/></button>
-          </div>
-          <div className="p-3 grid grid-cols-3 gap-2">
-            {QUICK_THEMES.map(t=>(
-              <button key={t.key} onClick={()=>{ updateSettings({theme:t.key}); onClose(); }}
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl text-center transition-all
-                  ${settings.theme===t.key?'bg-sky/15 text-sky ring-2 ring-sky/40':'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-                <t.Icon size={20}/><span className="text-xs font-semibold leading-tight">{t.label}</span>
-              </button>
-            ))}
-          </div>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-rise-up flex flex-col max-h-[90vh]"
+        style={{ background: 'var(--bg-card-grad)', border: '2px solid var(--border-color)' }}>
+
+        {/* Header with logo */}
+        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid var(--border-color)' }}>
+          <SmartLogo height={26} />
+          <button onClick={onClose}
+            className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <X size={18} className="text-gray-400"/>
+          </button>
         </div>
-      </div>
-      <div className="hidden md:block absolute right-0 top-12 z-40 w-56 rounded-2xl shadow-2xl border overflow-hidden animate-pop"
-        style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
-        <div className="px-3 py-2.5 border-b" style={{ borderColor:'var(--border-color)' }}>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Quick Theme</p>
-        </div>
-        <div className="p-2 grid grid-cols-3 gap-1">
-          {QUICK_THEMES.map(t=>(
-            <button key={t.key} onClick={()=>{ updateSettings({theme:t.key}); onClose(); }}
-              className={`flex flex-col items-center gap-0.5 p-2 rounded-xl text-center transition-all
-                ${settings.theme===t.key?'bg-sky/10 text-sky':'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-              <t.Icon size={16}/><span className="text-[10px] font-semibold">{t.label}</span>
+
+        {/* Tab bar */}
+        <div className="flex flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          {tabs.map(({ key, label, Icon }) => (
+            <button key={key} onClick={() => setActiveTab(key)}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 3, padding: '10px 4px',
+                fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                border: 'none', background: 'none', fontFamily: 'inherit',
+                borderBottom: activeTab === key ? '2.5px solid #60B8F5' : '2.5px solid transparent',
+                color: activeTab === key ? '#60B8F5' : '#9ca3af',
+                transition: 'color 0.15s, border-color 0.15s',
+              }}>
+              <Icon size={16} />
+              {label}
             </button>
           ))}
         </div>
-        <div className="px-3 pb-2.5">
-          <Link to="/settings" onClick={onClose} className="text-xs text-sky font-semibold hover:underline flex items-center gap-1">
-            All settings <ArrowRight size={11}/>
-          </Link>
+
+        {/* Tab content */}
+        <div className="overflow-y-auto flex-1 p-5">
+
+          {/* THEME TAB */}
+          {activeTab === 'theme' && (
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Choose a theme</p>
+              <div className="grid grid-cols-3 gap-2">
+                {QUICK_THEMES.map(t => {
+                  const isActive = settings.theme === t.key;
+                  return (
+                    <button key={t.key} onClick={() => save({ theme: t.key })}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all text-center"
+                      style={{
+                        border: isActive ? '2px solid #60B8F5' : '2px solid var(--border-color)',
+                        background: isActive ? 'rgba(96,184,245,0.1)' : 'var(--bg-primary)',
+                      }}>
+                      <t.Icon size={20} className={isActive ? 'text-sky' : 'text-gray-400'} />
+                      <span className="text-xs font-semibold" style={{ color: isActive ? '#60B8F5' : 'var(--text-muted)' }}>
+                        {t.label}
+                      </span>
+                      {isActive && <Check size={11} className="text-sky" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TEXT SIZE TAB */}
+          {activeTab === 'text' && (
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Text size</p>
+              <div className="space-y-2">
+                {TEXT_SIZES.map(s => {
+                  const isActive = settings.text_size === s.key;
+                  const sizes = { small: 13, medium: 16, large: 20, xlarge: 26 };
+                  return (
+                    <button key={s.key} onClick={() => save({ text_size: s.key })}
+                      className="w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left"
+                      style={{
+                        border: isActive ? '2px solid #60B8F5' : '2px solid var(--border-color)',
+                        background: isActive ? 'rgba(96,184,245,0.08)' : 'var(--bg-primary)',
+                      }}>
+                      <span style={{ fontSize: sizes[s.key], fontWeight: 700, color: isActive ? '#60B8F5' : 'var(--text-muted)', minWidth: 36 }}>Aa</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: isActive ? '#60B8F5' : 'var(--text-primary)' }}>{s.label}</span>
+                      {isActive && <Check size={14} className="text-sky ml-auto" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* MUSIC TAB */}
+          {activeTab === 'music' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-2xl"
+                style={{ background: 'var(--bg-primary)', border: '2px solid var(--border-color)' }}>
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Background Music</span>
+                <button onClick={() => save({ bg_music_enabled: !settings.bg_music_enabled })}
+                  className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
+                  style={{ background: settings.bg_music_enabled ? '#60B8F5' : '#CBD5E0' }}>
+                  <div className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                    style={{ transform: settings.bg_music_enabled ? 'translateX(21px)' : 'translateX(2px)' }}/>
+                </button>
+              </div>
+              {settings.bg_music_enabled && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {MUSIC_THEMES.map(m => {
+                      const isActive = settings.bg_music_theme === m.key;
+                      return (
+                        <button key={m.key} onClick={() => save({ bg_music_theme: m.key })}
+                          className="flex items-center gap-2 p-3 rounded-2xl transition-all"
+                          style={{
+                            border: isActive ? '2px solid #a855f7' : '2px solid var(--border-color)',
+                            background: isActive ? 'rgba(168,85,247,0.1)' : 'var(--bg-primary)',
+                          }}>
+                          <m.Icon size={16} className={isActive ? 'text-purple-500' : 'text-gray-400'} />
+                          <span className="text-xs font-bold" style={{ color: isActive ? '#a855f7' : 'var(--text-primary)' }}>{m.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div>
+                    <label className="flex justify-between text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">
+                      Volume <span className="text-purple-500 font-normal">{Math.round((settings.bg_music_volume || 0.7) * 100)}%</span>
+                    </label>
+                    <input type="range" min="0.1" max="1" step="0.05"
+                      value={settings.bg_music_volume || 0.7}
+                      onChange={e => save({ bg_music_volume: parseFloat(e.target.value) })}
+                      className="w-full accent-purple-500"/>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* TTS TAB */}
+          {activeTab === 'tts' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-2xl"
+                style={{ background: 'var(--bg-primary)', border: '2px solid var(--border-color)' }}>
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Read Aloud</span>
+                <button onClick={() => save({ tts_enabled: !settings.tts_enabled })}
+                  className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
+                  style={{ background: settings.tts_enabled ? '#60B8F5' : '#CBD5E0' }}>
+                  <div className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                    style={{ transform: settings.tts_enabled ? 'translateX(21px)' : 'translateX(2px)' }}/>
+                </button>
+              </div>
+              {settings.tts_enabled && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Voice</label>
+                    <select value={settings.tts_voice} onChange={e => save({ tts_voice: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none font-medium
+                                 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                      style={{ border: '2px solid var(--border-color)' }}>
+                      <option value="">Default voice</option>
+                      {voices.map(v => <option key={v.name} value={v.name}>{v.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="flex justify-between text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">
+                      Speed <span className="text-sky font-normal">{settings.tts_rate}x</span>
+                    </label>
+                    <input type="range" min="0.5" max="1.5" step="0.1" value={settings.tts_rate}
+                      onChange={e => save({ tts_rate: parseFloat(e.target.value) })} className="w-full accent-sky"/>
+                  </div>
+                  <button onClick={() => speak('Hello! This is how the read-aloud voice sounds.')}
+                    className="btn-game bg-sky text-white w-full flex items-center gap-2 justify-center text-sm">
+                    <Volume2 size={16}/> Test Voice
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer link to full settings page */}
+        <div className="flex-shrink-0 px-5 py-3 text-center"
+          style={{ borderTop: '1px solid var(--border-color)' }}>
+          <p className="text-xs text-gray-400">
+            More options available after sign-in in{' '}
+            <span className="font-bold text-sky">Settings</span>
+          </p>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -773,22 +957,19 @@ export default function LandingPage() {
 
       {/* ── Nav ─────────────────────────────────────────── */}
       <nav className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto w-full">
-        <LandingLogo height={28} />
+        <SmartLogo height={28} />
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="relative">
-            <button onClick={()=>setShowSettings(s=>!s)}
-              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Quick theme">
-              <Settings size={18} className="text-gray-500 dark:text-gray-400"/>
-            </button>
-            {showSettings && <QuickSettings onClose={()=>setShowSettings(false)}/>}
-          </div>
-          <button onClick={()=>{ setShowSettings(false); setShowLogin(true); }}
+          <button onClick={()=>setShowSettings(true)}
+            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Quick settings">
+            <Settings size={18} className="text-gray-500 dark:text-gray-400"/>
+          </button>
+          <button onClick={()=>{ setShowLogin(true); }}
             className="flex items-center justify-center gap-1.5 rounded-2xl font-bold border-2 border-sky text-sky hover:bg-sky/10 transition-colors w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2 sm:text-sm"
             title="Sign In">
             <LogIn size={16} className="flex-shrink-0"/>
             <span className="hidden sm:inline">Sign In</span>
           </button>
-          <button onClick={()=>{ setShowSettings(false); setShowRegister(true); }}
+          <button onClick={()=>{ setShowRegister(true); }}
             className="flex items-center justify-center gap-1.5 rounded-2xl font-bold bg-sky text-white hover:bg-sky-dark transition-colors shadow-md w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2 sm:text-sm"
             title="Join Free">
             <UserPlus size={16} className="flex-shrink-0"/>
@@ -938,7 +1119,7 @@ export default function LandingPage() {
       {/* ── Modals ──────────────────────────────────────── */}
       {showLogin    && <SignInModal    onClose={()=>setShowLogin(false)}    onSwitchToRegister={()=>{ setShowLogin(false); setShowRegister(true); }}/>}
       {showRegister && <RegisterModal onClose={()=>setShowRegister(false)} onSwitchToLogin={()=>{ setShowRegister(false); setShowLogin(true); }}/>}
-      {showSettings && <div className="fixed inset-0 z-30" onClick={()=>setShowSettings(false)}/>}
+      {showSettings && <SettingsModal onClose={()=>setShowSettings(false)} />}
     </div>
   );
 }
