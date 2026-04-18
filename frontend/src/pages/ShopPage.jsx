@@ -1,8 +1,7 @@
 // ============================================================
-// ShopPage.jsx — Fixed:
-// 1. Removed inner image container from CharacterCard — image renders directly
-// 2. Card border carries the rarity weight (3px equipped, 2.5px owned, 2px unowned)
-// 3. Mobile filter buttons wrap properly
+// ShopPage.jsx — Updated:
+// 1. App-icon style dark rounded border on character images
+// 2. Active Buddy preview also uses app-icon border
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
@@ -69,7 +68,37 @@ function AchievementTooltip({ earnedBy, visible }) {
   );
 }
 
-// ── Character Card — NO inner image container ─────────────────
+// ── App-Icon Avatar Box ───────────────────────────────────────
+// Dark border, rounded corners, light background — like the reference image
+function AppIconBox({ children, size = 80, equipped = false, locked = false, rarityColor }) {
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: Math.round(size * 0.22),
+      border: equipped
+        ? `3px solid #1a1a2e`
+        : `2.5px solid #1a1a2e`,
+      background: locked
+        ? 'rgba(20,20,30,0.08)'
+        : '#f0f4ff',
+      boxShadow: equipped
+        ? `0 3px 0 #1a1a2e, 0 6px 16px rgba(0,0,0,0.25)`
+        : `0 2px 0 #1a1a2e, 0 4px 10px rgba(0,0,0,0.15)`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      position: 'relative',
+      overflow: 'hidden',
+      transition: 'box-shadow 0.2s, transform 0.15s',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// ── Character Card ────────────────────────────────────────────
 function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
                          onBuy, onEquip, buying, equipping }) {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -99,9 +128,9 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
     btnContent    = isEquipping ? '…' : isEquipped ? <><Check size={13} strokeWidth={3} /> Equipped</> : 'Equip';
     btnAction     = () => onEquip(char);
     btnDisabled   = isEquipping || isEquipped;
-    btnBgColor    = isEquipped ? rc.color : 'transparent';
-    btnTextColor  = isEquipped ? '#ffffff' : rc.color;
-    btnBorderColor= rc.color;
+    btnBgColor    = isEquipped ? '#1a1a2e' : 'transparent';
+    btnTextColor  = isEquipped ? '#ffffff' : '#1a1a2e';
+    btnBorderColor= '#1a1a2e';
   } else if (freeByAch) {
     btnContent    = isBuying ? '…' : '🎁 Claim Free';
     btnAction     = () => onBuy({ ...char, cost: 0 });
@@ -118,7 +147,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
     btnBorderColor= canAfford ? '#d97706' : 'rgba(156,163,175,0.5)';
   }
 
-  // Card border — heavier weight differentiates states (no inner container needed)
+  // Card border — rarity tint on outer card
   const cardBorderWidth = isEquipped ? 3 : isOwned ? 2.5 : 2;
   const cardBorderColor = isEquipped
     ? rc.color
@@ -133,6 +162,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
       background: isEquipped ? rc.bg : 'var(--bg-card-grad)',
       display: 'flex',
       flexDirection: 'column',
+      alignItems: 'center',
       overflow: 'visible',
       position: 'relative',
       transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -157,61 +187,55 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         <div style={{
           position: 'absolute', top: 8, right: 8, zIndex: 3,
           width: 20, height: 20, borderRadius: '50%',
-          background: rc.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center',
           pointerEvents: 'none',
         }}>
           <Check size={11} color="#fff" strokeWidth={3}/>
         </div>
       )}
 
-      {/* ── Character image area — NO inner container ── */}
-      {/* The character PNG renders directly here, no box around it */}
+      {/* ── App-icon style image area ── */}
       <div style={{
         width: '100%',
-        height: 120,
-        flexShrink: 0,
+        paddingTop: 36,
+        paddingBottom: 12,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 30,
-        paddingBottom: 8,
-        paddingLeft: 8,
-        paddingRight: 8,
-        boxSizing: 'border-box',
-        overflow: 'hidden',
         position: 'relative',
+        borderRadius: '14px 14px 0 0',
         background: isEquipped
           ? `linear-gradient(180deg, ${rc.bg} 0%, transparent 100%)`
-          : lockedByAch
-          ? 'rgba(10,10,20,0.04)'
-          : `linear-gradient(180deg, ${rc.bg}50 0%, transparent 100%)`,
-        borderRadius: '14px 14px 0 0',
+          : 'transparent',
       }}>
         {/* Lock overlay for achievement-gated characters */}
         {lockedByAch && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 4,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(10,10,20,0.50)',
+            background: 'rgba(10,10,20,0.45)',
             borderRadius: '13px 13px 0 0',
           }}>
             <div style={{
-              width: 40, height: 40, borderRadius: '50%',
-              background: 'rgba(30,27,75,0.85)',
-              border: '2px solid rgba(139,92,246,0.5)',
+              width: 32, height: 32, borderRadius: '50%',
+              background: 'rgba(30,27,75,0.9)',
+              border: '2px solid rgba(139,92,246,0.6)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Lock size={16} color="#a78bfa" strokeWidth={2.5} />
+              <Lock size={14} color="#a78bfa" strokeWidth={2.5} />
             </div>
           </div>
         )}
-        {/* Character avatar — no wrapper box */}
-        <CharacterAvatar
-          characterId={char.id}
-          size={72}
-          showGlow={isOwned || char.isDefault}
-          animate={false}
-        />
+
+        {/* App-icon box wrapping the character */}
+        <AppIconBox size={72} equipped={isEquipped} locked={lockedByAch} rarityColor={rc.color}>
+          <CharacterAvatar
+            characterId={char.id}
+            size={60}
+            showGlow={false}
+            animate={false}
+          />
+        </AppIconBox>
       </div>
 
       {/* Text info */}
@@ -221,6 +245,8 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         flexDirection: 'column',
         gap: 3,
         flex: 1,
+        width: '100%',
+        boxSizing: 'border-box',
         borderTop: `1px solid ${rc.color}20`,
       }}>
         <p style={{
@@ -287,8 +313,9 @@ function EquippedPreview({ equippedId, ownedCount }) {
     <>
       {/* Mobile collapsible */}
       <div className="md:hidden" style={{
-        borderRadius: 20, border: `3px solid ${rc.color}`,
+        borderRadius: 20, border: `3px solid #1a1a2e`,
         background: 'var(--bg-card-grad)', overflow: 'hidden', marginBottom: 4,
+        boxShadow: '0 4px 0 #1a1a2e',
       }}>
         <button onClick={() => setOpen(o => !o)} style={{
           width: '100%', display: 'flex', alignItems: 'center',
@@ -296,7 +323,10 @@ function EquippedPreview({ equippedId, ownedCount }) {
           background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <CharacterAvatar characterId={equippedId} size={48} animate={false} />
+            {/* App-icon box for mobile preview */}
+            <AppIconBox size={52} equipped rarityColor={rc.color}>
+              <CharacterAvatar characterId={equippedId} size={42} animate={false} />
+            </AppIconBox>
             <div style={{ textAlign: 'left' }}>
               <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>{char?.name}</p>
               <p style={{ fontSize: 10, color: rc.color, margin: 0, fontWeight: 700 }}>{rc.label} · Equipped</p>
@@ -306,10 +336,12 @@ function EquippedPreview({ equippedId, ownedCount }) {
         </button>
         {open && (
           <div style={{
-            padding: '0 16px 16px', borderTop: `1px solid ${rc.color}40`,
+            padding: '0 16px 20px', borderTop: `1px solid rgba(26,26,46,0.15)`,
             display: 'flex', justifyContent: 'center',
           }}>
-            <CharacterAvatar characterId={equippedId} size={130} showGlow animate={false} />
+            <AppIconBox size={130} equipped rarityColor={rc.color}>
+              <CharacterAvatar characterId={equippedId} size={108} showGlow animate={false} />
+            </AppIconBox>
           </div>
         )}
       </div>
@@ -318,16 +350,18 @@ function EquippedPreview({ equippedId, ownedCount }) {
       <div className="hidden md:flex" style={{
         width: 210, flexShrink: 0, flexDirection: 'column', alignItems: 'center', gap: 12,
         borderRadius: 24, padding: '20px 16px',
-        border: `3px solid ${rc.color}`,
+        border: `3px solid #1a1a2e`,
         background: 'var(--bg-card-grad)',
         position: 'sticky', top: 16,
-        boxShadow: `0 0 24px ${rc.glow}`,
-        transition: 'border-color 0.3s, box-shadow 0.3s',
+        boxShadow: `0 5px 0 #1a1a2e, 0 8px 24px rgba(0,0,0,0.15)`,
+        transition: 'box-shadow 0.3s',
       }}>
         <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>Active Buddy</p>
 
-        {/* No container — character PNG renders directly */}
-        <CharacterAvatar characterId={equippedId} size={156} showGlow animate={false} />
+        {/* App-icon box wrapping the character */}
+        <AppIconBox size={150} equipped rarityColor={rc.color}>
+          <CharacterAvatar characterId={equippedId} size={126} showGlow animate={false} />
+        </AppIconBox>
 
         <div style={{ textAlign: 'center', width: '100%' }}>
           <p style={{
@@ -351,7 +385,8 @@ function EquippedPreview({ equippedId, ownedCount }) {
 
         <div style={{
           width: '100%', padding: '10px 12px', borderRadius: 12,
-          background: 'var(--bg-primary)', border: '2px solid var(--border-color)', textAlign: 'center',
+          background: 'var(--bg-primary)', border: '2px solid #1a1a2e', textAlign: 'center',
+          boxShadow: '0 2px 0 #1a1a2e',
         }}>
           <p style={{ fontSize: 10, color: '#9ca3af', margin: '0 0 2px' }}>Collection</p>
           <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
@@ -563,12 +598,13 @@ export default function ShopPage() {
                     padding:'8px 4px', borderRadius:12, fontSize:11, fontWeight:800,
                     whiteSpace:'nowrap', cursor:'pointer', fontFamily:'inherit',
                     border: isActive
-                      ? `2px solid ${rc?.color || '#60B8F5'}`
+                      ? `2px solid #1a1a2e`
                       : '2px solid var(--border-color)',
-                    background: isActive ? (rc?.bg || 'rgba(96,184,245,0.18)') : 'var(--bg-card-grad)',
-                    color: isActive ? (rc?.color || '#60B8F5') : 'var(--text-muted, #9ca3af)',
+                    background: isActive ? '#1a1a2e' : 'var(--bg-card-grad)',
+                    color: isActive ? '#ffffff' : 'var(--text-muted, #9ca3af)',
                     transition:'all 0.15s', textAlign:'center',
                     minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+                    boxShadow: isActive ? '0 2px 0 #000' : 'none',
                   }}>
                   {f.label}
                 </button>
