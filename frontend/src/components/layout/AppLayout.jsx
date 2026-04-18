@@ -63,10 +63,10 @@ function useIsDark() {
 function SmartLogo({ height = 28 }) {
   const isDark = useIsDark();
   const [failed, setFailed] = useState(false);
-
+ 
   // src: white logo for dark bg, black logo for light bg
   const src = isDark ? '/readablelogowhite.png' : '/readablelogoblack.png';
-
+ 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       {!failed ? (
@@ -74,15 +74,31 @@ function SmartLogo({ height = 28 }) {
           key={src}
           src={src}
           alt="ReadAble"
-          style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }}
+          style={{
+            height,
+            width: 'auto',
+            display: 'block',
+            objectFit: 'contain',
+            // App-icon style: dark border, rounded corners
+            border: '2px solid #1a1a2e',
+            borderRadius: Math.round(height * 0.22),
+            boxShadow: '0 2px 0 #1a1a2e',
+            padding: 2,
+            background: isDark ? '#1a1a2e' : '#ffffff',
+          }}
           onError={() => setFailed(true)}
         />
       ) : (
-        /* Fallback icon if PNG missing */
         <div style={{
-          width: height, height: height, borderRadius: 8,
+          width: height,
+          height: height,
+          borderRadius: Math.round(height * 0.22),
+          border: '2px solid #1a1a2e',
+          boxShadow: '0 2px 0 #1a1a2e',
           background: '#60B8F5',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           flexShrink: 0,
         }}>
           <BookOpen size={height * 0.6} color="white" />
