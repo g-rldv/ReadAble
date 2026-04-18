@@ -1,8 +1,8 @@
 // ============================================================
-// SettingsPage — Updated:
-// 1. Text size preview is SEPARATE from live site — save button required
-// 2. Theme-adaptive borders on ALL buttons/cards
-// 3. Appearance section buttons have clear visible borders
+// SettingsPage — Fixed:
+// 1. Toggle slider thumb properly centered and sized
+// 2. Text size preview is SEPARATE from live site — save button required
+// 3. Theme-adaptive borders on ALL buttons/cards
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useState } from 'react';
@@ -37,7 +37,6 @@ const MUSIC_THEMES = [
   { key:'fantasy', label:'Fantasy', desc:'Mystical minor scales',     Icon:Sparkles          },
 ];
 
-// Text sizes
 const TEXT_SIZES = [
   { key:'small',  label:'Small',       previewPx: 13, sampleText: 'The quick brown fox' },
   { key:'medium', label:'Medium',      previewPx: 16, sampleText: 'The quick brown fox' },
@@ -58,20 +57,59 @@ function Section({ title, icon, children }) {
   );
 }
 
+// ── FIXED Toggle — thumb is perfectly centered, track is clearly styled ──
 function Toggle({ on, onToggle, label, sub }) {
   return (
-    <div className="flex items-center justify-between p-3 md:p-4 rounded-2xl"
-      style={{ background:'var(--bg-primary)', border:'2px solid var(--border-color)' }}>
-      <div>
+    <div
+      className="flex items-center justify-between p-3 md:p-4 rounded-2xl"
+      style={{ background: 'var(--bg-primary)', border: '2px solid var(--border-color)' }}
+    >
+      {/* Label side */}
+      <div style={{ flex: 1, minWidth: 0, paddingRight: 16 }}>
         <p className="font-bold text-sm text-gray-700 dark:text-gray-300">{label}</p>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        {sub && (
+          <p className="text-xs text-gray-400 mt-0.5 leading-snug">{sub}</p>
+        )}
       </div>
-      <button onClick={onToggle}
-        className={`relative w-14 h-7 rounded-full transition-colors duration-300 flex-shrink-0
-                    ${on ? 'bg-sky' : 'bg-gray-300 dark:bg-gray-600'}`}
-        style={{ border: on ? '2px solid rgba(96,184,245,0.6)' : '2px solid var(--border-color)' }}>
-        <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300
-                         ${on ? 'translate-x-7' : 'translate-x-0.5'}`} />
+
+      {/* Toggle track + thumb */}
+      <button
+        type="button"
+        onClick={onToggle}
+        role="switch"
+        aria-checked={on}
+        style={{
+          position: 'relative',
+          width: 52,
+          height: 28,
+          borderRadius: 999,
+          flexShrink: 0,
+          cursor: 'pointer',
+          border: 'none',
+          padding: 0,
+          outline: 'none',
+          background: on ? '#60B8F5' : '#CBD5E0',
+          transition: 'background 0.25s ease',
+          boxShadow: on
+            ? '0 0 0 3px rgba(96,184,245,0.3), inset 0 1px 3px rgba(0,0,0,0.1)'
+            : 'inset 0 1px 3px rgba(0,0,0,0.15)',
+        }}
+      >
+        {/* Thumb */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            left: on ? 27 : 3,
+            width: 22,
+            height: 22,
+            borderRadius: '50%',
+            background: '#FFFFFF',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+            transition: 'left 0.25s ease',
+          }}
+        />
       </button>
     </div>
   );
@@ -83,9 +121,7 @@ function ThemeCard({ theme, active, onSelect }) {
     <button onClick={() => onSelect(theme.key)}
       style={{
         boxShadow: active ? '0 0 0 3px rgba(77,150,255,0.45)' : undefined,
-        border: active
-          ? '2px solid #4D96FF'
-          : '2px solid var(--border-color)',
+        border: active ? '2px solid #4D96FF' : '2px solid var(--border-color)',
       }}
       className={`relative rounded-2xl overflow-hidden transition-all duration-200 text-left
                   ${active ? 'scale-[1.03]' : 'hover:border-sky/30'}`}
@@ -117,14 +153,10 @@ function ThemeCard({ theme, active, onSelect }) {
   );
 }
 
-// ── Text Size Tile — PREVIEW ONLY, does NOT change the site ──
-// The tile shows a fixed px preview. Clicking it sets the PREVIEW state,
-// not the global setting. User must click "Apply" to apply sitewide.
 function TextSizeTile({ size, isActive, isPreviewing, onClick }) {
-  const accentColor = '#F97B6B';
-  const previewColor = '#8040D8'; // purple to distinguish "previewing but not saved"
-  
-  const isActualActive = isActive && !isPreviewing;
+  const accentColor   = '#F97B6B';
+  const previewColor  = '#8040D8';
+  const isActualActive  = isActive && !isPreviewing;
   const isPreviewActive = isPreviewing;
 
   const border = isPreviewActive
@@ -132,7 +164,7 @@ function TextSizeTile({ size, isActive, isPreviewing, onClick }) {
     : isActualActive
     ? `2px solid ${accentColor}`
     : '2px solid var(--border-color)';
-  
+
   const bg = isPreviewActive
     ? 'rgba(128,64,216,0.08)'
     : isActualActive
@@ -145,80 +177,29 @@ function TextSizeTile({ size, isActive, isPreviewing, onClick }) {
     <button
       onClick={onClick}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        width: '100%',
-        padding: '16px 18px',
-        boxSizing: 'border-box',
-        border,
-        borderRadius: 16,
-        background: bg,
-        cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 14,
+        width: '100%', padding: '16px 18px', boxSizing: 'border-box',
+        border, borderRadius: 16, background: bg, cursor: 'pointer',
         transition: 'border-color 0.15s, background 0.15s',
-        fontSize: '16px',
-        fontFamily: 'inherit',
-        textAlign: 'left',
+        fontSize: '16px', fontFamily: 'inherit', textAlign: 'left',
       }}>
-
-      {/* "Aa" sample — fixed px, never inherits global font size */}
       <span style={{
-        fontSize: size.previewPx,
-        fontWeight: 700,
-        lineHeight: 1,
-        flexShrink: 0,
-        color,
-        fontFamily: 'inherit',
-        display: 'block',
-        minWidth: 36,
-      }}>
-        Aa
-      </span>
-
+        fontSize: size.previewPx, fontWeight: 700, lineHeight: 1, flexShrink: 0,
+        color, fontFamily: 'inherit', display: 'block', minWidth: 36,
+      }}>Aa</span>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{
-          display: 'block',
-          fontSize: 14,
-          fontWeight: 700,
-          lineHeight: 1.2,
-          color,
-          whiteSpace: 'nowrap',
-        }}>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 700, lineHeight: 1.2, color, whiteSpace: 'nowrap' }}>
           {size.label}
-          {isPreviewActive && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: previewColor, marginLeft: 6 }}>
-              (preview)
-            </span>
-          )}
-          {isActualActive && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: accentColor, marginLeft: 6 }}>
-              (current)
-            </span>
-          )}
+          {isPreviewActive && <span style={{ fontSize: 10, fontWeight: 600, color: previewColor, marginLeft: 6 }}>(preview)</span>}
+          {isActualActive  && <span style={{ fontSize: 10, fontWeight: 600, color: accentColor,  marginLeft: 6 }}>(current)</span>}
         </span>
         <span style={{
-          display: 'block',
-          fontSize: 11,
-          fontWeight: 400,
-          lineHeight: 1.3,
-          marginTop: 2,
-          color: '#9ca3af',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}>
-          {size.sampleText}
-        </span>
+          display: 'block', fontSize: 11, fontWeight: 400, lineHeight: 1.3, marginTop: 2,
+          color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{size.sampleText}</span>
       </span>
-
       {(isActualActive || isPreviewActive) && (
-        <span style={{
-          flexShrink: 0,
-          color,
-          fontSize: 16,
-          fontWeight: 900,
-          lineHeight: 1,
-        }}>✓</span>
+        <span style={{ flexShrink: 0, color, fontSize: 16, fontWeight: 900, lineHeight: 1 }}>✓</span>
       )}
     </button>
   );
@@ -312,8 +293,7 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
           )}
           <div className="flex gap-3 pt-1">
             <button onClick={onClose}
-              className="flex-1 py-2.5 rounded-2xl text-sm font-semibold
-                         text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex-1 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               style={{ border:'2px solid var(--border-color)' }}>
               Keep My Account
             </button>
@@ -338,13 +318,10 @@ export default function SettingsPage() {
   const { settings, updateSettings, speak, voices } = useSettings();
   const { user, logout } = useAuth();
   const navigate         = useNavigate();
-  const [saved,         setSaved]        = useState(false);
-  const [showDelete,    setShowDelete]   = useState(false);
-  
-  // ── Text size preview state (separate from live setting) ──
-  // previewSize: null means "not previewing", otherwise it's a key like 'large'
-  const [previewSize,   setPreviewSize]  = useState(null);
-  // The preview box uses its own font-size, NOT the global html font-size
+  const [saved,         setSaved]       = useState(false);
+  const [showDelete,    setShowDelete]  = useState(false);
+  const [previewSize,   setPreviewSize] = useState(null);
+
   const previewKey    = previewSize ?? settings.text_size;
   const previewConfig = TEXT_SIZES.find(s => s.key === previewKey) || TEXT_SIZES[1];
   const hasUnsavedSize = previewSize !== null && previewSize !== settings.text_size;
@@ -358,10 +335,6 @@ export default function SettingsPage() {
   const applyTextSize = async () => {
     if (!previewSize) return;
     await save({ text_size: previewSize });
-    setPreviewSize(null);
-  };
-
-  const cancelTextSizePreview = () => {
     setPreviewSize(null);
   };
 
@@ -390,18 +363,12 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ── Text Size — PREVIEW ONLY before applying ───────── */}
+      {/* ── Text Size ───────────────────────────────────────── */}
       <Section title="Text Size" icon={<Type size={22} className="text-sky"/>}>
         <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 14, lineHeight: 1.5, fontFamily: 'inherit' }}>
           Click a size to preview it below. Press <strong>Apply</strong> to make it permanent across the site.
         </p>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 10,
-          fontSize: '16px',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, fontSize: '16px' }}>
           {TEXT_SIZES.map(s => (
             <TextSizeTile
               key={s.key}
@@ -409,24 +376,14 @@ export default function SettingsPage() {
               isActive={settings.text_size === s.key}
               isPreviewing={previewSize === s.key}
               onClick={() => {
-                // If clicking the currently saved size, clear preview
-                if (previewSize === s.key) {
-                  setPreviewSize(null);
-                } else if (s.key === settings.text_size) {
-                  setPreviewSize(null);
-                } else {
-                  setPreviewSize(s.key);
-                }
+                if (previewSize === s.key || s.key === settings.text_size) setPreviewSize(null);
+                else setPreviewSize(s.key);
               }}
             />
           ))}
         </div>
-
-        {/* Live preview strip — uses previewSize font-size NOT global html font-size */}
         <div style={{
-          marginTop: 16,
-          padding: '14px 16px',
-          borderRadius: 12,
+          marginTop: 16, padding: '14px 16px', borderRadius: 12,
           background: 'var(--bg-primary)',
           border: hasUnsavedSize ? '2px solid #8040D8' : '2px solid var(--border-color)',
           transition: 'border-color 0.2s',
@@ -434,10 +391,8 @@ export default function SettingsPage() {
           <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, fontFamily: 'inherit' }}>
             Live preview{hasUnsavedSize && <span style={{ color:'#8040D8', marginLeft:6, fontWeight:700 }}>— not applied yet</span>}
           </p>
-          {/* This uses FIXED px from previewConfig — intentionally NOT rem/em */}
           <p style={{
-            margin: 0,
-            lineHeight: 1.6,
+            margin: 0, lineHeight: 1.6,
             fontSize: previewConfig.previewPx,
             fontFamily: '"Nunito", sans-serif',
             color: 'var(--text-primary)',
@@ -446,13 +401,10 @@ export default function SettingsPage() {
             The quick brown fox jumps over the lazy dog.
           </p>
         </div>
-
-        {/* Apply / Cancel buttons — only shown when preview differs from saved */}
         {hasUnsavedSize && (
           <div className="flex gap-3 mt-3 animate-fade-in">
-            <button onClick={cancelTextSizePreview}
-              className="flex-1 py-2.5 rounded-2xl text-sm font-semibold
-                         text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            <button onClick={() => setPreviewSize(null)}
+              className="flex-1 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               style={{ border: '2px solid var(--border-color)' }}>
               Cancel
             </button>
@@ -467,10 +419,12 @@ export default function SettingsPage() {
 
       {/* ── Background Music ───────────────────────────────── */}
       <Section title="Background Music" icon={<Music size={22} className="text-purple-500"/>}>
-        <Toggle on={settings.bg_music_enabled}
+        <Toggle
+          on={settings.bg_music_enabled}
           onToggle={() => save({ bg_music_enabled: !settings.bg_music_enabled })}
           label="Background Music"
-          sub="Ambient music while you study — starts on first interaction"/>
+          sub="Ambient music while you study — starts on first interaction"
+        />
         {settings.bg_music_enabled && (
           <div className="mt-4 space-y-4">
             <div>
@@ -478,14 +432,10 @@ export default function SettingsPage() {
               <div className="grid grid-cols-2 gap-2">
                 {MUSIC_THEMES.map(m => (
                   <button key={m.key} onClick={() => save({ bg_music_theme: m.key })}
-                    className={`flex items-center gap-2.5 p-3 rounded-2xl transition-all text-left`}
+                    className="flex items-center gap-2.5 p-3 rounded-2xl transition-all text-left"
                     style={{
-                      border: settings.bg_music_theme === m.key
-                        ? '2px solid #a855f7'
-                        : '2px solid var(--border-color)',
-                      background: settings.bg_music_theme === m.key
-                        ? 'rgba(168,85,247,0.1)'
-                        : 'var(--bg-card-grad)',
+                      border: settings.bg_music_theme === m.key ? '2px solid #a855f7' : '2px solid var(--border-color)',
+                      background: settings.bg_music_theme === m.key ? 'rgba(168,85,247,0.1)' : 'var(--bg-card-grad)',
                     }}>
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
                       ${settings.bg_music_theme === m.key ? 'bg-purple-500/20' : 'bg-gray-100 dark:bg-gray-800'}`}
@@ -517,10 +467,12 @@ export default function SettingsPage() {
 
       {/* ── Text-to-Speech ─────────────────────────────────── */}
       <Section title="Text-to-Speech" icon={<Volume2 size={22} className="text-emerald-500"/>}>
-        <Toggle on={settings.tts_enabled}
+        <Toggle
+          on={settings.tts_enabled}
           onToggle={() => save({ tts_enabled: !settings.tts_enabled })}
           label="Read Aloud"
-          sub="Read game instructions and feedback out loud"/>
+          sub="Read game instructions and feedback out loud"
+        />
         {settings.tts_enabled && (
           <div className="mt-4 space-y-4">
             <div>
