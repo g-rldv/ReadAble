@@ -1,7 +1,8 @@
 // ============================================================
 // AppLayout.jsx — updated:
-// 1. Logo uses readablelogowhite/black PNG based on theme
-// 2. Improved borders throughout for visibility across themes
+// 1. Logo: WHITE logo on dark themes, BLACK logo on light themes
+// 2. "ReadAble" text shown beside logo everywhere
+// 3. Improved borders throughout for visibility across themes
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -31,11 +32,12 @@ const SIDEBAR_NAV = [
   { to:'/settings',    Icon:Settings,        label:'Settings'    },
 ];
 
-// ── Logo component — uses PNG files, adapts to theme ─────────
-function ReadableLogo({ height = 28, className = '' }) {
-  // Check if dark theme is active via html class or data-theme
-  const [isDark, setIsDark] = useState(false);
+// ── Theme darkness detection ──────────────────────────────────
+// DARK themes use WHITE logo; LIGHT themes use BLACK logo
+const DARK_THEMES = new Set(['night']);
 
+function useIsDark() {
+  const [isDark, setIsDark] = useState(false);
   useEffect(() => {
     const check = () => {
       const html = document.documentElement;
@@ -46,65 +48,57 @@ function ReadableLogo({ height = 28, className = '' }) {
     };
     check();
     const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-theme'],
+    });
     return () => observer.disconnect();
   }, []);
-
-  return (
-    <img
-      src={isDark ? '/readablelogoblack.png' : '/readablelogowhite.png'}
-      alt="ReadAble"
-      style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }}
-      className={className}
-      onError={e => {
-        // Fallback: hide image if not found yet
-        e.currentTarget.style.display = 'none';
-        e.currentTarget.nextSibling && (e.currentTarget.nextSibling.style.display = 'flex');
-      }}
-    />
-  );
+  return isDark;
 }
 
-// Fallback text logo if PNGs aren't placed yet
-function FallbackLogo({ isDark }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-8 h-8 rounded-xl bg-sky flex items-center justify-center flex-shrink-0">
-        <BookOpen size={16} className="text-white"/>
-      </div>
-      <span className="font-display text-2xl text-sky">ReadAble</span>
-    </div>
-  );
-}
-
-// Smart logo that tries PNG first, falls back to text
-function SmartLogo({ height = 28, showFallback = false }) {
+// ── Smart Logo — PNG + "ReadAble" text fallback ───────────────
+// Dark theme  → white logo PNG  (readablelogowhite.png)
+// Light theme → black logo PNG  (readablelogoblack.png)
+function SmartLogo({ height = 28 }) {
+  const isDark = useIsDark();
   const [failed, setFailed] = useState(false);
-  const [isDark, setIsDark] = useState(false);
 
-  useEffect(() => {
-    const check = () => {
-      const html = document.documentElement;
-      setIsDark(
-        html.classList.contains('dark') ||
-        html.getAttribute('data-theme') === 'night'
-      );
-    };
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-    return () => observer.disconnect();
-  }, []);
-
-  if (failed || showFallback) return <FallbackLogo isDark={isDark} />;
+  // src: white logo for dark bg, black logo for light bg
+  const src = isDark ? '/readablelogowhite.png' : '/readablelogoblack.png';
 
   return (
-    <img
-      src={isDark ? '/readablelogoblack.png' : '/readablelogowhite.png'}
-      alt="ReadAble"
-      style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }}
-      onError={() => setFailed(true)}
-    />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {!failed ? (
+        <img
+          key={src}
+          src={src}
+          alt="ReadAble"
+          style={{ height, width: 'auto', display: 'block', objectFit: 'contain' }}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        /* Fallback icon if PNG missing */
+        <div style={{
+          width: height, height: height, borderRadius: 8,
+          background: '#60B8F5',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <BookOpen size={height * 0.6} color="white" />
+        </div>
+      )}
+      <span style={{
+        fontFamily: '"Fredoka One", cursive',
+        fontSize: height * 1.1,
+        lineHeight: 1,
+        color: isDark ? '#F0ECFF' : '#2C1810',
+        letterSpacing: '-0.01em',
+        whiteSpace: 'nowrap',
+      }}>
+        ReadAble
+      </span>
+    </div>
   );
 }
 
@@ -126,19 +120,7 @@ function buildPath(i) {
 
 function BottomNavBar() {
   const location = useLocation();
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const check = () => {
-      setIsDark(document.documentElement.classList.contains('dark') ||
-        document.documentElement.getAttribute('data-theme') === 'night');
-    };
-    check();
-    const obs = new MutationObserver(check);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-    return () => obs.disconnect();
-  }, []);
-
+  const isDark = useIsDark();
   const NAV_BG = isDark ? '#1E1840' : '#FFFFFF';
 
   const activeIdx = (() => {
@@ -348,7 +330,7 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
     <div className="flex flex-col h-full">
       <div className="px-5 py-4 flex-shrink-0"
         style={{ borderBottom: '2px solid var(--border-color)' }}>
-        <SmartLogo height={32} />
+        <SmartLogo height={26} />
       </div>
 
       <div className="px-4 py-4 mx-3 mt-3 rounded-2xl flex-shrink-0"
@@ -482,7 +464,7 @@ export default function AppLayout() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             width: '100%', height: '100%', gap: 8,
           }}>
-            <SmartLogo height={26} />
+            <SmartLogo height={22} />
 
             <div style={{ flexShrink: 0 }}>
               <div style={{
