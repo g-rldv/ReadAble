@@ -1,9 +1,8 @@
 // ============================================================
 // ShopPage.jsx — Fixed:
-// 1. NO float animation on any buddy (active or available)
-// 2. Border on available buddy image containers (matching active buddy style)
-// 3. Mobile filter buttons wrap properly (no horizontal scroll)
-// 4. Improved border visibility across all themes
+// 1. Removed inner image container from CharacterCard — image renders directly
+// 2. Card border carries the rarity weight (3px equipped, 2.5px owned, 2px unowned)
+// 3. Mobile filter buttons wrap properly
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
@@ -48,23 +47,13 @@ function AchievementTooltip({ earnedBy, visible }) {
   const label = ACH_LABELS[earnedBy] || earnedBy;
   return (
     <div style={{
-      position: 'absolute',
-      bottom: '100%',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      marginBottom: 10,
-      zIndex: 100,
-      width: 190,
-      padding: '10px 12px',
-      borderRadius: 12,
-      background: '#1e1b4b',
-      color: '#e0e7ff',
-      fontSize: 11,
-      fontWeight: 600,
-      lineHeight: 1.5,
+      position: 'absolute', bottom: '100%', left: '50%',
+      transform: 'translateX(-50%)', marginBottom: 10, zIndex: 100,
+      width: 190, padding: '10px 12px', borderRadius: 12,
+      background: '#1e1b4b', color: '#e0e7ff', fontSize: 11,
+      fontWeight: 600, lineHeight: 1.5,
       boxShadow: '0 8px 24px rgba(0,0,0,0.45)',
-      pointerEvents: 'none',
-      textAlign: 'center',
+      pointerEvents: 'none', textAlign: 'center',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: 5 }}>
         <Trophy size={12} style={{ color: '#fbbf24', flexShrink: 0 }} />
@@ -80,7 +69,7 @@ function AchievementTooltip({ earnedBy, visible }) {
   );
 }
 
-// ── Character Card ────────────────────────────────────────────
+// ── Character Card — NO inner image container ─────────────────
 function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
                          onBuy, onEquip, buying, equipping }) {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -129,17 +118,18 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
     btnBorderColor= canAfford ? '#d97706' : 'rgba(156,163,175,0.5)';
   }
 
-  // Card border — rarity colored, always visible
-  const cardBorder = isEquipped
-    ? `2.5px solid ${rc.color}`
+  // Card border — heavier weight differentiates states (no inner container needed)
+  const cardBorderWidth = isEquipped ? 3 : isOwned ? 2.5 : 2;
+  const cardBorderColor = isEquipped
+    ? rc.color
     : isOwned
-    ? `2px solid ${rc.color}80`
-    : `2px solid ${rc.color}50`;
+    ? `${rc.color}99`
+    : `${rc.color}55`;
 
   return (
     <div style={{
       borderRadius: 16,
-      border: cardBorder,
+      border: `${cardBorderWidth}px solid ${cardBorderColor}`,
       background: isEquipped ? rc.bg : 'var(--bg-card-grad)',
       display: 'flex',
       flexDirection: 'column',
@@ -147,7 +137,7 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
       position: 'relative',
       transition: 'border-color 0.2s, box-shadow 0.2s',
       boxShadow: isEquipped
-        ? `0 0 16px ${rc.glow}`
+        ? `0 0 20px ${rc.glow}`
         : isOwned
         ? `0 2px 8px ${rc.glow}`
         : 'none',
@@ -174,15 +164,16 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         </div>
       )}
 
-      {/* Character image box — ALWAYS has a rarity border, NO animation */}
+      {/* ── Character image area — NO inner container ── */}
+      {/* The character PNG renders directly here, no box around it */}
       <div style={{
         width: '100%',
-        height: 110,
+        height: 120,
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 28,
+        paddingTop: 30,
         paddingBottom: 8,
         paddingLeft: 8,
         paddingRight: 8,
@@ -191,14 +182,18 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
         position: 'relative',
         background: isEquipped
           ? `linear-gradient(180deg, ${rc.bg} 0%, transparent 100%)`
-          : `linear-gradient(180deg, ${rc.bg}60 0%, transparent 100%)`,
+          : lockedByAch
+          ? 'rgba(10,10,20,0.04)'
+          : `linear-gradient(180deg, ${rc.bg}50 0%, transparent 100%)`,
+        borderRadius: '14px 14px 0 0',
       }}>
+        {/* Lock overlay for achievement-gated characters */}
         {lockedByAch && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 4,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(10,10,20,0.55)',
-            borderRadius: '14px 14px 0 0',
+            background: 'rgba(10,10,20,0.50)',
+            borderRadius: '13px 13px 0 0',
           }}>
             <div style={{
               width: 40, height: 40, borderRadius: '50%',
@@ -210,49 +205,33 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
             </div>
           </div>
         )}
-        {/* Inner image border — always visible, rarity colored */}
-        <div style={{
-          width: 72,
-          height: 72,
-          borderRadius: 14,
-          border: `2px solid ${rc.color}60`,
-          background: `${rc.bg}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          boxShadow: `0 2px 8px ${rc.glow}`,
-        }}>
-          {/* animate=false for ALL cards — no floating animation */}
-          <CharacterAvatar
-            characterId={char.id}
-            size={60}
-            showGlow={isOwned || char.isDefault}
-            animate={false}
-          />
-        </div>
+        {/* Character avatar — no wrapper box */}
+        <CharacterAvatar
+          characterId={char.id}
+          size={72}
+          showGlow={isOwned || char.isDefault}
+          animate={false}
+        />
       </div>
 
       {/* Text info */}
       <div style={{
-        padding: '4px 10px 12px',
+        padding: '6px 10px 12px',
         display: 'flex',
         flexDirection: 'column',
         gap: 3,
         flex: 1,
-        borderTop: `1px solid ${rc.color}25`,
+        borderTop: `1px solid ${rc.color}20`,
       }}>
         <p style={{
-          fontSize: 13, fontWeight: 800,
-          color: 'var(--text-primary)',
+          fontSize: 13, fontWeight: 800, color: 'var(--text-primary)',
           margin: 0, textAlign: 'center', lineHeight: 1.2,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {char.name}
         </p>
         <p style={{
-          fontSize: 10, color: '#9ca3af',
-          margin: 0, textAlign: 'center', lineHeight: 1.4,
+          fontSize: 10, color: '#9ca3af', margin: 0, textAlign: 'center', lineHeight: 1.4,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           overflow: 'hidden', minHeight: 26,
         }}>
@@ -308,11 +287,8 @@ function EquippedPreview({ equippedId, ownedCount }) {
     <>
       {/* Mobile collapsible */}
       <div className="md:hidden" style={{
-        borderRadius: 20,
-        border: `2px solid ${rc.color}`,
-        background: 'var(--bg-card-grad)',
-        overflow: 'hidden',
-        marginBottom: 4,
+        borderRadius: 20, border: `3px solid ${rc.color}`,
+        background: 'var(--bg-card-grad)', overflow: 'hidden', marginBottom: 4,
       }}>
         <button onClick={() => setOpen(o => !o)} style={{
           width: '100%', display: 'flex', alignItems: 'center',
@@ -320,18 +296,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
           background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Fixed 48×48 image container with rarity border */}
-            <div style={{
-              width: 48, height: 48, flexShrink: 0,
-              border: `2px solid ${rc.color}`,
-              borderRadius: 12,
-              background: rc.bg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden',
-            }}>
-              {/* animate=false — no floating */}
-              <CharacterAvatar characterId={equippedId} size={44} animate={false} />
-            </div>
+            <CharacterAvatar characterId={equippedId} size={48} animate={false} />
             <div style={{ textAlign: 'left' }}>
               <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>{char?.name}</p>
               <p style={{ fontSize: 10, color: rc.color, margin: 0, fontWeight: 700 }}>{rc.label} · Equipped</p>
@@ -341,22 +306,10 @@ function EquippedPreview({ equippedId, ownedCount }) {
         </button>
         {open && (
           <div style={{
-            padding: '0 16px 16px',
-            borderTop: `1px solid ${rc.color}40`,
+            padding: '0 16px 16px', borderTop: `1px solid ${rc.color}40`,
             display: 'flex', justifyContent: 'center',
           }}>
-            <div style={{
-              width: 140, height: 140,
-              border: `2px solid ${rc.color}`,
-              borderRadius: 16,
-              background: rc.bg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden',
-              marginTop: 12,
-            }}>
-              {/* animate=false — no floating in expanded view either */}
-              <CharacterAvatar characterId={equippedId} size={130} showGlow animate={false} />
-            </div>
+            <CharacterAvatar characterId={equippedId} size={130} showGlow animate={false} />
           </div>
         )}
       </div>
@@ -365,7 +318,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
       <div className="hidden md:flex" style={{
         width: 210, flexShrink: 0, flexDirection: 'column', alignItems: 'center', gap: 12,
         borderRadius: 24, padding: '20px 16px',
-        border: `2px solid ${rc.color}`,
+        border: `3px solid ${rc.color}`,
         background: 'var(--bg-card-grad)',
         position: 'sticky', top: 16,
         boxShadow: `0 0 24px ${rc.glow}`,
@@ -373,22 +326,8 @@ function EquippedPreview({ equippedId, ownedCount }) {
       }}>
         <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>Active Buddy</p>
 
-        {/* Image container with rarity border — NO animation */}
-        <div style={{
-          width: 160,
-          height: 160,
-          flexShrink: 0,
-          border: `2px solid ${rc.color}`,
-          borderRadius: 18,
-          background: rc.bg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-        }}>
-          {/* animate=false — no floating */}
-          <CharacterAvatar characterId={equippedId} size={156} showGlow animate={false} />
-        </div>
+        {/* No container — character PNG renders directly */}
+        <CharacterAvatar characterId={equippedId} size={156} showGlow animate={false} />
 
         <div style={{ textAlign: 'center', width: '100%' }}>
           <p style={{
@@ -406,8 +345,7 @@ function EquippedPreview({ equippedId, ownedCount }) {
         </div>
 
         <p style={{
-          fontSize: 11, color: '#9ca3af',
-          textAlign: 'center', margin: 0, lineHeight: 1.5,
+          fontSize: 11, color: '#9ca3af', textAlign: 'center', margin: 0, lineHeight: 1.5,
           display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>{char?.desc}</p>
 
@@ -561,7 +499,7 @@ export default function ShopPage() {
           {[
             { icon:'🎮', title:'Play Activities',     desc:'Earn coins equal to 1.5× your XP reward'     },
             { icon:'🏆', title:'Unlock Achievements', desc:'Bonus coins + free buddies for milestones'    },
-            { icon:'🎁', title:'Achievement Buddies', desc:'Some buddies unlock free with achievements'  },
+            { icon:'🎁', title:'Achievement Buddies', desc:'Some buddies unlock free with achievements'   },
           ].map(({ icon, title, desc }) => (
             <div key={title} style={{
               display:'flex', alignItems:'flex-start', gap:10, padding:'10px 12px',
@@ -610,13 +548,11 @@ export default function ShopPage() {
 
         <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:14 }}>
 
-          {/* ── Filter pills — FIXED for mobile: wrap grid, never scrolls sideways ── */}
+          {/* Filter pills */}
           <div style={{
             display: 'grid',
-            // On mobile: wrap into 2 rows automatically (minmax ensures no overflow)
             gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))',
-            gap: 6,
-            width: '100%',
+            gap: 6, width: '100%',
           }}>
             {RARITY_FILTERS.map(f => {
               const rc = RARITY_CONFIG[f.key];
@@ -632,9 +568,7 @@ export default function ShopPage() {
                     background: isActive ? (rc?.bg || 'rgba(96,184,245,0.18)') : 'var(--bg-card-grad)',
                     color: isActive ? (rc?.color || '#60B8F5') : 'var(--text-muted, #9ca3af)',
                     transition:'all 0.15s', textAlign:'center',
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
                   {f.label}
                 </button>
