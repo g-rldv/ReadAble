@@ -1,8 +1,8 @@
 // ============================================================
 // FillBlankGame — tap options to fill sentence blanks
 // - TTS on each sentence and each option chip
-// - Clean, minimal UI — no redundant instructions
-// - Per-sentence option set
+// - Options fill the full horizontal width in a grid
+// - Clean, minimal UI
 // ============================================================
 import React, { useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -100,27 +100,36 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
         })}
       </div>
 
-      {/* Option chips */}
+      {/* Option buttons — full-width grid */}
       <div className="mb-5">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
           Choose for sentence {activeIdx + 1}
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${Math.min(activeOptions.length, 4)}, 1fr)`,
+            gap: 8,
+          }}>
           {activeOptions.map(opt => {
             const isChosen = answers[activeIdx] === opt;
             return (
               <button
                 key={opt}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border-2 font-bold text-sm transition-all min-h-[44px]"
+                className="flex items-center justify-between px-3 py-3 rounded-xl border-2 font-bold text-sm transition-all min-h-[48px] w-full"
                 style={{
                   borderColor: isChosen ? '#4D96FF' : 'rgba(77,150,255,0.35)',
                   background: isChosen ? '#4D96FF' : 'transparent',
                   color: isChosen ? '#fff' : '#4D96FF',
                 }}>
-                <span onClick={() => pickAnswer(opt)}>{opt}</span>
+                <span
+                  onClick={() => pickAnswer(opt)}
+                  className="flex-1 text-left truncate">
+                  {opt}
+                </span>
                 <button
                   onClick={e => { e.stopPropagation(); speak(opt); }}
-                  className="hover:opacity-70 transition-opacity"
+                  className="ml-2 flex-shrink-0 hover:opacity-70 transition-opacity"
                   style={{ color: isChosen ? 'rgba(255,255,255,0.7)' : 'rgba(77,150,255,0.6)' }}>
                   <Volume2 size={11} />
                 </button>
