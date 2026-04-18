@@ -888,8 +888,7 @@ function SettingsModal({ onClose }) {
         <div className="flex-shrink-0 px-5 py-3 text-center"
           style={{ borderTop: '1px solid var(--border-color)' }}>
           <p className="text-xs text-gray-400">
-            More options available after sign-in in{' '}
-            <span className="font-bold text-sky">Settings</span>
+            More options available after sign-in
           </p>
         </div>
       </div>
