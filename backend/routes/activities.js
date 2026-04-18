@@ -162,20 +162,20 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
         completionist: ['char_mythic_shadowmonarch'],
         xp_1000:       ['char_mythic_sunarmor'],
       };
- 
+
       const achKeys = newAchievements.map(a => a.key);
       const currentWardrobe = await client.query(
         'SELECT wardrobe FROM users WHERE id=$1', [userId]
       );
       const alreadyOwned = currentWardrobe.rows[0]?.wardrobe || [];
- 
+
       const toUnlock = [];
       achKeys.forEach(k => {
         (ACHIEVEMENT_CHARACTER_UNLOCKS[k] || []).forEach(charId => {
           if (!alreadyOwned.includes(charId)) toUnlock.push(charId);
         });
       });
- 
+
       if (toUnlock.length > 0) {
         await client.query(
           `UPDATE users SET wardrobe = wardrobe || $1::jsonb WHERE id=$2`,
@@ -183,8 +183,9 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
         );
       }
     }
- 
-module.exports = { ACHIEVEMENT_CHARACTER_UNLOCKS };
+
+    // ── COMMIT the transaction ────────────────────────────────
+    await client.query('COMMIT');
 
     res.json({
       score,
@@ -230,7 +231,6 @@ function evaluateAnswer(activity, answer) {
     case 'fill_blank': {
       const expected     = correct.answers;
       const given        = answer?.answers || [];
-      const sentences    = activity.content?.sentences || [];
       const correctCount = expected.filter((a, i) => a?.toLowerCase() === given[i]?.toLowerCase()).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
@@ -293,7 +293,7 @@ function evaluateAnswer(activity, answer) {
         ? `Nice work! ${correctCount}/${expected.length} pictures correct.`
         : `You got ${correctCount}/${expected.length}. Read each question carefully!`;
       details   = expected.map((a, i) => {
-        const q       = questions[i];
+        const q           = questions[i];
         const correct_opt = q?.options?.find(o => o.emoji === a);
         const given_opt   = q?.options?.find(o => o.emoji === given[i]);
         return {
@@ -365,4 +365,21 @@ async function checkAchievements(client, userId, user) {
   return newOnes;
 }
 
+// ── Export ACHIEVEMENT_CHARACTER_UNLOCKS for use by other modules ─
+const ACHIEVEMENT_CHARACTER_UNLOCKS = {
+  first_star:    ['char_common_blue'],
+  complete_5:    ['char_common_dalmatian'],
+  xp_100:        ['char_uncommon_greenglass'],
+  level_3:       ['char_uncommon_student'],
+  five_streak:   ['char_uncommon_hero'],
+  complete_10:   ['char_uncommon_ranger'],
+  xp_500:        ['char_rare_painter'],
+  complete_25:   ['char_rare_baker'],
+  ten_streak:    ['char_rare_bluebonnet'],
+  level_10:      ['char_rare_guitar'],
+  completionist: ['char_mythic_shadowmonarch'],
+  xp_1000:       ['char_mythic_sunarmor'],
+};
+
 module.exports = router;
+module.exports.ACHIEVEMENT_CHARACTER_UNLOCKS = ACHIEVEMENT_CHARACTER_UNLOCKS;
