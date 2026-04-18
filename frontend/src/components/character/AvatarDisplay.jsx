@@ -1,15 +1,15 @@
 // ============================================================
-// AvatarDisplay.jsx — Shared avatar component used across all pages
-// Always shows character PNG. Falls back to gray default character.
+// AvatarDisplay.jsx — Shared avatar component used across all pages.
+// PNG fills the full container with no visible whitespace margin.
 // Never shows a letter initial.
 // ============================================================
 import React from 'react';
 import { characterById, DEFAULT_CHARACTER_ID } from './CHARACTER_CATALOG';
 
 export default function AvatarDisplay({ equipped, avatar, username, size = 48, style = {} }) {
-  // 1. Prefer equipped character PNG
   const characterId = equipped?.character || null;
 
+  // 1. Prefer equipped character PNG — fills edge-to-edge
   if (characterId) {
     const char = characterById(characterId);
     const src  = char
@@ -22,7 +22,7 @@ export default function AvatarDisplay({ equipped, avatar, username, size = 48, s
         style={{
           width: size,
           height: size,
-          objectFit: 'contain',
+          objectFit: 'contain',   // fills box, keeps aspect ratio
           display: 'block',
           ...style,
         }}
@@ -33,7 +33,7 @@ export default function AvatarDisplay({ equipped, avatar, username, size = 48, s
     );
   }
 
-  // 2. If they have a photo avatar (data URL), show it
+  // 2. Photo avatar (data URL) — cover-crop to fill circle/square
   if (avatar && avatar.startsWith('data:')) {
     return (
       <img
@@ -51,7 +51,7 @@ export default function AvatarDisplay({ equipped, avatar, username, size = 48, s
     );
   }
 
-  // 3. Default: always show gray character PNG (never a letter)
+  // 3. Default: gray character PNG — always fills the container
   const defaultChar = characterById(DEFAULT_CHARACTER_ID);
   const defaultSrc  = defaultChar
     ? `/characters/${defaultChar.file}`
