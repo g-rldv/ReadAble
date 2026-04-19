@@ -256,7 +256,7 @@ export default function WordMatchGame({ activity, onSubmit, submitting }) {
         onClick={() => allMatched && onSubmit(matches)}
         disabled={!allMatched || submitting}
         className="btn-game w-full bg-coral text-white disabled:opacity-40 text-base">
-        {submitting ? 'Checking…' : allMatched ? 'Check Answers!' : `Match all ${content.pairs.length} pairs`}
+        {submitting ? 'Checking…' : allMatched ? 'Check Answers' : `Match all ${content.pairs.length} pairs`}
       </button>
     </div>
   );
