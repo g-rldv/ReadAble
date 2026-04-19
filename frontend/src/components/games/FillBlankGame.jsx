@@ -143,7 +143,7 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
         onClick={() => allFilled && onSubmit({ answers })}
         disabled={!allFilled || submitting}
         className="btn-game w-full bg-coral text-white disabled:opacity-40 text-base">
-        {submitting ? 'Checking…' : allFilled ? 'Check Answers!' : `Fill all ${content.sentences.length} blanks`}
+        {submitting ? 'Checking…' : allFilled ? 'Check Answers' : `Fill all ${content.sentences.length} blanks`}
       </button>
     </div>
   );
