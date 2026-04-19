@@ -295,15 +295,15 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
             <button onClick={onClose}
               className="flex-1 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               style={{ border:'2px solid var(--border-color)' }}>
-              Keep My Account
+              Cancel
             </button>
             <button onClick={handleDelete} disabled={!canSubmit}
               className="flex-1 py-2.5 rounded-2xl bg-rose-500 text-white text-sm font-bold
                          hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed
                          transition-colors flex items-center justify-center gap-2"
               style={{ border:'2px solid #dc2626' }}>
-              {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Trash2 size={15}/>}
-              {loading ? 'Deleting…' : 'Delete Forever'}
+              {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> :
+              {loading ? 'Deleting…' : 'Delete'}
             </button>
           </div>
         </div>
@@ -517,7 +517,7 @@ export default function SettingsPage() {
           Permanently delete your account and all associated data. This cannot be undone.
         </p>
         <button onClick={() => setShowDelete(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl
+          className="w-full flex items-center gap-2 px-5 py-2.5 rounded-2xl
                      text-rose-600 dark:text-rose-400 font-bold text-sm
                      hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
           style={{ border:'2px solid rgba(244,63,94,0.5)' }}>
