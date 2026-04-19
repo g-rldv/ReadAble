@@ -388,9 +388,6 @@ export default function SettingsPage() {
           border: hasUnsavedSize ? '2px solid #8040D8' : '2px solid var(--border-color)',
           transition: 'border-color 0.2s',
         }}>
-          <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, fontFamily: 'inherit' }}>
-            Live preview{hasUnsavedSize && <span style={{ color:'#8040D8', marginLeft:6, fontWeight:700 }}>— not applied yet</span>}
-          </p>
           <p style={{
             margin: 0, lineHeight: 1.6,
             fontSize: previewConfig.previewPx,
@@ -411,7 +408,7 @@ export default function SettingsPage() {
             <button onClick={applyTextSize}
               className="flex-1 py-2.5 rounded-2xl text-sm font-bold text-white transition-colors flex items-center justify-center gap-2"
               style={{ background: '#8040D8', border: '2px solid #6020B0' }}>
-              <Check size={15}/> Apply "{TEXT_SIZES.find(s => s.key === previewSize)?.label}"
+              <Check size={15}/> Apply
             </button>
           </div>
         )}
