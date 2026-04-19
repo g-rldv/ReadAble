@@ -255,7 +255,7 @@ function LogoutModal({ onConfirm, onCancel }) {
             className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold
                        hover:bg-rose-600 transition-colors flex items-center justify-center gap-2"
             style={{ border: '2px solid #dc2626' }}>
-            <LogOut size={16}/> Sign Out
+             Sign Out
           </button>
         </div>
       </div>
