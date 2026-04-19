@@ -408,7 +408,7 @@ export default function SettingsPage() {
             <button onClick={applyTextSize}
               className="flex-1 py-2.5 rounded-2xl text-sm font-bold text-white transition-colors flex items-center justify-center gap-2"
               style={{ background: '#8040D8', border: '2px solid #6020B0' }}>
-              <Check size={15}/> Apply
+               Apply
             </button>
           </div>
         )}
