@@ -3,6 +3,7 @@
 // 1. Toggle slider thumb properly centered and sized
 // 2. Text size preview is SEPARATE from live site — save button required
 // 3. Theme-adaptive borders on ALL buttons/cards
+// 4. Delete modal: no alert icon in header, no trash icon on delete button
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useState } from 'react';
@@ -57,14 +58,12 @@ function Section({ title, icon, children }) {
   );
 }
 
-// ── FIXED Toggle — thumb is perfectly centered, track is clearly styled ──
 function Toggle({ on, onToggle, label, sub }) {
   return (
     <div
       className="flex items-center justify-between p-3 md:p-4 rounded-2xl"
       style={{ background: 'var(--bg-primary)', border: '2px solid var(--border-color)' }}
     >
-      {/* Label side */}
       <div style={{ flex: 1, minWidth: 0, paddingRight: 16 }}>
         <p className="font-bold text-sm text-gray-700 dark:text-gray-300">{label}</p>
         {sub && (
@@ -72,7 +71,6 @@ function Toggle({ on, onToggle, label, sub }) {
         )}
       </div>
 
-      {/* Toggle track + thumb */}
       <button
         type="button"
         onClick={onToggle}
@@ -95,7 +93,6 @@ function Toggle({ on, onToggle, label, sub }) {
             : 'inset 0 1px 3px rgba(0,0,0,0.15)',
         }}
       >
-        {/* Thumb */}
         <div
           style={{
             position: 'absolute',
@@ -205,7 +202,7 @@ function TextSizeTile({ size, isActive, isPreviewing, onClick }) {
   );
 }
 
-// ── Delete Account Modal ──────────────────────────────────────
+// ── Delete Account Modal — no alert icon in header, no trash on button ──
 function DeleteAccountModal({ username, onClose, onDeleted }) {
   const [typedName, setTypedName] = useState('');
   const [password,  setPassword]  = useState('');
@@ -232,14 +229,10 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
         style={{ background:'var(--bg-card-grad)', border:'2px solid #f43f5e60' }}>
-        <div className="bg-rose-500 px-5 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle size={20} className="text-white" />
-          </div>
-          <div>
-            <h3 className="font-display text-lg text-white leading-tight">Delete Account</h3>
-            <p className="text-xs text-white/75 leading-tight">This action is permanent and irreversible</p>
-          </div>
+        {/* Header — no alert icon, just text */}
+        <div className="bg-rose-500 px-5 py-4">
+          <h3 className="font-display text-lg text-white leading-tight">Delete Account</h3>
+          <p className="text-xs text-white/75 leading-tight mt-0.5">This action is permanent and irreversible</p>
         </div>
         <div className="px-5 py-5 space-y-4">
           <ul className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -297,12 +290,15 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
               style={{ border:'2px solid var(--border-color)' }}>
               Cancel
             </button>
+            {/* Delete button — no trash icon */}
             <button onClick={handleDelete} disabled={!canSubmit}
               className="flex-1 py-2.5 rounded-2xl bg-rose-500 text-white text-sm font-bold
                          hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed
                          transition-colors flex items-center justify-center gap-2"
               style={{ border:'2px solid #dc2626' }}>
-              {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> :  <Trash2 size={16}/>}
+              {loading
+                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                : null}
               {loading ? 'Deleting…' : 'Delete'}
             </button>
           </div>
