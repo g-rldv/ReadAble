@@ -151,7 +151,7 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
           onClick={() => onSubmit({ answers })}
           disabled={submitting}
           className="btn-game w-full bg-coral text-white text-base animate-pop">
-          {submitting ? 'Checking…' : 'Check My Answers!'}
+          {submitting ? 'Checking…' : 'Check Answers'}
         </button>
       )}
     </div>
