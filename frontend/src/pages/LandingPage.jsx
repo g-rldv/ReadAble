@@ -427,7 +427,7 @@ function ForgotPasswordView({ onBack }) {
   );
 }
 
-// ── Sign-In Modal — NO logo inside ───────────────────────────
+// ── Sign-In Modal — X button aligned with heading ──────────
 function SignInModal({ onClose, onSwitchToRegister }) {
   const { login } = useAuth();
   const navigate  = useNavigate();
@@ -435,9 +435,9 @@ function SignInModal({ onClose, onSwitchToRegister }) {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [showForgot, setShowForgot] = useState(false);
-
+ 
   const handle = e => setForm(f=>({...f,[e.target.name]:e.target.value}));
-
+ 
   const submit = async (e) => {
     e.preventDefault(); setError(''); setLoading(true);
     try {
@@ -449,31 +449,28 @@ function SignInModal({ onClose, onSwitchToRegister }) {
       else setError('Something went wrong. Please try again.');
     } finally { setLoading(false); }
   };
-
+ 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e=>{if(e.target===e.currentTarget&&!loading)onClose();}}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
-
-        {/* Close button only — no logo */}
-        {!loading && (
-          <div className="flex items-center justify-end px-5 pt-4">
-            <button onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <X size={18} className="text-gray-400"/>
-            </button>
-          </div>
-        )}
-
-        <div className="px-6 pb-6 pt-2">
+ 
+        <div className="px-6 pb-6 pt-5">
           {loading ? (
             <SignInLoadingOverlay/>
           ) : showForgot ? (
             <ForgotPasswordView onBack={() => setShowForgot(false)} />
           ) : (
             <>
-              <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Welcome back!</h2>
+              {/* X button inline with heading */}
+              <div className="flex items-start justify-between gap-2 mb-0.5">
+                <h2 className="font-display text-2xl text-gray-900 dark:text-white">Welcome back!</h2>
+                <button onClick={onClose}
+                  className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 -mt-0.5">
+                  <X size={18} className="text-gray-400"/>
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mb-4">Sign in to continue your journey</p>
               <form onSubmit={submit}>
                 <AuthInput label="Email" type="email" name="email" value={form.email}
@@ -542,11 +539,11 @@ function RegisterLoadingOverlay() {
   );
 }
 
-// ── Register Modal — NO logo inside ──────────────────────────
+// ── Register Modal — X button aligned with heading ─────────
 function RegisterModal({ onClose, onSwitchToLogin }) {
   const { register } = useAuth();
   const navigate = useNavigate();
-
+ 
   const [step,     setStep]     = useState('form');
   const [form,     setForm]     = useState({ username: '', email: '', password: '', confirm: '' });
   const [errors,   setErrors]   = useState({});
@@ -554,12 +551,12 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
   const [otp,      setOtp]      = useState('');
   const [otpErr,   setOtpErr]   = useState('');
   const [resendCd, startResend] = useResendCooldown();
-
+ 
   const handle = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
     setErrors(er => ({ ...er, [e.target.name]: '', general: '' }));
   };
-
+ 
   const validate = () => {
     const e = {};
     if (form.username.trim().length < 3) e.username = 'At least 3 characters.';
@@ -568,7 +565,7 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
     if (form.password !== form.confirm)  e.confirm  = 'Passwords do not match.';
     return e;
   };
-
+ 
   const submitForm = async (e) => {
     e.preventDefault();
     const errs = validate();
@@ -583,13 +580,13 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
       else setErrors({ general: raw || 'Failed to send code. Please try again.' });
     } finally { setLoading(false); }
   };
-
+ 
   const resendOTP = async () => {
     setLoading(true);
     try { await api.post('/auth/send-otp', { email: form.email.trim(), type: 'register' }); startResend(); setOtpErr(''); }
     catch (_) {} finally { setLoading(false); }
   };
-
+ 
   const submitOTP = async (e) => {
     e.preventDefault();
     if (otp.length < 6) { setOtpErr('Please enter all 6 digits.'); return; }
@@ -605,29 +602,26 @@ function RegisterModal({ onClose, onSwitchToLogin }) {
       else                                      setOtpErr(raw || 'Something went wrong. Please try again.');
     } finally { setLoading(false); }
   };
-
+ 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={e => { if (e.target === e.currentTarget && !loading) onClose(); }}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-rise-up"
         style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
-
-        {/* Close button only — no logo */}
-        {!loading && (
-          <div className="flex items-center justify-end px-5 pt-4">
-            <button onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <X size={18} className="text-gray-400"/>
-            </button>
-          </div>
-        )}
-
-        <div className="px-6 pb-6 pt-2">
+ 
+        <div className="px-6 pb-6 pt-5">
           {loading ? (
             <RegisterLoadingOverlay/>
           ) : step === 'form' ? (
             <>
-              <h2 className="font-display text-2xl mb-0.5 text-gray-900 dark:text-white">Join ReadAble!</h2>
+              {/* X button inline with heading */}
+              <div className="flex items-start justify-between gap-2 mb-0.5">
+                <h2 className="font-display text-2xl text-gray-900 dark:text-white">Join ReadAble!</h2>
+                <button onClick={onClose}
+                  className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 -mt-0.5">
+                  <X size={18} className="text-gray-400"/>
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mb-4">Free account — takes 30 seconds</p>
               <form onSubmit={submitForm}>
                 <AuthInput label="Username" name="username" value={form.username} onChange={handle}
