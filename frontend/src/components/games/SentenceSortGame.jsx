@@ -253,7 +253,7 @@ export default function SentenceSortGame({ activity, onSubmit, submitting }) {
         onClick={() => onSubmit({ order: items })}
         disabled={submitting}
         className="btn-game w-full bg-coral text-white disabled:opacity-40 text-base">
-        {submitting ? 'Checking…' : 'Check My Order!'}
+        {submitting ? 'Checking…' : 'Check My Order'}
       </button>
     </div>
   );
