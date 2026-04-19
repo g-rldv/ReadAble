@@ -302,7 +302,7 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
                          hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed
                          transition-colors flex items-center justify-center gap-2"
               style={{ border:'2px solid #dc2626' }}>
-              {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> :  <Trash2 size={16}/>
+              {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> :  <Trash2 size={16}/>}
               {loading ? 'Deleting…' : 'Delete'}
             </button>
           </div>
