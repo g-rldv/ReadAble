@@ -3,6 +3,7 @@
 // 1. Logo: WHITE logo on dark themes, BLACK logo on light themes
 // 2. "ReadAble" text shown beside logo everywhere
 // 3. Improved borders throughout for visibility across themes
+// 4. Settings added to bottom nav (rightmost)
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -22,6 +23,7 @@ const BOTTOM_NAV = [
   { to:'/activities',  Icon:BookOpen,        label:'Activities' },
   { to:'/profile',     Icon:User,            label:'Profile'    },
   { to:'/shop',        Icon:ShoppingBag,     label:'Shop'       },
+  { to:'/settings',    Icon:Settings,        label:'Settings'   },
 ];
 
 const SIDEBAR_NAV = [
@@ -33,9 +35,6 @@ const SIDEBAR_NAV = [
 ];
 
 // ── Theme darkness detection ──────────────────────────────────
-// DARK themes use WHITE logo; LIGHT themes use BLACK logo
-const DARK_THEMES = new Set(['night']);
-
 function useIsDark() {
   const [isDark, setIsDark] = useState(false);
   useEffect(() => {
@@ -57,14 +56,11 @@ function useIsDark() {
   return isDark;
 }
 
-// ── Smart Logo — PNG + "ReadAble" text fallback ───────────────
-// Dark theme  → white logo PNG  (readablelogowhite.png)
-// Light theme → black logo PNG  (readablelogoblack.png)
+// ── Smart Logo ────────────────────────────────────────────────
 function SmartLogo({ height = 28 }) {
   const isDark = useIsDark();
   const [failed, setFailed] = useState(false);
  
-  // src: white logo for dark bg, black logo for light bg
   const src = isDark ? '/readablelogowhite.png' : '/readablelogoblack.png';
  
   return (
@@ -79,7 +75,6 @@ function SmartLogo({ height = 28 }) {
             width: 'auto',
             display: 'block',
             objectFit: 'contain',
-            // App-icon style: dark border, rounded corners
             border: '2px solid #1a1a2e',
             borderRadius: Math.round(height * 0.22),
             boxShadow: '0 2px 0 #1a1a2e',
@@ -193,10 +188,10 @@ function BottomNavBar() {
               paddingBottom: 10, textDecoration: 'none',
               WebkitTapHighlightColor: 'transparent',
             }}>
-              {!isActive && <Icon size={20} strokeWidth={1.8} style={{ color: isDark ? '#6b7280' : '#9ca3af', marginBottom: 4 }}/>}
-              {isActive  && <div style={{ height: 24 }}/>}
+              {!isActive && <Icon size={18} strokeWidth={1.8} style={{ color: isDark ? '#6b7280' : '#9ca3af', marginBottom: 3 }}/>}
+              {isActive  && <div style={{ height: 22 }}/>}
               <span style={{
-                fontSize: 10, fontWeight: isActive ? 700 : 500,
+                fontSize: 9, fontWeight: isActive ? 700 : 500,
                 lineHeight: 1, whiteSpace: 'nowrap',
                 color: isActive ? '#4D96FF' : (isDark ? '#6b7280' : '#9ca3af'),
               }}>{label}</span>
