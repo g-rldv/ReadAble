@@ -143,7 +143,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
         {submitting
           ? 'Checking…'
           : allAnswered
-          ? 'Check Answers!'
+          ? 'Check Answers'
           : `Answer all ${items.length} questions first`}
       </button>
     </div>
