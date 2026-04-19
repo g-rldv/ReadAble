@@ -2,6 +2,8 @@
 // ProfilePage — fixed avatar (uses equipped character PNG,
 // falls back to gray default — never a letter), aligned layout,
 // and live reflection of shop equipped changes.
+// All-time stats use /progress/stats WITHOUT date params so they
+// accumulate permanently and never reset daily.
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useEffect, useState, useRef } from 'react';
@@ -57,11 +59,9 @@ function CoinIcon({ size = 14, style = {} }) {
 }
 
 // ── Avatar display — always shows character PNG, never a letter ──
-// Priority: equipped character → photo avatar → gray default character
 function AvatarDisplay({ equipped, avatar, username, size = 80 }) {
   const characterId = equipped?.character || null;
 
-  // 1. Equipped character PNG
   if (characterId) {
     const char = characterById(characterId);
     const src  = char ? `/characters/${char.file}` : `/characters/char_common_gray.png`;
@@ -75,7 +75,6 @@ function AvatarDisplay({ equipped, avatar, username, size = 80 }) {
     );
   }
 
-  // 2. Photo avatar (data URL)
   if (avatar && avatar.startsWith('data:')) {
     return (
       <img src={avatar} alt="avatar"
@@ -83,7 +82,6 @@ function AvatarDisplay({ equipped, avatar, username, size = 80 }) {
     );
   }
 
-  // 3. Default: gray character PNG (never a letter initial)
   const defaultChar = characterById(DEFAULT_CHARACTER_ID);
   return (
     <img
@@ -341,9 +339,13 @@ export default function ProfilePage() {
   const [showAllAch,      setShowAllAch]      = useState(false);
   const [activeTab,       setActiveTab]       = useState('profile');
 
+  // ── All-time stats: fetch WITHOUT date params so they never reset ──
+  // The /progress/stats endpoint without from/to params returns cumulative
+  // total_activities, completed_count, and avg_score from all user_progress rows.
   useEffect(() => {
     if (!user?.id) { setStats(null); setStatsLoading(false); return; }
     setStatsLoading(true);
+    // No date params = all-time aggregates from the database
     api.get('/progress/stats')
       .then(r => setStats(r.data))
       .catch(() => setStats(null))
@@ -367,12 +369,14 @@ export default function ProfilePage() {
   const xpForLevel  = 50;
   const currentXP   = (user?.xp || 0) % xpForLevel;
   const xpPct       = Math.min(100, Math.round((currentXP / xpForLevel) * 100));
+
+  // All-time stats from the stats endpoint (no daily filtering)
   const allPlayed    = parseInt(stats?.stats?.total_activities ?? 0, 10);
   const allCompleted = parseInt(stats?.stats?.completed_count  ?? 0, 10);
   const allAvg       = Math.round(parseFloat(stats?.stats?.avg_score ?? 0));
+
   const sortedAch    = [...ACHIEVEMENTS].sort((a, b) => (unlocked.has(b.key) ? 1 : 0) - (unlocked.has(a.key) ? 1 : 0));
 
-  // equipped is always kept in sync via AuthContext polling
   const equipped = user?.equipped || {};
 
   const TABS = [
@@ -394,7 +398,6 @@ export default function ProfilePage() {
         <div className="md:hidden relative" style={{ padding: '16px 16px 16px', fontSize: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
 
-            {/* Avatar — fixed size container so nothing shifts */}
             <div style={{
               width: 72, height: 72, borderRadius: 16, flexShrink: 0,
               overflow: 'hidden',
@@ -405,7 +408,6 @@ export default function ProfilePage() {
               <AvatarDisplay equipped={equipped} avatar={user?.avatar} username={user?.username} size={64}/>
             </div>
 
-            {/* Name + meta */}
             <div style={{ flex: 1, minWidth: 0 }}>
               {editUsername ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -454,7 +456,6 @@ export default function ProfilePage() {
               )}
               {usernameErr && <p style={{ fontSize: 10, color: '#fca5a5', margin: '0 0 4px' }}>{usernameErr}</p>}
 
-              {/* Badges row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                 <span style={{
                   fontSize: 11, fontWeight: 700, color: 'white',
@@ -495,7 +496,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* XP progress bar */}
           <div style={{ marginTop: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5,
                           fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
@@ -512,7 +512,6 @@ export default function ProfilePage() {
         {/* ── Desktop hero ── */}
         <div className="hidden md:block relative px-8 pt-8 pb-0">
           <div className="flex items-center gap-6">
-            {/* Avatar container */}
             <div style={{
               width: 96, height: 96, borderRadius: 20, flexShrink: 0,
               overflow: 'hidden',
@@ -606,8 +605,8 @@ export default function ProfilePage() {
       {/* ══ MOBILE: Profile tab ════════════════════════════════ */}
       <div className={`md:hidden ${activeTab !== 'profile' ? 'hidden' : ''} space-y-4`}>
         <div className="grid grid-cols-2 gap-3">
-          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"    val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
-          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed" val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
+          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="All-Time Played"    val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
+          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="All-Time Completed" val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
         </div>
         <div className="rounded-3xl p-4 border" style={{ background:'var(--bg-card-grad)', borderColor:'var(--border-color)' }}>
           <div className="flex items-center justify-between mb-3">
@@ -638,14 +637,14 @@ export default function ProfilePage() {
       {/* ══ MOBILE: Stats tab ══════════════════════════════════ */}
       <div className={`md:hidden ${activeTab !== 'stats' ? 'hidden' : ''}`}>
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="font-display text-gray-800 dark:text-gray-100" style={{ fontSize: 20 }}>Stats</h2>
+          <h2 className="font-display text-gray-800 dark:text-gray-100" style={{ fontSize: 20 }}>All-Time Stats</h2>
           {statsLoading && <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin"/>}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
-          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
-          <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"  bg="bg-indigo-50 dark:bg-indigo-900/20"   label="Avg Score"  val={statsLoading ? '…' : `${allAvg}%`} loading={statsLoading}/>
-          <StatCard Icon={Flame}       iconCls="text-orange-400"  bg="bg-orange-50 dark:bg-orange-900/20"   label="Day Streak" val={`${user?.streak || 0}d`}           loading={false}/>
+          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Total Played"   val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
+          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Total Completed" val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
+          <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"  bg="bg-indigo-50 dark:bg-indigo-900/20"   label="Avg Score"      val={statsLoading ? '…' : `${allAvg}%`} loading={statsLoading}/>
+          <StatCard Icon={Flame}       iconCls="text-orange-400"  bg="bg-orange-50 dark:bg-orange-900/20"   label="Day Streak"     val={`${user?.streak || 0}d`}           loading={false}/>
         </div>
       </div>
 
@@ -686,10 +685,10 @@ export default function ProfilePage() {
           {statsLoading && <span className="w-3 h-3 border-2 border-sky/40 border-t-sky rounded-full animate-spin ml-1"/>}
         </div>
         <div className="grid grid-cols-4 gap-4">
-          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Played"     val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
-          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Completed"  val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
-          <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"  bg="bg-indigo-50 dark:bg-indigo-900/20"   label="Avg Score"  val={statsLoading ? '…' : `${allAvg}%`} loading={statsLoading}/>
-          <StatCard Icon={Flame}       iconCls="text-orange-400"  bg="bg-orange-50 dark:bg-orange-900/20"   label="Day Streak" val={`${user?.streak || 0}d`}           loading={false}/>
+          <StatCard Icon={BookOpen}    iconCls="text-sky"         bg="bg-sky/10"                             label="Total Played"   val={statsLoading ? '…' : allPlayed}    loading={statsLoading}/>
+          <StatCard Icon={CheckCircle} iconCls="text-emerald-500" bg="bg-emerald-50 dark:bg-emerald-900/20" label="Total Completed" val={statsLoading ? '…' : allCompleted} loading={statsLoading}/>
+          <StatCard Icon={TrendingUp}  iconCls="text-indigo-500"  bg="bg-indigo-50 dark:bg-indigo-900/20"   label="Avg Score"      val={statsLoading ? '…' : `${allAvg}%`} loading={statsLoading}/>
+          <StatCard Icon={Flame}       iconCls="text-orange-400"  bg="bg-orange-50 dark:bg-orange-900/20"   label="Day Streak"     val={`${user?.streak || 0}d`}           loading={false}/>
         </div>
       </div>
 
