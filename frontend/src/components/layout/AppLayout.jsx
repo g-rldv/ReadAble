@@ -1,9 +1,8 @@
 // ============================================================
-// AppLayout.jsx — updated:
-// 1. Logo: WHITE logo on dark themes, BLACK logo on light themes
-// 2. "ReadAble" text shown beside logo everywhere
-// 3. Improved borders throughout for visibility across themes
-// 4. Settings added to bottom nav (rightmost)
+// AppLayout.jsx — Fixed:
+// 1. Fullscreen button added to mobile top bar (was desktop-only)
+// 2. Main content area has overflow-x: hidden to prevent filter
+//    bar from causing horizontal scroll / left-clip on narrow screens
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -60,9 +59,7 @@ function useIsDark() {
 function SmartLogo({ height = 28 }) {
   const isDark = useIsDark();
   const [failed, setFailed] = useState(false);
- 
   const src = isDark ? '/readablelogowhite.png' : '/readablelogoblack.png';
- 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       {!failed ? (
@@ -71,41 +68,28 @@ function SmartLogo({ height = 28 }) {
           src={src}
           alt="ReadAble"
           style={{
-            height,
-            width: 'auto',
-            display: 'block',
-            objectFit: 'contain',
-            border: '2px solid #1a1a2e',
-            borderRadius: Math.round(height * 0.22),
-            boxShadow: '0 2px 0 #1a1a2e',
-            padding: 2,
+            height, width: 'auto', display: 'block', objectFit: 'contain',
+            border: '2px solid #1a1a2e', borderRadius: Math.round(height * 0.22),
+            boxShadow: '0 2px 0 #1a1a2e', padding: 2,
             background: isDark ? '#1a1a2e' : '#ffffff',
           }}
           onError={() => setFailed(true)}
         />
       ) : (
         <div style={{
-          width: height,
-          height: height,
-          borderRadius: Math.round(height * 0.22),
-          border: '2px solid #1a1a2e',
-          boxShadow: '0 2px 0 #1a1a2e',
-          background: '#60B8F5',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
+          width: height, height: height, borderRadius: Math.round(height * 0.22),
+          border: '2px solid #1a1a2e', boxShadow: '0 2px 0 #1a1a2e',
+          background: '#60B8F5', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', flexShrink: 0,
         }}>
           <BookOpen size={height * 0.6} color="white" />
         </div>
       )}
       <span style={{
         fontFamily: '"Fredoka One", cursive',
-        fontSize: height * 1.1,
-        lineHeight: 1,
+        fontSize: height * 1.1, lineHeight: 1,
         color: isDark ? '#F0ECFF' : '#2C1810',
-        letterSpacing: '-0.01em',
-        whiteSpace: 'nowrap',
+        letterSpacing: '-0.01em', whiteSpace: 'nowrap',
       }}>
         ReadAble
       </span>
@@ -207,10 +191,7 @@ function BottomNavBar() {
 function SidebarCharacter({ equippedCharacterId, username, size = 40 }) {
   const charId = equippedCharacterId || DEFAULT_CHARACTER_ID;
   const char   = characterById(charId);
-  const src    = char
-    ? `/characters/${char.file}`
-    : `/characters/char_common_gray.png`;
-
+  const src    = char ? `/characters/${char.file}` : `/characters/char_common_gray.png`;
   return (
     <div style={{
       width: size, height: size, borderRadius: 12, flexShrink: 0,
@@ -218,9 +199,7 @@ function SidebarCharacter({ equippedCharacterId, username, size = 40 }) {
       background: 'linear-gradient(135deg, rgba(96,184,245,0.15), rgba(107,203,119,0.1))',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <img
-        src={src}
-        alt={char?.name || username?.[0] || '?'}
+      <img src={src} alt={char?.name || username?.[0] || '?'}
         style={{ width: '90%', height: '90%', objectFit: 'contain' }}
         onError={e => { e.currentTarget.style.opacity = '0.3'; }}
       />
@@ -250,7 +229,7 @@ function LogoutModal({ onConfirm, onCancel }) {
             className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold
                        hover:bg-rose-600 transition-colors flex items-center justify-center gap-2"
             style={{ border: '2px solid #dc2626' }}>
-             Sign Out
+            Sign Out
           </button>
         </div>
       </div>
@@ -336,7 +315,6 @@ function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
                           toggleSound, updateSettings, onLogoutClick,
                           isFullscreen, toggleFullscreen }) {
   const equippedCharId = user?.equipped?.character || DEFAULT_CHARACTER_ID;
-
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-4 flex-shrink-0"
@@ -451,6 +429,7 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
+      {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-shrink-0 flex-col shadow-card"
         style={{ background: 'var(--bg-sidebar)', borderRight: '2px solid var(--border-color)' }}>
         <DesktopSidebar
@@ -463,24 +442,27 @@ export default function AppLayout() {
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Mobile top bar */}
+        {/* ── Mobile top bar — with fullscreen button ── */}
         <header className="md:hidden flex-shrink-0"
           style={{
-            height: 52, padding: '0 16px',
+            height: 52, padding: '0 12px',
             background: 'var(--bg-sidebar)',
             borderBottom: '2px solid var(--border-color)',
             fontFamily: 'inherit', boxSizing: 'border-box',
           }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            width: '100%', height: '100%', gap: 8,
+            width: '100%', height: '100%', gap: 6,
           }}>
+            {/* Logo */}
             <SmartLogo height={22} />
 
-            <div style={{ flexShrink: 0 }}>
+            {/* Right side: XP pill + fullscreen button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {/* XP / Level pill */}
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '5px 10px', borderRadius: 10,
+                padding: '5px 9px', borderRadius: 10,
                 background: 'var(--border-color)',
                 border: '1px solid var(--border-color)',
                 whiteSpace: 'nowrap',
@@ -496,12 +478,37 @@ export default function AppLayout() {
                   Lv {user?.level || 1}
                 </span>
               </div>
+
+              {/* Fullscreen toggle button — visible on mobile */}
+              <button
+                onClick={toggleFullscreen}
+                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: isFullscreen ? 'rgba(99,102,241,0.15)' : 'var(--border-color)',
+                  border: isFullscreen ? '1.5px solid rgba(99,102,241,0.5)' : '1.5px solid var(--border-color)',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s, border-color 0.15s',
+                }}
+              >
+                {isFullscreen
+                  ? <Minimize size={15} color="#6366f1" />
+                  : <Maximize2 size={15} color="#9ca3af" />
+                }
+              </button>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:pb-8"
-          style={{ paddingBottom: `calc(1rem + ${BOTTOM_NAV_HEIGHT}px)` }}>
+        {/* ── Main content ── overflow-x:hidden prevents filter bar clip ── */}
+        <main
+          className="flex-1 overflow-y-auto overflow-x-hidden"
+          style={{
+            padding: '16px',
+            paddingBottom: `calc(1rem + ${BOTTOM_NAV_HEIGHT}px)`,
+          }}
+        >
           <Outlet/>
         </main>
 
