@@ -1,13 +1,14 @@
 // ============================================================
 // GamePage — loads activity, renders correct game, shows result
-// Fixed: auth header always sent, progress refresh after submit
+// Updated: fires achievement notifications via useAchievements()
 // ============================================================
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
-import { useAuth }     from '../contexts/AuthContext';
-import { useSettings } from '../contexts/SettingsContext';
-import { launchConfetti } from '../utils/confetti';
+import { useAuth }         from '../contexts/AuthContext';
+import { useSettings }     from '../contexts/SettingsContext';
+import { useAchievements } from '../components/ui/AchievementNotification';
+import { launchConfetti }  from '../utils/confetti';
 import WordMatchGame    from '../components/games/WordMatchGame';
 import FillBlankGame    from '../components/games/FillBlankGame';
 import SentenceSortGame from '../components/games/SentenceSortGame';
@@ -119,6 +120,7 @@ export default function GamePage() {
   const navigate        = useNavigate();
   const { token, refreshUser } = useAuth();
   const { speak, settings } = useSettings();
+  const { notify: notifyAchievement } = useAchievements();
 
   const [activity,   setActivity]   = useState(null);
   const [userProg,   setUserProg]   = useState(null);
@@ -128,7 +130,6 @@ export default function GamePage() {
   const [gameKey,    setGameKey]    = useState(0);
   const resultRef = useRef(null);
 
-  // Ensure auth header is set for all API calls
   useEffect(() => {
     if (token) {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -154,26 +155,27 @@ export default function GamePage() {
     if (submitting) return;
     setSubmitting(true);
     try {
-      // Ensure token is fresh in headers
       if (token) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
       const res  = await api.post(`/activities/${id}/submit`, { answer });
       const data = res.data;
       setResult(data);
+
       if (data.isCorrect) launchConfetti();
       speak(data.feedback);
-      // Refresh user so XP/coins/streak update everywhere
+
+      // 🏆 Fire achievement notifications
+      if (data.newAchievements?.length > 0) {
+        notifyAchievement(data.newAchievements);
+      }
+
       await refreshUser();
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 120);
     } catch (err) {
       console.error('[GamePage/Submit]', err);
-      // Show a helpful error if auth failed
-      if (err.status === 401) {
-        navigate('/login');
-      }
-    }
-    finally { setSubmitting(false); }
+      if (err.status === 401) navigate('/login');
+    } finally { setSubmitting(false); }
   };
 
   const handleReset = () => { setResult(null); setGameKey(k => k + 1); };
@@ -261,7 +263,6 @@ export default function GamePage() {
             borderColor: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#FFD93D' : '#FF6B6B' }}>
 
           <div className="text-center mb-4">
-            {/* Score only — no trophy emoji to reduce clutter */}
             <div className="font-display text-4xl md:text-5xl mb-1" style={{
               color: result.isCorrect ? '#6BCB77' : result.score >= 50 ? '#F0C000' : '#FF6B6B'
             }}>{result.score}%</div>
@@ -283,6 +284,7 @@ export default function GamePage() {
             )}
           </div>
 
+          {/* Achievement badges in result card (secondary — toasts are primary) */}
           {result.newAchievements?.length > 0 && (
             <div className="mb-3 space-y-1.5">
               {result.newAchievements.map(ach => (
