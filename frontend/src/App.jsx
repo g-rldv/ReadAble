@@ -1,10 +1,11 @@
 // ============================================================
-// App.jsx — root router (leaderboard removed)
+// App.jsx — added AchievementProvider for global achievement toasts
 // ============================================================
 import React, { Component, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { AchievementProvider } from './components/ui/AchievementNotification';
 
 import LandingPage    from './pages/LandingPage';
 import LoginPage, { RegisterPage } from './pages/LoginPage';
@@ -93,7 +94,9 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <SettingsProvider>
-          <AppRoutes />
+          <AchievementProvider>
+            <AppRoutes />
+          </AchievementProvider>
         </SettingsProvider>
       </AuthProvider>
     </ErrorBoundary>
