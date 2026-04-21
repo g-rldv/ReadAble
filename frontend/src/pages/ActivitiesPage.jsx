@@ -1,6 +1,8 @@
 // ============================================================
-// ActivitiesPage — fixed filter bar (full-width, even spacing)
-// + unlock logic + working submission flow
+// ActivitiesPage — fixed mobile filter bar:
+// - Game type buttons use a horizontal scroll row (no wrap/overflow)
+// - Difficulty row fits in one line always
+// - No left-clip on narrow screens
 // ============================================================
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -15,11 +17,11 @@ const DIFF = {
 };
 
 const TYPES = [
-  { key:'all',           label:'All Games'      },
-  { key:'word_match',    label:'Word Match'     },
-  { key:'fill_blank',    label:'Fill Blank'     },
-  { key:'sentence_sort', label:'Sentence Sort'  },
-  { key:'picture_word',  label:'Picture & Word' },
+  { key:'all',           label:'All'         },
+  { key:'word_match',    label:'Word Match'  },
+  { key:'fill_blank',    label:'Fill Blank'  },
+  { key:'sentence_sort', label:'Sentence'    },
+  { key:'picture_word',  label:'Picture'     },
 ];
 
 const DIFFS = [
@@ -248,30 +250,54 @@ export default function ActivitiesPage() {
     return !u.medium || !u.hard;
   });
 
+  const hasClearFilter = activeType !== 'all' || activeDiff !== 'all';
+
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in space-y-6">
+    <div className="max-w-5xl mx-auto animate-fade-in space-y-5">
+
+      {/* Title */}
       <div>
         <h1 className="font-display text-2xl md:text-3xl text-gray-800 dark:text-gray-100">Activities</h1>
         <p className="text-sm text-gray-400 mt-0.5">{completedCount} of {activities.length} completed</p>
       </div>
 
-      {/* ── Filter bar ── */}
-      <div className="rounded-2xl p-3 md:p-4 space-y-3"
+      {/* ── Filter panel ────────────────────────────────── */}
+      <div className="rounded-2xl p-3 space-y-3"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
 
-        {/* Game type row — evenly spaced, full width */}
-        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${TYPES.length}, 1fr)` }}>
+        {/* ── Game type — horizontal scroll on mobile, no wrap ── */}
+        <div
+          className="scrollbar-none"
+          style={{
+            display: 'flex',
+            gap: 6,
+            overflowX: 'auto',
+            // Prevent buttons shrinking below readable size on tiny screens
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
           {TYPES.map(t => {
             const isActive = activeType === t.key;
             return (
               <button
                 key={t.key}
                 onClick={() => setActiveType(t.key)}
-                className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center leading-tight
-                  ${isActive
-                    ? 'bg-indigo-500 text-white shadow-sm'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
+                style={{
+                  flexShrink: 0,          // ← key: never compress
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',   // ← key: never wrap
+                  border: isActive
+                    ? '2px solid var(--text-primary)'
+                    : '2px solid var(--border-color)',
+                  background: isActive ? 'var(--text-primary)' : 'var(--bg-primary)',
+                  color: isActive ? 'var(--bg-primary)' : 'var(--text-muted, #9ca3af)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  fontFamily: 'inherit',
+                }}
               >
                 {t.label}
               </button>
@@ -281,10 +307,21 @@ export default function ActivitiesPage() {
 
         <div className="border-t" style={{ borderColor:'var(--border-color)' }}/>
 
-        {/* Difficulty row — evenly spaced, full width */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wide flex-shrink-0">Level</span>
-          <div className="grid gap-2 flex-1" style={{ gridTemplateColumns: `repeat(${DIFFS.length}, 1fr)` }}>
+        {/* ── Difficulty row — always one line ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+          <span style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
+            textTransform: 'uppercase', color: '#9ca3af',
+            flexShrink: 0, whiteSpace: 'nowrap',
+          }}>
+            Level
+          </span>
+
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            flex: 1,
+          }}>
             {DIFFS.map(d => {
               const isActive = activeDiff === d.key;
               const diffCfg  = DIFF[d.key];
@@ -292,28 +329,66 @@ export default function ActivitiesPage() {
                 <button
                   key={d.key}
                   onClick={() => setActiveDiff(d.key)}
-                  className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center
-                    ${isActive
-                      ? d.key !== 'all'
-                        ? diffCfg?.activePill || 'bg-gray-600 text-white shadow-sm'
-                        : 'bg-gray-700 text-white shadow-sm'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
+                  style={{
+                    flex: 1,
+                    padding: '7px 4px',
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    border: isActive
+                      ? (d.key !== 'all'
+                          ? `2px solid ${diffCfg?.border || '#888'}`
+                          : '2px solid var(--text-primary)')
+                      : '2px solid var(--border-color)',
+                    background: isActive
+                      ? (d.key !== 'all'
+                          ? diffCfg?.activePill?.split(' ')[0]?.replace('bg-', '') // handled below
+                          : 'var(--text-primary)')
+                      : 'var(--bg-primary)',
+                    transition: 'all 0.15s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
+                  }}
+                  // Use className for tailwind color because inline style can't use bg-amber-500 easily
+                  className={
+                    isActive && d.key !== 'all'
+                      ? diffCfg?.activePill || ''
+                      : isActive
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }
                 >
-                  {d.key !== 'all' ? (
-                    <span className="flex items-center justify-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${diffCfg?.bar || ''}`}/>
-                      {d.label}
-                    </span>
-                  ) : d.label}
+                  {d.key !== 'all' && (
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${diffCfg?.bar || ''}`}/>
+                  )}
+                  {d.label}
                 </button>
               );
             })}
           </div>
-          {(activeType !== 'all' || activeDiff !== 'all') && (
+
+          {hasClearFilter && (
             <button
               onClick={() => { setActiveType('all'); setActiveDiff('all'); }}
-              className="flex-shrink-0 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2">
+              style={{
+                flexShrink: 0,
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#9ca3af',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px 6px',
+                borderRadius: 8,
+                whiteSpace: 'nowrap',
+                fontFamily: 'inherit',
+              }}
+            >
               Clear
             </button>
           )}
@@ -330,6 +405,7 @@ export default function ActivitiesPage() {
         )}
       </div>
 
+      {/* Activity grid */}
       {sorted.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <p className="font-semibold text-base">No activities found</p>
