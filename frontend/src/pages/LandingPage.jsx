@@ -1097,14 +1097,19 @@ export default function LandingPage() {
         </h2>
         <div className="grid md:grid-cols-3 gap-6">
           {FEATURES.map(({Icon,title,desc})=>(
-            <div key={title} className="rounded-3xl p-6 border border-gray-100 dark:border-gray-700"
-              style={{ background:'var(--bg-card-grad)' }}>
-              <div className="w-11 h-11 rounded-2xl bg-sky/10 dark:bg-sky/20 flex items-center justify-center mb-3 shadow-sm">
-                <Icon size={22} className="text-sky"/>
+              <div key={title} className="rounded-3xl p-6 dark:border-gray-700 transition-all duration-200 hover:-translate-y-1"
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '2px solid var(--border-color)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06)',
+                }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                  style={{ background: 'rgba(96,184,245,0.15)', border: '2px solid rgba(96,184,245,0.3)' }}>
+                  <Icon size={24} className="text-sky"/>
+                </div>
+                <h3 className="font-display text-xl mb-2 text-gray-800 dark:text-gray-200">{title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{desc}</p>
               </div>
-              <h3 className="font-display text-xl mb-2 text-gray-800 dark:text-gray-200">{title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">{desc}</p>
-            </div>
           ))}
         </div>
       </section>
