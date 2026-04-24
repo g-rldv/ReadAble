@@ -1,8 +1,6 @@
 // ============================================================
-// AppLayout.jsx — Fixed:
-// 1. Fullscreen button added to mobile top bar (was desktop-only)
-// 2. Main content area has overflow-x: hidden to prevent filter
-//    bar from causing horizontal scroll / left-clip on narrow screens
+// AppLayout.jsx — Minimalist sidebar: no button borders,
+// soft hover states, single divider line for separation.
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -188,15 +186,15 @@ function BottomNavBar() {
 }
 
 // ── Character avatar for sidebar ──────────────────────────────
-function SidebarCharacter({ equippedCharacterId, username, size = 40 }) {
+function SidebarCharacter({ equippedCharacterId, username, size = 36 }) {
   const charId = equippedCharacterId || DEFAULT_CHARACTER_ID;
   const char   = characterById(charId);
   const src    = char ? `/characters/${char.file}` : `/characters/char_common_gray.png`;
   return (
     <div style={{
-      width: size, height: size, borderRadius: 12, flexShrink: 0,
+      width: size, height: size, borderRadius: 10, flexShrink: 0,
       overflow: 'hidden',
-      background: 'linear-gradient(135deg, rgba(96,184,245,0.15), rgba(107,203,119,0.1))',
+      background: 'rgba(96,184,245,0.12)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <img src={src} alt={char?.name || username?.[0] || '?'}
@@ -213,7 +211,7 @@ function LogoutModal({ onConfirm, onCancel }) {
       style={{ background: 'rgba(0,0,0,0.5)' }}
       onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-pop"
-        style={{ background: 'var(--bg-card-grad)', border: '2px solid var(--border-color)' }}>
+        style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
         <h3 className="font-display text-xl text-gray-800 dark:text-gray-100 mb-1">Sign Out?</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Your progress is saved. You can sign back in any time.
@@ -222,13 +220,12 @@ function LogoutModal({ onConfirm, onCancel }) {
           <button onClick={onCancel}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold
                        text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            style={{ border: '2px solid var(--border-color)' }}>
+            style={{ border: '1px solid var(--border-color)' }}>
             Cancel
           </button>
           <button onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold
-                       hover:bg-rose-600 transition-colors flex items-center justify-center gap-2"
-            style={{ border: '2px solid #dc2626' }}>
+                       hover:bg-rose-600 transition-colors">
             Sign Out
           </button>
         </div>
@@ -240,7 +237,7 @@ function LogoutModal({ onConfirm, onCancel }) {
 function MusicPicker({ settings, updateSettings }) {
   if (!settings.bg_music_enabled) return null;
   return (
-    <div className="grid grid-cols-4 gap-1 mt-1.5">
+    <div className="grid grid-cols-4 gap-1 mt-1 mb-1">
       {[
         { key:'calm',    I:Music,             l:'Calm'    },
         { key:'playful', I:Music2,            l:'Playful' },
@@ -250,10 +247,9 @@ function MusicPicker({ settings, updateSettings }) {
         const a = settings.bg_music_theme === key;
         return (
           <button key={key} onClick={() => updateSettings({ bg_music_theme: key })}
-            style={{ border: a ? '2px solid #a855f7' : '2px solid var(--border-color)' }}
-            className={`flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-bold transition-all
-                        ${a ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-            <I size={14}/>{l}
+            className={`flex flex-col items-center gap-0.5 py-2 rounded-lg text-[10px] font-bold transition-all
+                        ${a ? 'bg-purple-500 text-white' : 'text-gray-400 hover:bg-black/5 dark:hover:bg-white/5'}`}>
+            <I size={13}/>{l}
           </button>
         );
       })}
@@ -261,113 +257,121 @@ function MusicPicker({ settings, updateSettings }) {
   );
 }
 
+// ── Bottom sidebar controls — borderless, minimal ─────────────
 function BottomControls({ soundOn, settings, toggleSound, updateSettings,
                           isFullscreen, toggleFullscreen, onLogoutClick }) {
   return (
-    <div className="px-4 pb-6 pt-3 space-y-1 flex-shrink-0"
-      style={{ borderTop: '2px solid var(--border-color)' }}>
+    <div className="px-3 pb-4 pt-2 space-y-0.5 flex-shrink-0"
+      style={{ borderTop: '1px solid var(--border-color)' }}>
+
+      {/* Sound toggle */}
       <button onClick={toggleSound}
-        className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                   text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-        style={{ border: '2px solid var(--border-color)' }}>
-        {soundOn ? <Volume2 size={20} className="text-emerald-500 flex-shrink-0"/> : <VolumeX size={20} className="flex-shrink-0"/>}
-        <span className="text-gray-700 dark:text-gray-300">Sound: {soundOn ? 'On' : 'Off'}</span>
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium
+                   text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5
+                   transition-colors text-left">
+        {soundOn
+          ? <Volume2 size={16} className="text-emerald-500 flex-shrink-0"/>
+          : <VolumeX size={16} className="text-gray-400 flex-shrink-0"/>}
+        Sound {soundOn ? 'On' : 'Off'}
       </button>
 
+      {/* Music sub-controls */}
       {soundOn && (
-        <div className="px-1 pb-1">
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl mb-1.5"
-            style={{ background: 'var(--bg-primary)', border: '2px solid var(--border-color)' }}>
-            <div className="flex items-center gap-2">
-              <Music size={14} className={settings.bg_music_enabled ? 'text-purple-500' : 'text-gray-400'}/>
-              <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Music</span>
-            </div>
+        <div className="px-2">
+          <div className="flex items-center justify-between py-1.5">
+            <span className="text-xs font-medium text-gray-400 flex items-center gap-1.5">
+              <Music size={12} className={settings.bg_music_enabled ? 'text-purple-400' : 'text-gray-400'}/>
+              Music
+            </span>
             <button onClick={() => updateSettings({ bg_music_enabled: !settings.bg_music_enabled })}
-              className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0
-                          ${settings.bg_music_enabled ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-              <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform
-                               ${settings.bg_music_enabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+              className={`relative w-9 h-[18px] rounded-full transition-colors flex-shrink-0
+                          ${settings.bg_music_enabled ? 'bg-purple-500' : 'bg-gray-200 dark:bg-gray-600'}`}>
+              <div className={`absolute top-[2px] w-[14px] h-[14px] bg-white rounded-full shadow transition-transform
+                               ${settings.bg_music_enabled ? 'translate-x-[19px]' : 'translate-x-[2px]'}`}/>
             </button>
           </div>
-          <MusicPicker settings={settings} updateSettings={updateSettings}/>
+          {settings.bg_music_enabled && <MusicPicker settings={settings} updateSettings={updateSettings}/>}
         </div>
       )}
 
+      {/* Fullscreen */}
       <button onClick={toggleFullscreen}
-        className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                   text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-        style={{ border: '2px solid var(--border-color)' }}>
-        {isFullscreen ? <Minimize size={20} className="text-indigo-500 flex-shrink-0"/> : <Maximize2 size={20} className="flex-shrink-0"/>}
-        <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium
+                   text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5
+                   transition-colors text-left">
+        {isFullscreen
+          ? <Minimize size={16} className="text-indigo-400 flex-shrink-0"/>
+          : <Maximize2 size={16} className="text-gray-400 flex-shrink-0"/>}
+        {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
       </button>
 
+      {/* Sign out */}
       <button onClick={onLogoutClick}
-        className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-semibold
-                   text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-        style={{ border: '2px solid rgba(239,68,68,0.4)' }}>
-        <LogOut size={20}/>Sign Out
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium
+                   text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left">
+        <LogOut size={16} className="flex-shrink-0"/>Sign Out
       </button>
     </div>
   );
 }
 
+// ── Desktop Sidebar ───────────────────────────────────────────
 function DesktopSidebar({ user, settings, soundOn, xpPct, currentXP,
                           toggleSound, updateSettings, onLogoutClick,
                           isFullscreen, toggleFullscreen }) {
   const equippedCharId = user?.equipped?.character || DEFAULT_CHARACTER_ID;
   return (
     <div className="flex flex-col h-full">
-      <div className="px-5 py-4 flex-shrink-0"
-        style={{ borderBottom: '2px solid var(--border-color)' }}>
+
+      {/* Logo */}
+      <div className="px-5 py-4 flex-shrink-0">
         <SmartLogo height={26} />
       </div>
 
-      <div className="px-4 py-4 mx-3 mt-3 rounded-2xl flex-shrink-0"
-        style={{
-          background: 'linear-gradient(135deg,rgba(77,150,255,0.08),rgba(107,203,119,0.06))',
-          border: '2px solid var(--border-color)',
-        }}>
-        <div className="flex items-center gap-3">
-          <SidebarCharacter equippedCharacterId={equippedCharId} username={user?.username} size={40}/>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm truncate text-gray-800 dark:text-gray-200">{user?.username}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Level {user?.level || 1}</p>
-          </div>
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-0.5"
-              style={{ border: '1px solid rgba(251,191,36,0.4)' }}>
-              <Star size={11} className="text-amber-500 fill-amber-500"/>
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.xp || 0}</span>
+      {/* User card — no border, subtle background */}
+      <div className="px-3 mb-2 flex-shrink-0">
+        <div className="px-3 py-3 rounded-2xl"
+          style={{ background: 'rgba(77,150,255,0.07)' }}>
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <SidebarCharacter equippedCharacterId={equippedCharId} username={user?.username} size={36}/>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm truncate text-gray-800 dark:text-gray-200 leading-tight">
+                {user?.username}
+              </p>
+              <p className="text-xs text-gray-400">Level {user?.level || 1}</p>
             </div>
-            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 rounded-full px-2 py-0.5"
-              style={{ border: '1px solid rgba(251,191,36,0.3)' }}>
-              <CoinIcon size={12} />
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{user?.coins || 0}</span>
+            <div className="flex-shrink-0 text-right">
+              <div className="flex items-center gap-1 justify-end mb-0.5">
+                <Star size={10} className="text-amber-400 fill-amber-400"/>
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{user?.xp || 0}</span>
+              </div>
+              <div className="flex items-center gap-1 justify-end">
+                <CoinIcon size={10}/>
+                <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">{user?.coins || 0}</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="mt-3">
-          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-sky to-emerald-400 rounded-full transition-all duration-700"
+          {/* XP bar */}
+          <div className="h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full bg-sky rounded-full transition-all duration-700"
               style={{ width: `${xpPct}%` }}/>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1">{currentXP}/50 XP to Level {(user?.level || 1) + 1}</p>
+          <p className="text-[10px] text-gray-400 mt-1">{currentXP}/50 XP to next level</p>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
+      {/* Nav links — no borders, pill highlight only */}
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
         {SIDEBAR_NAV.map(({ to, Icon, label }) => (
           <NavLink key={to} to={to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-sm transition-all ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${
                 isActive
-                  ? 'bg-sky text-white shadow-md shadow-sky/25'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
-            style={({ isActive }) => ({
-              border: isActive ? '2px solid rgba(96,184,245,0.5)' : '2px solid transparent',
-            })}>
-            <Icon size={20}/>{label}
+                  ? 'bg-sky text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}>
+            <Icon size={18}/>
+            {label}
           </NavLink>
         ))}
       </nav>
@@ -429,9 +433,12 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 flex-shrink-0 flex-col shadow-card"
-        style={{ background: 'var(--bg-sidebar)', borderRight: '2px solid var(--border-color)' }}>
+      {/* Desktop sidebar — single border on right, no extra decoration */}
+      <aside className="hidden md:flex w-60 flex-shrink-0 flex-col"
+        style={{
+          background: 'var(--bg-sidebar)',
+          borderRight: '1px solid var(--border-color)',
+        }}>
         <DesktopSidebar
           user={user} settings={settings} soundOn={soundOn} xpPct={xpPct} currentXP={currentXP}
           toggleSound={toggleSound} updateSettings={updateSettings}
@@ -442,29 +449,24 @@ export default function AppLayout() {
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* ── Mobile top bar — with fullscreen button ── */}
+        {/* Mobile top bar */}
         <header className="md:hidden flex-shrink-0"
           style={{
             height: 52, padding: '0 12px',
             background: 'var(--bg-sidebar)',
-            borderBottom: '2px solid var(--border-color)',
+            borderBottom: '1px solid var(--border-color)',
             fontFamily: 'inherit', boxSizing: 'border-box',
           }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             width: '100%', height: '100%', gap: 6,
           }}>
-            {/* Logo */}
             <SmartLogo height={22} />
-
-            {/* Right side: XP pill + fullscreen button */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              {/* XP / Level pill */}
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '5px 9px', borderRadius: 10,
                 background: 'var(--border-color)',
-                border: '1px solid var(--border-color)',
                 whiteSpace: 'nowrap',
               }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b" stroke="none" style={{ flexShrink: 0 }}>
@@ -478,18 +480,16 @@ export default function AppLayout() {
                   Lv {user?.level || 1}
                 </span>
               </div>
-
-              {/* Fullscreen toggle button — visible on mobile */}
               <button
                 onClick={toggleFullscreen}
                 title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                 style={{
                   width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isFullscreen ? 'rgba(99,102,241,0.15)' : 'var(--border-color)',
-                  border: isFullscreen ? '1.5px solid rgba(99,102,241,0.5)' : '1.5px solid var(--border-color)',
+                  background: isFullscreen ? 'rgba(99,102,241,0.12)' : 'var(--border-color)',
+                  border: 'none',
                   cursor: 'pointer',
-                  transition: 'background 0.15s, border-color 0.15s',
+                  transition: 'background 0.15s',
                 }}
               >
                 {isFullscreen
@@ -501,7 +501,6 @@ export default function AppLayout() {
           </div>
         </header>
 
-        {/* ── Main content ── overflow-x:hidden prevents filter bar clip ── */}
         <main
           className="flex-1 overflow-y-auto overflow-x-hidden"
           style={{
