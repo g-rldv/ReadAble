@@ -1,9 +1,10 @@
 // ============================================================
-// SettingsPage — Fixed:
-// 1. Toggle slider thumb properly centered and sized
-// 2. Text size preview is SEPARATE from live site — save button required
-// 3. Theme-adaptive borders on ALL buttons/cards
-// 4. Delete modal: no alert icon in header, no trash icon on delete button
+// SettingsPage — Updated:
+// 1. Mobile sign-out button added above Danger Zone
+// 2. Toggle slider thumb properly centered and sized
+// 3. Text size preview is SEPARATE from live site — save button required
+// 4. Theme-adaptive borders on ALL buttons/cards
+// 5. Delete modal: no alert icon in header, no trash icon on delete button
 // ============================================================
 import ReactDOM from 'react-dom';
 import React, { useState } from 'react';
@@ -15,7 +16,7 @@ import {
   Sun, Heart, Star, Cloud, Leaf, Sparkles, Moon,
   Droplets, Volume2, Type, Check,
   Music, Music2, SlidersHorizontal,
-  Candy, Trash2, AlertTriangle, Lock, AtSign,
+  Candy, Trash2, AlertTriangle, Lock, AtSign, LogOut,
 } from 'lucide-react';
 
 // ── Theme catalogue ───────────────────────────────────────────
@@ -202,7 +203,37 @@ function TextSizeTile({ size, isActive, isPreviewing, onClick }) {
   );
 }
 
-// ── Delete Account Modal — no alert icon in header, no trash on button ──
+// ── Sign Out Modal (mobile) ────────────────────────────────────
+function SignOutModal({ onConfirm, onCancel }) {
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60"
+      onClick={e => e.target === e.currentTarget && onCancel()}>
+      <div className="w-full max-w-sm rounded-3xl shadow-2xl p-6 animate-pop"
+        style={{ background: 'var(--bg-card-grad)', border: '1px solid var(--border-color)' }}>
+        <h3 className="font-display text-xl text-gray-800 dark:text-gray-100 mb-1">Sign Out?</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          Your progress is saved. You can sign back in any time.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold
+                       text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            style={{ border: '1px solid var(--border-color)' }}>
+            Cancel
+          </button>
+          <button onClick={onConfirm}
+            className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold
+                       hover:bg-rose-600 transition-colors">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── Delete Account Modal ───────────────────────────────────────
 function DeleteAccountModal({ username, onClose, onDeleted }) {
   const [typedName, setTypedName] = useState('');
   const [password,  setPassword]  = useState('');
@@ -229,7 +260,6 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
         style={{ background:'var(--bg-card-grad)', border:'2px solid #f43f5e60' }}>
-        {/* Header — no alert icon, just text */}
         <div className="bg-rose-500 px-5 py-4">
           <h3 className="font-display text-lg text-white leading-tight">Delete Account</h3>
           <p className="text-xs text-white/75 leading-tight mt-0.5">This action is permanent and irreversible</p>
@@ -290,7 +320,6 @@ function DeleteAccountModal({ username, onClose, onDeleted }) {
               style={{ border:'2px solid var(--border-color)' }}>
               Cancel
             </button>
-            {/* Delete button — no trash icon */}
             <button onClick={handleDelete} disabled={!canSubmit}
               className="flex-1 py-2.5 rounded-2xl bg-rose-500 text-white text-sm font-bold
                          hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed
@@ -314,9 +343,10 @@ export default function SettingsPage() {
   const { settings, updateSettings, speak, voices } = useSettings();
   const { user, logout } = useAuth();
   const navigate         = useNavigate();
-  const [saved,         setSaved]       = useState(false);
-  const [showDelete,    setShowDelete]  = useState(false);
-  const [previewSize,   setPreviewSize] = useState(null);
+  const [saved,          setSaved]        = useState(false);
+  const [showDelete,     setShowDelete]   = useState(false);
+  const [showSignOut,    setShowSignOut]  = useState(false);
+  const [previewSize,    setPreviewSize]  = useState(null);
 
   const previewKey    = previewSize ?? settings.text_size;
   const previewConfig = TEXT_SIZES.find(s => s.key === previewKey) || TEXT_SIZES[1];
@@ -334,6 +364,7 @@ export default function SettingsPage() {
     setPreviewSize(null);
   };
 
+  const handleSignOut = () => { logout(); navigate('/'); };
   const handleDeleted = () => { logout(); navigate('/'); };
 
   return (
@@ -503,6 +534,24 @@ export default function SettingsPage() {
         )}
       </Section>
 
+      {/* ── Sign Out — mobile only ─────────────────────────── */}
+      <div className="md:hidden rounded-3xl p-4"
+        style={{ background:'var(--bg-card-grad)', border:'2px solid var(--border-color)' }}>
+        <h3 className="font-display text-lg mb-1 text-gray-800 dark:text-gray-200 flex items-center gap-2">
+          <LogOut size={20} className="text-gray-500"/> Account
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Signed in as <strong className="text-gray-700 dark:text-gray-300">{user?.username}</strong>
+        </p>
+        <button onClick={() => setShowSignOut(true)}
+          className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl
+                     text-rose-500 font-bold text-sm
+                     hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+          style={{ border:'2px solid rgba(244,63,94,0.4)' }}>
+          <LogOut size={16}/> Sign Out
+        </button>
+      </div>
+
       {/* ── Danger Zone ────────────────────────────────────── */}
       <div className="rounded-3xl p-6"
         style={{ background:'var(--bg-card-grad)', border:'2px solid rgba(244,63,94,0.4)' }}>
@@ -520,6 +569,10 @@ export default function SettingsPage() {
           <Trash2 size={16}/> Delete My Account
         </button>
       </div>
+
+      {showSignOut && (
+        <SignOutModal onConfirm={handleSignOut} onCancel={() => setShowSignOut(false)} />
+      )}
 
       {showDelete && (
         <DeleteAccountModal
