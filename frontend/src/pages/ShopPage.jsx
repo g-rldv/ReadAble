@@ -32,7 +32,7 @@ const ACH_LABELS = {
   complete_5:    'Complete 5 activities',
   complete_10:   'Complete 10 activities',
   complete_25:   'Complete 25 activities',
-  completionist: 'Complete ALL 52 activities',
+  completionist: 'Complete ALL 48 activities',
   xp_100:        'Earn 100 XP',
   xp_500:        'Earn 500 XP',
   xp_1000:       'Earn 1,000 XP',
