@@ -316,14 +316,14 @@ export default function ActivitiesPage() {
         <div className="border-t" style={{ borderColor:'var(--border-color)' }}/>
 
         {/* ── Difficulty row — always one line, text always visible ── */}
-        {/* <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
-          <span style={{
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+          {/* <span style={{
             fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
             textTransform: 'uppercase', color: '#9ca3af',
             flexShrink: 0, whiteSpace: 'nowrap',
           }}>
             Level
-          </span> */}
+          </span>  */}
 
           <div style={{ display: 'flex', gap: 6, flex: 1 }}>
             {DIFFS.map(d => {
