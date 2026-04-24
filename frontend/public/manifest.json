@@ -1,0 +1,22 @@
+{
+  "name": "ReadAble",
+  "short_name": "ReadAble",
+  "description": "Interactive Reading Comprehension for Everyone",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8F2",
+  "theme_color": "#60B8F5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/readablelogowhite.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/readablelogowhite.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
