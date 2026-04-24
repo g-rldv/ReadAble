@@ -267,7 +267,7 @@ export default function ActivitiesPage() {
       {/* Title */}
       <div>
         <h1 className="font-display text-2xl md:text-3xl text-gray-800 dark:text-gray-100">Activities</h1>
-        <p className="text-sm text-gray-400 mt-0.5">{completedCount} of {activities.length} completed</p>
+        <p className="text-sm text-gray-400 mt-0.5">{completedCount} of 48 completed</p>
       </div>
 
       {/* ── Filter panel ────────────────────────────────── */}
