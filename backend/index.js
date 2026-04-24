@@ -609,8 +609,8 @@ async function setupDatabase() {
 
     ]; // 52 activities total
 
-    // Re-seed on every deploy so content updates always take effect
-    await client.query('DELETE FROM user_progress');
+    // Re-seed activities on every deploy so content updates always take effect
+    // NEVER delete user_progress — this would wipe all user unlock history
     await client.query('DELETE FROM activities');
     for (const a of acts) {
       await client.query(
