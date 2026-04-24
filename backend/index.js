@@ -178,7 +178,7 @@ async function setupDatabase() {
       { key:'complete_5',   title:'Getting Started',   desc:'Complete 5 activities',         icon:'✅', cond:{type:'activity_count',threshold:5   }},
       { key:'complete_10',  title:'On a Roll',         desc:'Complete 10 activities',        icon:'🎯', cond:{type:'activity_count',threshold:10  }},
       { key:'complete_25',  title:'Dedicated Learner', desc:'Complete 25 activities',        icon:'📚', cond:{type:'activity_count',threshold:25  }},
-      { key:'completionist',title:'Completionist',     desc:'Complete all activities',       icon:'🌈', cond:{type:'activity_count',threshold:52  }},
+      { key:'completionist',title:'Completionist',     desc:'Complete all activities',       icon:'🌈', cond:{type:'activity_count',threshold:48  }},
       { key:'xp_100',       title:'Century Club',      desc:'Earn 100 XP',                   icon:'💯', cond:{type:'xp',            threshold:100 }},
       { key:'xp_500',       title:'XP Legend',         desc:'Earn 500 XP',                   icon:'🌟', cond:{type:'xp',            threshold:500 }},
       { key:'xp_1000',      title:'XP Master',         desc:'Earn 1,000 XP',                icon:'🏅', cond:{type:'xp',            threshold:1000}},
