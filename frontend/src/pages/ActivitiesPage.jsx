@@ -3,6 +3,8 @@
 // - Game type buttons use a horizontal scroll row (no wrap/overflow)
 // - Difficulty row fits in one line always
 // - No left-clip on narrow screens
+// - Level pill text always visible (all-inline-style, no Tailwind mixing)
+// - Clear button always inside the box, invisible when not needed
 // ============================================================
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -14,6 +16,13 @@ const DIFF = {
   easy:   { bar:'bg-emerald-500', border:'#34d399', pill:'bg-emerald-500 text-white', activePill:'bg-emerald-600 text-white', glow:'rgba(52,211,153,0.30)',  label:'Easy'   },
   medium: { bar:'bg-amber-400',   border:'#fbbf24', pill:'bg-amber-400 text-white',   activePill:'bg-amber-500 text-white',   glow:'rgba(251,191,36,0.30)',  label:'Medium' },
   hard:   { bar:'bg-rose-500',    border:'#f43f5e', pill:'bg-rose-500 text-white',     activePill:'bg-rose-600 text-white',     glow:'rgba(244,63,94,0.30)',  label:'Hard'   },
+};
+
+// Explicit colour maps for difficulty buttons — no Tailwind className mixing
+const DIFF_BTN_COLORS = {
+  easy:   { bg: '#22c55e', border: '#16a34a', text: '#ffffff', dot: '#bbf7d0' },
+  medium: { bg: '#f59e0b', border: '#d97706', text: '#ffffff', dot: '#fde68a' },
+  hard:   { bg: '#ef4444', border: '#dc2626', text: '#ffffff', dot: '#fecaca' },
 };
 
 const TYPES = [
@@ -272,7 +281,6 @@ export default function ActivitiesPage() {
             display: 'flex',
             gap: 6,
             overflowX: 'auto',
-            // Prevent buttons shrinking below readable size on tiny screens
             WebkitOverflowScrolling: 'touch',
           }}
         >
@@ -283,12 +291,12 @@ export default function ActivitiesPage() {
                 key={t.key}
                 onClick={() => setActiveType(t.key)}
                 style={{
-                  flexShrink: 0,          // ← key: never compress
+                  flexShrink: 0,
                   padding: '8px 14px',
                   borderRadius: 10,
                   fontSize: 12,
                   fontWeight: 700,
-                  whiteSpace: 'nowrap',   // ← key: never wrap
+                  whiteSpace: 'nowrap',
                   border: isActive
                     ? '2px solid var(--text-primary)'
                     : '2px solid var(--border-color)',
@@ -307,7 +315,7 @@ export default function ActivitiesPage() {
 
         <div className="border-t" style={{ borderColor:'var(--border-color)' }}/>
 
-        {/* ── Difficulty row — always one line ── */}
+        {/* ── Difficulty row — always one line, text always visible ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
           <span style={{
             fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
@@ -317,14 +325,30 @@ export default function ActivitiesPage() {
             Level
           </span>
 
-          <div style={{
-            display: 'flex',
-            gap: 6,
-            flex: 1,
-          }}>
+          <div style={{ display: 'flex', gap: 6, flex: 1 }}>
             {DIFFS.map(d => {
               const isActive = activeDiff === d.key;
-              const diffCfg  = DIFF[d.key];
+              const dc = DIFF_BTN_COLORS[d.key];
+
+              // All colours expressed explicitly — no Tailwind class mixing
+              const btnStyle = isActive
+                ? d.key === 'all'
+                  ? {
+                      background: 'var(--text-primary)',
+                      border: '2px solid var(--text-primary)',
+                      color: 'var(--bg-primary)',
+                    }
+                  : {
+                      background: dc.bg,
+                      border: `2px solid ${dc.border}`,
+                      color: dc.text,
+                    }
+                : {
+                    background: 'var(--bg-primary)',
+                    border: '2px solid var(--border-color)',
+                    color: 'var(--text-muted, #9ca3af)',
+                  };
+
               return (
                 <button
                   key={d.key}
@@ -338,33 +362,20 @@ export default function ActivitiesPage() {
                     whiteSpace: 'nowrap',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
-                    border: isActive
-                      ? (d.key !== 'all'
-                          ? `2px solid ${diffCfg?.border || '#888'}`
-                          : '2px solid var(--text-primary)')
-                      : '2px solid var(--border-color)',
-                    background: isActive
-                      ? (d.key !== 'all'
-                          ? diffCfg?.activePill?.split(' ')[0]?.replace('bg-', '') // handled below
-                          : 'var(--text-primary)')
-                      : 'var(--bg-primary)',
                     transition: 'all 0.15s',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 5,
+                    ...btnStyle,
                   }}
-                  // Use className for tailwind color because inline style can't use bg-amber-500 easily
-                  className={
-                    isActive && d.key !== 'all'
-                      ? diffCfg?.activePill || ''
-                      : isActive
-                      ? 'bg-gray-700 text-white'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }
                 >
-                  {d.key !== 'all' && (
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${diffCfg?.bar || ''}`}/>
+                  {dc && (
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                      background: isActive ? (dc.dot || 'rgba(255,255,255,0.6)') : dc.bg,
+                      opacity: isActive ? 1 : 0.7,
+                    }}/>
                   )}
                   {d.label}
                 </button>
@@ -372,26 +383,31 @@ export default function ActivitiesPage() {
             })}
           </div>
 
-          {hasClearFilter && (
-            <button
-              onClick={() => { setActiveType('all'); setActiveDiff('all'); }}
-              style={{
-                flexShrink: 0,
-                fontSize: 11,
-                fontWeight: 700,
-                color: '#9ca3af',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px 6px',
-                borderRadius: 8,
-                whiteSpace: 'nowrap',
-                fontFamily: 'inherit',
-              }}
-            >
-              Clear
-            </button>
-          )}
+          {/* Clear button — always in DOM, invisible + non-interactive when not needed */}
+          <button
+            onClick={() => { setActiveType('all'); setActiveDiff('all'); }}
+            style={{
+              flexShrink: 0,
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '6px 9px',
+              borderRadius: 8,
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+              transition: 'opacity 0.15s, background 0.15s',
+              minWidth: 44,
+              textAlign: 'center',
+              // Visible only when a filter is active
+              opacity: hasClearFilter ? 1 : 0,
+              pointerEvents: hasClearFilter ? 'auto' : 'none',
+              cursor: hasClearFilter ? 'pointer' : 'default',
+              color: 'var(--text-primary)',
+              background: 'var(--bg-primary)',
+              border: '2px solid var(--border-color)',
+            }}
+          >
+            Clear
+          </button>
         </div>
 
         {/* Global unlock hint */}
