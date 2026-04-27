@@ -1,10 +1,3 @@
-// ============================================================
-// PictureWordGame — one picture per page, tap to select, no hint feedback
-// - Each item shown individually as its own "page"
-// - No next/previous buttons — auto-advances after selection
-// - No correct/wrong hint shown simultaneously
-// - TTS on each picture item and each option
-// ============================================================
 import React, { useState, useCallback } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Volume2, CheckCircle } from 'lucide-react';
@@ -17,7 +10,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState(() => new Array(items.length).fill(null));
-  const [selected, setSelected] = useState(null); // pending selection for current item
+  const [selected, setSelected] = useState(null);
 
   if (items.length === 0) {
     return (
@@ -33,9 +26,10 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
   const currentAnswer = answers[currentIdx];
 
   const handlePick = useCallback((opt) => {
-    // If already answered this item, don't allow change
     if (currentAnswer !== null) return;
 
+    // We keep the audio feedback when clicking, 
+    // but the "button" UI for TTS is gone from the options.
     speak(opt);
 
     const next = [...answers];
@@ -43,7 +37,6 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
     setAnswers(next);
     setSelected(opt);
 
-    // Auto-advance after a short delay
     setTimeout(() => {
       setSelected(null);
       if (!isLastItem) {
@@ -57,8 +50,6 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
     onSubmit({ answers: answers.map(a => a ?? '') });
   };
 
-  const answeredCount = answers.filter(a => a !== null).length;
-
   return (
     <div>
       {/* Instruction */}
@@ -66,20 +57,6 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
         <p className="font-bold text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
           {content.instruction || 'Look at each picture and choose the correct word.'}
         </p>
-      </div>
-
-        {items.map((_, i) => (
-          <div
-            key={i}
-            className={`transition-all duration-300 rounded-full ${
-              i === currentIdx
-                ? 'w-7 h-3 bg-sky'
-                : answers[i] !== null
-                ? 'w-3 h-3 bg-emerald-400'
-                : 'w-3 h-3 bg-gray-200 dark:bg-gray-600'
-            }`}
-          />
-        ))}
       </div>
 
       {/* Single item card */}
@@ -91,7 +68,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
           background: 'var(--bg-card)',
         }}>
 
-        {/* Counter */}
+        {/* Counter & Main TTS */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-bold text-sky bg-sky/10 px-2.5 py-1 rounded-full">
             {currentIdx + 1} / {items.length}
@@ -110,7 +87,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
           </span>
         </div>
 
-        {/* Options */}
+        {/* Options - TTS buttons removed here */}
         <div className="grid grid-cols-2 gap-3">
           {(currentItem.options ?? []).map(opt => {
             const isSelected = currentAnswer === opt;
@@ -120,14 +97,10 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
                 key={opt}
                 onClick={() => handlePick(opt)}
                 disabled={currentAnswer !== null}
-                className="flex items-center justify-between px-4 py-3 rounded-2xl border-2 font-bold text-sm transition-all active:scale-95"
+                className="flex items-center justify-center px-4 py-3 rounded-2xl border-2 font-bold text-sm transition-all active:scale-95"
                 style={{
-                  borderColor: isSelected
-                    ? '#4D96FF'
-                    : 'var(--border-color)',
-                  background: isSelected
-                    ? 'rgba(77,150,255,0.12)'
-                    : 'var(--bg-primary)',
+                  borderColor: isSelected ? '#4D96FF' : 'var(--border-color)',
+                  background: isSelected ? 'rgba(77,150,255,0.12)' : 'var(--bg-primary)',
                   color: isSelected ? '#4D96FF' : 'var(--text-primary)',
                   cursor: currentAnswer !== null ? 'default' : 'pointer',
                   opacity: currentAnswer !== null && !isSelected ? 0.5 : 1,
