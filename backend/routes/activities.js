@@ -51,7 +51,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const { answer }     = req.body;
+    const { answers: answer } = req.body;
     const activityId     = parseInt(req.params.id);
     const userId         = req.user.id;
 
@@ -265,7 +265,8 @@ function evaluateAnswer(activity, answer) {
     case 'picture_word': {
       const expected     = correct.answers;
       const given        = answer?.answers || [];
-      const items        = activity.content?.items || [];
+      const parsedContent = typeof activity.content === 'string' ? JSON.parse(activity.content) : activity.content;
+      const items        = parsedContent?.items || [];
       const correctCount = expected.filter((a, i) => a === given[i]).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
