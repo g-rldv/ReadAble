@@ -66,15 +66,8 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
         <p className="font-bold text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
           {content.instruction || 'Look at each picture and choose the correct word.'}
         </p>
-        <button
-          onClick={() => speak(content.instruction || 'Look at each picture and choose the correct word.')}
-          className="p-2 rounded-xl text-sky hover:bg-sky/10 flex-shrink-0 transition-colors">
-          <Volume2 size={15} />
-        </button>
       </div>
 
-      {/* Progress dots */}
-      <div className="flex justify-center gap-2 mb-5">
         {items.map((_, i) => (
           <div
             key={i}
@@ -140,12 +133,6 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
                   opacity: currentAnswer !== null && !isSelected ? 0.5 : 1,
                 }}>
                 <span>{opt}</span>
-                <button
-                  onClick={e => { e.stopPropagation(); speak(opt); }}
-                  className="p-1 rounded-lg hover:opacity-70 transition-opacity flex-shrink-0 ml-1"
-                  style={{ color: isSelected ? '#4D96FF' : '#9ca3af' }}>
-                  <Volume2 size={11} />
-                </button>
               </button>
             );
           })}
