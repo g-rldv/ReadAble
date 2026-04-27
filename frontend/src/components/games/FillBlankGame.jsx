@@ -14,7 +14,9 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
   const [answers, setAnswers] = useState(new Array(content.sentences.length).fill(''));
   const [activeIdx, setActiveIdx] = useState(0);
 
-  const activeOptions = content.sentences[activeIdx]?.options || [];
+
+  const [shuffledOptions, setShuffledOptions] = useState({});
+
 
   const pickAnswer = (opt) => {
     const next = [...answers];
