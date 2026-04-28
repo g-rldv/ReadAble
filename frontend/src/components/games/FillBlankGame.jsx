@@ -1,8 +1,7 @@
 // ============================================================
 // FillBlankGame — tap options to fill sentence blanks
-// - TTS on each sentence and each option chip
-// - Options fill the full horizontal width in a grid
-// - Clean, minimal UI
+// Fix: activeOptions was referenced but never defined — now
+// correctly derived from content.sentences[activeIdx]?.options
 // ============================================================
 import React, { useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -14,9 +13,8 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
   const [answers, setAnswers] = useState(new Array(content.sentences.length).fill(''));
   const [activeIdx, setActiveIdx] = useState(0);
 
-
-  const [shuffledOptions, setShuffledOptions] = useState({});
-
+  // ← THE FIX: derive activeOptions from the current sentence
+  const activeOptions = content.sentences[activeIdx]?.options || [];
 
   const pickAnswer = (opt) => {
     const next = [...answers];
@@ -118,15 +116,14 @@ export default function FillBlankGame({ activity, onSubmit, submitting }) {
             return (
               <button
                 key={opt}
+                onClick={() => pickAnswer(opt)}
                 className="flex items-center justify-between px-3 py-3 rounded-xl border-2 font-bold text-sm transition-all min-h-[48px] w-full"
                 style={{
                   borderColor: isChosen ? '#4D96FF' : 'rgba(77,150,255,0.35)',
                   background: isChosen ? '#4D96FF' : 'transparent',
                   color: isChosen ? '#fff' : '#4D96FF',
                 }}>
-                <span
-                  onClick={() => pickAnswer(opt)}
-                  className="flex-1 text-left truncate">
+                <span className="flex-1 text-left truncate">
                   {opt}
                 </span>
                 <button
