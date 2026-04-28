@@ -1,6 +1,5 @@
 // ============================================================
 // GamePage — loads activity, renders correct game, shows result
-// Updated: fires achievement notifications via useAchievements()
 // ============================================================
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -120,7 +119,8 @@ export default function GamePage() {
   const navigate        = useNavigate();
   const { token, refreshUser } = useAuth();
   const { speak, settings } = useSettings();
-  const { notify: notifyAchievement } = useAchievements();
+  const achCtx = useAchievements();
+  const notifyAchievement = achCtx?.notify;
 
   const [activity,   setActivity]   = useState(null);
   const [userProg,   setUserProg]   = useState(null);
@@ -128,17 +128,25 @@ export default function GamePage() {
   const [submitting, setSubmitting] = useState(false);
   const [result,     setResult]     = useState(null);
   const [gameKey,    setGameKey]    = useState(0);
+  const [submitError, setSubmitError] = useState('');
   const resultRef = useRef(null);
 
+  // Always keep auth header in sync
   useEffect(() => {
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    const t = token || localStorage.getItem('readable_token');
+    if (t) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${t}`;
     }
   }, [token]);
 
   useEffect(() => {
     setLoading(true);
     setResult(null);
+    setSubmitError('');
+
+    const t = token || localStorage.getItem('readable_token');
+    if (t) api.defaults.headers.common['Authorization'] = `Bearer ${t}`;
+
     api.get(`/activities/${id}`)
       .then(res => {
         const act = parseContent(res.data.activity);
@@ -154,31 +162,49 @@ export default function GamePage() {
   const handleSubmit = async (answer) => {
     if (submitting) return;
     setSubmitting(true);
+    setSubmitError('');
+
     try {
-      if (token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Ensure auth header is set from any available source
+      const t = token || localStorage.getItem('readable_token');
+      if (!t) {
+        navigate('/login');
+        return;
       }
-      const res  = await api.post(`/activities/${id}/submit`, { answer });
+      api.defaults.headers.common['Authorization'] = `Bearer ${t}`;
+
+      const res = await api.post(`/activities/${id}/submit`, { answer });
       const data = res.data;
+
       setResult(data);
 
       if (data.isCorrect) launchConfetti();
-      speak(data.feedback);
+      if (data.feedback) speak(data.feedback);
 
-      // 🏆 Fire achievement notifications
-      if (data.newAchievements?.length > 0) {
+      if (data.newAchievements?.length > 0 && notifyAchievement) {
         notifyAchievement(data.newAchievements);
       }
 
-      await refreshUser();
+      try { await refreshUser(); } catch (_) {}
+
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 120);
     } catch (err) {
-      console.error('[GamePage/Submit]', err);
-      if (err.status === 401) navigate('/login');
-    } finally { setSubmitting(false); }
+      console.error('[GamePage/Submit] error:', err);
+      if (err.status === 401 || err.message?.includes('401')) {
+        navigate('/login');
+      } else {
+        setSubmitError(err.message || 'Something went wrong. Please try again.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleReset = () => { setResult(null); setGameKey(k => k + 1); };
+  const handleReset = () => {
+    setResult(null);
+    setSubmitError('');
+    setGameKey(k => k + 1);
+  };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -242,6 +268,15 @@ export default function GamePage() {
         </div>
       </div>
 
+      {/* Submit error */}
+      {submitError && (
+        <div className="mb-4 p-3 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-600
+                        dark:text-rose-400 text-sm font-semibold border border-rose-200 dark:border-rose-800 flex items-center justify-between gap-2">
+          <span>{submitError}</span>
+          <button onClick={() => setSubmitError('')} className="text-rose-400 hover:text-rose-600 flex-shrink-0">✕</button>
+        </div>
+      )}
+
       {/* Game */}
       {GameComponent && !result && (
         <div className="rounded-3xl p-6 shadow-card border border-gray-100 dark:border-gray-700 animate-pop"
@@ -284,7 +319,6 @@ export default function GamePage() {
             )}
           </div>
 
-          {/* Achievement badges in result card (secondary — toasts are primary) */}
           {result.newAchievements?.length > 0 && (
             <div className="mb-3 space-y-1.5">
               {result.newAchievements.map(ach => (
