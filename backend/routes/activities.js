@@ -51,7 +51,8 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const { answers: answer } = req.body;
+    // FIX: was `const { answers: answer } = req.body` which always gave undefined
+    const { answer } = req.body;
     const activityId     = parseInt(req.params.id);
     const userId         = req.user.id;
 
