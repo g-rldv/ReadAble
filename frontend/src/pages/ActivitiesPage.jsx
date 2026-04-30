@@ -274,14 +274,12 @@ export default function ActivitiesPage() {
       <div className="rounded-2xl p-3 space-y-3"
         style={{ background:'var(--bg-card-grad)', border:'1px solid var(--border-color)' }}>
 
-        {/* ── Game type — horizontal scroll on mobile, no wrap ── */}
+        {/* ── Game type — stretch buttons to fill width ── */}
         <div
-          className="scrollbar-none"
           style={{
             display: 'flex',
             gap: 6,
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
+            flex: 1,
           }}
         >
           {TYPES.map(t => {
@@ -291,8 +289,8 @@ export default function ActivitiesPage() {
                 key={t.key}
                 onClick={() => setActiveType(t.key)}
                 style={{
-                  flexShrink: 0,
-                  padding: '8px 14px',
+                  flex: 1,
+                  padding: '7px 4px',
                   borderRadius: 10,
                   fontSize: 12,
                   fontWeight: 700,
@@ -305,9 +303,15 @@ export default function ActivitiesPage() {
                   cursor: 'pointer',
                   transition: 'all 0.15s',
                   fontFamily: 'inherit',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 0,
                 }}
               >
-                {t.label}
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {t.label}
+                </span>
               </button>
             );
           })}
