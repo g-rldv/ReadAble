@@ -209,13 +209,17 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
 
 // ── Evaluate Answer ───────────────────────────────────────────
 function evaluateAnswer(activity, answer) {
-  const correct = activity.correct_answer;
+  let correct = activity.correct_answer;
+  // Parse JSON string if needed
+  if (typeof correct === 'string') {
+    try { correct = JSON.parse(correct); } catch (_) {}
+  }
   let score = 0, isCorrect = false, feedback = '', details = [];
 
   switch (activity.type) {
     case 'word_match': {
       const pairs        = Object.entries(correct);
-      const correctCount = pairs.filter(([k, v]) => answer?.[k] === v).length;
+      const correctCount = pairs.filter(([k, v]) => answer?.[k]?.trim() === v?.trim()).length;
       score     = Math.round((correctCount / pairs.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -225,14 +229,14 @@ function evaluateAnswer(activity, answer) {
         : `Keep practising! You got ${correctCount}/${pairs.length}.`;
       details   = pairs.map(([k, v]) => ({
         label: k, correct: v,
-        given: answer?.[k] || '', ok: answer?.[k] === v,
+        given: answer?.[k] || '', ok: answer?.[k]?.trim() === v?.trim(),
       }));
       break;
     }
     case 'fill_blank': {
       const expected     = correct.answers;
       const given        = answer?.answers || [];
-      const correctCount = expected.filter((a, i) => a?.toLowerCase() === given[i]?.toLowerCase()).length;
+      const correctCount = expected.filter((a, i) => a?.toLowerCase().trim() === given[i]?.toLowerCase().trim()).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -242,7 +246,7 @@ function evaluateAnswer(activity, answer) {
         : `You got ${correctCount}/${expected.length}. Read each sentence carefully!`;
       details   = expected.map((a, i) => ({
         label: `Blank ${i+1}`, correct: a,
-        given: given[i] || '', ok: a?.toLowerCase() === given[i]?.toLowerCase(),
+        given: given[i] || '', ok: a?.toLowerCase().trim() === given[i]?.toLowerCase().trim(),
       }));
       break;
     }
@@ -268,7 +272,7 @@ function evaluateAnswer(activity, answer) {
       const given        = answer?.answers || [];
       const parsedContent = typeof activity.content === 'string' ? JSON.parse(activity.content) : activity.content;
       const items        = parsedContent?.items || [];
-      const correctCount = expected.filter((a, i) => a === given[i]).length;
+      const correctCount = expected.filter((a, i) => a?.trim() === given[i]?.trim()).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -278,15 +282,15 @@ function evaluateAnswer(activity, answer) {
         : `You got ${correctCount}/${expected.length}. Look carefully at each picture!`;
       details   = expected.map((a, i) => ({
         label: items[i]?.picture || `Q${i+1}`, correct: a,
-        given: given[i] || '', ok: a === given[i],
+        given: given[i] || '', ok: a?.trim() === given[i]?.trim(),
       }));
       break;
     }
     case 'picture_choice': {
       const expected     = correct.answers;
       const given        = answer?.answers || [];
-      const questions    = activity.content?.questions || [];
-      const correctCount = expected.filter((a, i) => a === given[i]).length;
+      const questions    = typeof activity.content === 'string' ? JSON.parse(activity.content)?.questions || [] : activity.content?.questions || [];
+      const correctCount = expected.filter((a, i) => a?.trim() === given[i]?.trim()).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -301,7 +305,7 @@ function evaluateAnswer(activity, answer) {
         return {
           label: `Q${i+1}`, correct: `${a} ${correct_opt?.label || ''}`,
           given: given[i] ? `${given[i]} ${given_opt?.label || ''}` : '',
-          ok: a === given[i],
+          ok: a?.trim() === given[i]?.trim(),
         };
       });
       break;
