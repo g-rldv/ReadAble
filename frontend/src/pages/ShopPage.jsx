@@ -359,96 +359,77 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
   );
 }
 
-// ── Desktop Sticky Sidebar (Active Buddy) ─────────────────────
-// Only rendered on md+ via the parent layout
-function ActiveBuddySidebar({ equippedId, ownedCount }) {
+// ── Collapsible Active Buddy Section ──────────────────────────
+// Replaces both the mobile strip and desktop sidebar
+function CollapsibleActiveBuddy({ equippedId, ownedCount, isOpen, onToggle }) {
   const char = characterById(equippedId) || characterById(DEFAULT_CHARACTER_ID);
   const rc   = RARITY_CONFIG[char?.rarity || 'common'];
 
   return (
     <div style={{
-      width: 210, flexShrink: 0,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-      borderRadius: 24, padding: '20px 16px',
-      border: `3px solid #1a1a2e`,
+      borderRadius: 20, border: '2px solid var(--border-color)',
       background: 'var(--bg-card-grad)',
-      position: 'sticky', top: 16,
-      boxShadow: `0 5px 0 #1a1a2e, 0 8px 24px rgba(0,0,0,0.15)`,
+      overflow: 'hidden',
     }}>
-      <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>Active Buddy</p>
-      <AppIconBox size={150} equipped>
-        <CharacterAvatar characterId={equippedId} size={150} showGlow animate={false} />
-      </AppIconBox>
-      <div style={{ textAlign: 'center', width: '100%' }}>
-        <p style={{
-          fontWeight: 800, fontSize: 15, color: 'var(--text-primary)',
-          margin: '0 0 4px',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      {/* Collapsible Header */}
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%', padding: '14px 16px', background: 'transparent', border: 'none',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12,
+          fontFamily: 'inherit', fontWeight: 800, fontSize: 14,
+          color: 'var(--text-primary)', transition: 'all 0.2s',
         }}>
-          {char?.name}
-        </p>
-        <span style={{
-          display: 'inline-block', padding: '2px 10px', borderRadius: 999,
-          fontSize: 9, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
-          background: rc.bg, color: rc.color, border: `1.5px solid ${rc.border}`,
-        }}>{rc.label}</span>
-      </div>
-      <p style={{
-        fontSize: 11, color: 'var(--text-muted, #9ca3af)', textAlign: 'center',
-        margin: 0, lineHeight: 1.5,
-        display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-      }}>{char?.desc}</p>
-      <div style={{
-        width: '100%', padding: '10px 12px', borderRadius: 12,
-        background: 'var(--bg-primary)', border: '2px solid #1a1a2e', textAlign: 'center',
-        boxShadow: '0 2px 0 #1a1a2e',
-      }}>
-        <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '0 0 2px' }}>Collection</p>
-        <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-          {ownedCount} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)' }}>/ {ALL_CHARACTERS.length}</span>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ── Mobile Active Buddy Strip (compact, <md only) ─────────────
-// A slim horizontal bar showing the equipped character — NO duplicate panel
-function MobileActiveBuddyStrip({ equippedId, ownedCount }) {
-  const char = characterById(equippedId) || characterById(DEFAULT_CHARACTER_ID);
-  const rc   = RARITY_CONFIG[char?.rarity || 'common'];
-
-  return (
-    <div className="md:hidden" style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '10px 14px', borderRadius: 16,
-      border: `3px solid #1a1a2e`,
-      background: 'var(--bg-card-grad)',
-      boxShadow: '0 4px 0 #1a1a2e',
-      marginBottom: 4,
-    }}>
-      <AppIconBox size={52} equipped>
-        <CharacterAvatar characterId={equippedId} size={52} animate={false} />
-      </AppIconBox>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>
-          {char?.name}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-          <span style={{
-            display: 'inline-block', padding: '1px 8px', borderRadius: 999,
-            fontSize: 9, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
-            background: rc.bg, color: rc.color, border: `1.5px solid ${rc.border}`,
-          }}>{rc.label}</span>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>· Active Buddy</span>
+        <AppIconBox size={48} equipped>
+          <CharacterAvatar characterId={equippedId} size={48} animate={false} />
+        </AppIconBox>
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>
+            {char?.name}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <span style={{
+              display: 'inline-block', padding: '1px 8px', borderRadius: 999,
+              fontSize: 9, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
+              background: rc.bg, color: rc.color, border: `1.5px solid ${rc.border}`,
+            }}>{rc.label}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Active Buddy</span>
+          </div>
         </div>
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0 }}>Collection</p>
-        <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-          {ownedCount}<span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>/{ALL_CHARACTERS.length}</span>
-        </p>
-      </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0 }}>Collection</p>
+          <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+            {ownedCount}<span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 500 }}>/{ALL_CHARACTERS.length}</span>
+          </p>
+        </div>
+        <svg
+          width="20" height="20" viewBox="0 0 20 20" fill="none"
+          style={{
+            flexShrink: 0, color: 'var(--text-muted)',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s',
+          }}>
+          <path d="M7 7.5L10 10.5L13 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {/* Expandable Content */}
+      {isOpen && (
+        <div style={{
+          padding: '12px 16px 16px',
+          borderTop: '1px solid var(--border-color)',
+          display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center',
+        }}>
+          <AppIconBox size={120} equipped>
+            <CharacterAvatar characterId={equippedId} size={120} showGlow animate={false} />
+          </AppIconBox>
+          <p style={{
+            fontSize: 11, color: 'var(--text-muted, #9ca3af)', textAlign: 'center',
+            margin: 0, lineHeight: 1.5,
+            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>{char?.desc}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -464,6 +445,7 @@ export default function ShopPage() {
   const [equipping,  setEquipping]  = useState(null);
   const [toast,      setToast]      = useState(null);
   const [loading,    setLoading]    = useState(true);
+  const [buddyOpen,  setBuddyOpen]  = useState(false);
 
   // Achievement notification toasts
   const [achToasts, setAchToasts] = useState([]);
@@ -606,9 +588,6 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Mobile Active Buddy strip — only shows on small screens */}
-      <MobileActiveBuddyStrip equippedId={equippedId} ownedCount={ownedCount} />
-
       {/* How to get coins */}
       <div style={{ borderRadius:20, padding:'16px 20px', border:'2px solid var(--border-color)', background:'var(--bg-card-grad)' }}>
         <h3 className="font-display" style={{ fontSize:16, color:'var(--text-primary)', marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
@@ -661,64 +640,60 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* ── Main layout: Desktop sidebar + grid ── */}
-      <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
+      {/* Collapsible Active Buddy */}
+      <CollapsibleActiveBuddy 
+        equippedId={equippedId} 
+        ownedCount={ownedCount}
+        isOpen={buddyOpen}
+        onToggle={() => setBuddyOpen(!buddyOpen)}
+      />
 
-        {/* Desktop Active Buddy sidebar — hidden on mobile via className */}
-        <div className="hidden md:flex" style={{ flexDirection: 'column' }}>
-          <ActiveBuddySidebar equippedId={equippedId} ownedCount={ownedCount} />
-        </div>
+      {/* Filter pills */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))',
+        gap: 6, width: '100%',
+      }}>
+        {RARITY_FILTERS.map(f => {
+          const isActive = filter === f.key;
+          return (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+              style={{
+                padding:'8px 4px', borderRadius:12, fontSize:11, fontWeight:800,
+                whiteSpace:'nowrap', cursor:'pointer', fontFamily:'inherit',
+                border: isActive ? `2px solid var(--text-primary)` : '2px solid var(--border-color)',
+                background: isActive ? 'var(--text-primary)' : 'var(--bg-card-grad)',
+                color: isActive ? 'var(--bg-primary)' : 'var(--text-muted, #9ca3af)',
+                transition:'all 0.15s', textAlign:'center',
+                minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+                boxShadow: isActive ? '0 2px 0 rgba(0,0,0,0.2)' : 'none',
+              }}>
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
 
-        <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:14 }}>
-
-          {/* Filter pills */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))',
-            gap: 6, width: '100%',
-          }}>
-            {RARITY_FILTERS.map(f => {
-              const isActive = filter === f.key;
-              return (
-                <button key={f.key} onClick={() => setFilter(f.key)}
-                  style={{
-                    padding:'8px 4px', borderRadius:12, fontSize:11, fontWeight:800,
-                    whiteSpace:'nowrap', cursor:'pointer', fontFamily:'inherit',
-                    border: isActive ? `2px solid var(--text-primary)` : '2px solid var(--border-color)',
-                    background: isActive ? 'var(--text-primary)' : 'var(--bg-card-grad)',
-                    color: isActive ? 'var(--bg-primary)' : 'var(--text-muted, #9ca3af)',
-                    transition:'all 0.15s', textAlign:'center',
-                    minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-                    boxShadow: isActive ? '0 2px 0 rgba(0,0,0,0.2)' : 'none',
-                  }}>
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Character grid */}
-          <div style={{
-            display:'grid',
-            gridTemplateColumns:'repeat(auto-fill, minmax(138px, 1fr))',
-            gap:12, overflow:'visible',
-          }}>
-            {displayed.map(char => (
-              <CharacterCard
-                key={char.id}
-                char={char}
-                owned={owned(char.id) || !!char.isDefault}
-                equipped={equippedId === char.id}
-                coinBalance={coinBalance}
-                userAchievements={user?.achievements || []}
-                onBuy={handleBuy}
-                onEquip={handleEquip}
-                buying={buying}
-                equipping={equipping}
-              />
-            ))}
-          </div>
-        </div>
+      {/* Character grid */}
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:'repeat(auto-fill, minmax(138px, 1fr))',
+        gap:12, overflow:'visible',
+      }}>
+        {displayed.map(char => (
+          <CharacterCard
+            key={char.id}
+            char={char}
+            owned={owned(char.id) || !!char.isDefault}
+            equipped={equippedId === char.id}
+            coinBalance={coinBalance}
+            userAchievements={user?.achievements || []}
+            onBuy={handleBuy}
+            onEquip={handleEquip}
+            buying={buying}
+            equipping={equipping}
+          />
+        ))}
       </div>
     </div>
   );
