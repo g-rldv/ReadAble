@@ -272,7 +272,7 @@ function evaluateAnswer(activity, answer) {
       const given        = answer?.answers || [];
       const parsedContent = typeof activity.content === 'string' ? JSON.parse(activity.content) : activity.content;
       const items        = parsedContent?.items || [];
-      const correctCount = expected.filter((a, i) => a?.trim() === given[i]?.trim()).length;
+      const correctCount = expected.filter((a, i) => a?.toLowerCase().trim() === given[i]?.toLowerCase().trim()).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -282,7 +282,7 @@ function evaluateAnswer(activity, answer) {
         : `You got ${correctCount}/${expected.length}. Look carefully at each picture!`;
       details   = expected.map((a, i) => ({
         label: items[i]?.picture || `Q${i+1}`, correct: a,
-        given: given[i] || '', ok: a?.trim() === given[i]?.trim(),
+        given: given[i] || '', ok: a?.toLowerCase().trim() === given[i]?.toLowerCase().trim(),
       }));
       break;
     }

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { Volume2, CheckCircle } from 'lucide-react';
+import { Volume2, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function PictureWordGame({ activity, onSubmit, submitting }) {
   const rawContent = activity?.content;
@@ -11,6 +11,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState(() => new Array(items.length).fill(null));
   const [selected, setSelected] = useState(null);
+  const [imageErrors, setImageErrors] = useState({});
 
   if (items.length === 0) {
     return (
@@ -24,12 +25,16 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
   const allAnswered = answers.every(a => a !== null);
   const currentItem = items[currentIdx];
   const currentAnswer = answers[currentIdx];
+  const imageUrl = currentItem.picture ? `/public/images/activities/${currentItem.picture}` : null;
+  const hasImageError = imageErrors[currentIdx];
+
+  const handleImageError = () => {
+    setImageErrors(prev => ({ ...prev, [currentIdx]: true }));
+  };
 
   const handlePick = useCallback((opt) => {
     if (currentAnswer !== null) return;
 
-    // We keep the audio feedback when clicking, 
-    // but the "button" UI for TTS is gone from the options.
     speak(opt);
 
     const next = [...answers];
@@ -74,20 +79,37 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
             {currentIdx + 1} / {items.length}
           </span>
           <button
-            onClick={() => speak(currentItem.picture + '... ' + (currentAnswer || 'choose a word'))}
+            onClick={() => speak(currentAnswer || 'choose a word')}
             className="p-1.5 rounded-lg text-sky hover:bg-sky/10 transition-colors">
             <Volume2 size={14} />
           </button>
         </div>
 
         {/* Picture */}
-        <div className="flex justify-center mb-6">
-          <span className="text-8xl leading-none select-none animate-float" role="img">
-            {currentItem.picture}
-          </span>
+        <div className="flex justify-center mb-6 min-h-[200px]">
+          {hasImageError ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-8 px-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800">
+              <AlertCircle size={32} className="text-rose-500" />
+              <p className="text-sm font-semibold text-rose-600 dark:text-rose-400 text-center">
+                Image not found: {currentItem.picture}
+              </p>
+            </div>
+          ) : imageUrl ? (
+            <img
+              src={imageUrl}
+              alt="Question"
+              onError={handleImageError}
+              className="max-w-full max-h-64 object-contain select-none rounded-lg"
+              style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.1))' }}
+            />
+          ) : (
+            <div className="flex items-center justify-center text-gray-400">
+              <p className="text-sm">No image available</p>
+            </div>
+          )}
         </div>
 
-        {/* Options - TTS buttons removed here */}
+        {/* Options */}
         <div className="grid grid-cols-2 gap-3">
           {(currentItem.options ?? []).map(opt => {
             const isSelected = currentAnswer === opt;
