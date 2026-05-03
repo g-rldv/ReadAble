@@ -4,6 +4,7 @@
 //    mobile collapsible AND desktop sidebar at tablet widths)
 //    Now: desktop sidebar shows on md+, mobile strip on <md
 // 2. Achievement notification toast system (animated banner)
+// 3. Added Epic and Legendary rarity filters
 // ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth }   from '../contexts/AuthContext';
@@ -18,13 +19,15 @@ import {
 } from '../components/character/CHARACTER_CATALOG';
 import { ShoppingBag, Check, Sparkles, Lock, Trophy, X } from 'lucide-react';
 
-const RARITY_ORDER   = { common:0, uncommon:1, rare:2, epic:3, mythic:4 };
+const RARITY_ORDER   = { common:0, uncommon:1, rare:2, epic:3, legendary:4, mythic:5 };
 const RARITY_FILTERS = [
-  { key:'all',      label:'All'      },
-  { key:'common',   label:'Common'   },
-  { key:'uncommon', label:'Uncommon' },
-  { key:'rare',     label:'Rare'     },
-  { key:'mythic',   label:'Mythic'   },
+  { key:'all',       label:'All'       },
+  { key:'common',    label:'Common'    },
+  { key:'uncommon',  label:'Uncommon'  },
+  { key:'rare',      label:'Rare'      },
+  { key:'epic',      label:'Epic'      },
+  { key:'legendary', label:'Legendary' },
+  { key:'mythic',    label:'Mythic'    },
 ];
 
 const ACH_LABELS = {
@@ -37,13 +40,13 @@ const ACH_LABELS = {
   xp_500:        'Earn 500 XP',
   xp_1000:       'Earn 1,000 XP',
   level_3:       'Reach Level 3',
+  level_20:      'Reach Level 20',
   five_streak:   'Reach a 5-day streak',
   ten_streak:    'Reach a 10-day streak',
   level_10:      'Reach Level 10',
 };
 
 // ── Achievement Notification Toast ────────────────────────────
-// Shown as a stacked banner at top-right when achievements unlock
 function AchievementToastStack({ toasts, onDismiss }) {
   return (
     <div style={{
@@ -74,7 +77,6 @@ function AchievementToastStack({ toasts, onDismiss }) {
             animation: 'achToastIn 0.45s cubic-bezier(0.175,0.885,0.32,1.275) both',
           }}
         >
-          {/* Icon */}
           <div style={{
             width: 40, height: 40, borderRadius: 12, flexShrink: 0,
             background: 'rgba(251,191,36,0.2)',
@@ -84,8 +86,6 @@ function AchievementToastStack({ toasts, onDismiss }) {
           }}>
             {toast.icon}
           </div>
-
-          {/* Text */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
@@ -107,8 +107,6 @@ function AchievementToastStack({ toasts, onDismiss }) {
               {toast.desc}
             </div>
           </div>
-
-          {/* Dismiss */}
           <button
             onClick={() => onDismiss(toast.id)}
             style={{
@@ -360,7 +358,6 @@ function CharacterCard({ char, owned, equipped, coinBalance, userAchievements,
 }
 
 // ── Collapsible Active Buddy Section ──────────────────────────
-// Replaces both the mobile strip and desktop sidebar
 function CollapsibleActiveBuddy({ equippedId, ownedCount, isOpen, onToggle }) {
   const char = characterById(equippedId) || characterById(DEFAULT_CHARACTER_ID);
   const rc   = RARITY_CONFIG[char?.rarity || 'common'];
@@ -447,7 +444,6 @@ export default function ShopPage() {
   const [loading,    setLoading]    = useState(true);
   const [buddyOpen,  setBuddyOpen]  = useState(false);
 
-  // Achievement notification toasts
   const [achToasts, setAchToasts] = useState([]);
   const achToastCounter = React.useRef(0);
 
@@ -457,7 +453,6 @@ export default function ShopPage() {
       setTimeout(() => {
         const id = ++achToastCounter.current;
         setAchToasts(prev => [...prev, { id, ...ach }]);
-        // Auto-dismiss after 5s
         setTimeout(() => {
           setAchToasts(prev => prev.filter(t => t.id !== id));
         }, 5000);
@@ -505,11 +500,9 @@ export default function ShopPage() {
     if (cost > 0) patchUser({ coins: currentCoins - cost });
     setWardrobe(prev => Array.from(new Set([...prev, char.id])));
     try {
-      const res = await api.post('/users/buy-item', { itemId: char.id, cost });
+      await api.post('/users/buy-item', { itemId: char.id, cost });
       refreshUser();
       showToast(`✨ Got ${char.name}!`);
-      // Check if buying triggered achievement unlocks (server-side)
-      // For shop purchases, we check via refreshed user achievements
     } catch (err) {
       if (cost > 0) patchUser({ coins: currentCoins });
       setWardrobe(prev => prev.filter(id => id !== char.id));
@@ -625,7 +618,7 @@ export default function ShopPage() {
         <div style={{ height:8, borderRadius:999, background:'var(--border-color)', overflow:'hidden' }}>
           <div style={{
             height:'100%', borderRadius:999,
-            background:'linear-gradient(90deg, #60B8F5, #A855F7, #F97316)',
+            background:'linear-gradient(90deg, #60B8F5, #A855F7, #FF6B6B, #F97316)',
             width:`${Math.round((ownedCount / ALL_CHARACTERS.length) * 100)}%`,
             transition:'width 0.7s ease',
           }}/>
@@ -641,8 +634,8 @@ export default function ShopPage() {
       </div>
 
       {/* Collapsible Active Buddy */}
-      <CollapsibleActiveBuddy 
-        equippedId={equippedId} 
+      <CollapsibleActiveBuddy
+        equippedId={equippedId}
         ownedCount={ownedCount}
         isOpen={buddyOpen}
         onToggle={() => setBuddyOpen(!buddyOpen)}
@@ -656,17 +649,25 @@ export default function ShopPage() {
       }}>
         {RARITY_FILTERS.map(f => {
           const isActive = filter === f.key;
+          const rc = RARITY_CONFIG[f.key];
+          // For active non-"all" filters, use rarity colour
+          const activeBg     = rc ? rc.color    : 'var(--text-primary)';
+          const activeBorder = rc ? rc.color    : 'var(--text-primary)';
+          const activeColor  = '#ffffff';
+
           return (
             <button key={f.key} onClick={() => setFilter(f.key)}
               style={{
                 padding:'8px 4px', borderRadius:12, fontSize:11, fontWeight:800,
                 whiteSpace:'nowrap', cursor:'pointer', fontFamily:'inherit',
-                border: isActive ? `2px solid var(--text-primary)` : '2px solid var(--border-color)',
-                background: isActive ? 'var(--text-primary)' : 'var(--bg-card-grad)',
-                color: isActive ? 'var(--bg-primary)' : 'var(--text-muted, #9ca3af)',
+                border: isActive
+                  ? `2px solid ${activeBorder}`
+                  : '2px solid var(--border-color)',
+                background: isActive ? activeBg : 'var(--bg-card-grad)',
+                color: isActive ? activeColor : 'var(--text-muted, #9ca3af)',
                 transition:'all 0.15s', textAlign:'center',
                 minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-                boxShadow: isActive ? '0 2px 0 rgba(0,0,0,0.2)' : 'none',
+                boxShadow: isActive ? `0 2px 8px ${rc ? rc.glow : 'rgba(0,0,0,0.2)'}` : 'none',
               }}>
               {f.label}
             </button>
