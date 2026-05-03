@@ -3,10 +3,11 @@
 // - TTS on each question and each option label
 // - No redundant navigation clutter
 // - Clean, focused UI
+// - Uses PNG images following naming convention: {activity_id}_{item_index}_{word}.png
 // ============================================================
 import React, { useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { Volume2, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
+import { Volume2, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
   const { content } = activity;
@@ -14,18 +15,19 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState(new Array(content.questions.length).fill(''));
   const [justPicked, setJustPicked] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
 
   const current = content.questions[currentIdx];
   const picked = answers[currentIdx];
   const allDone = answers.every(a => a !== '');
 
-  const handlePick = (emoji) => {
+  const handlePick = (picture) => {
     if (justPicked) return;
     const next = [...answers];
-    next[currentIdx] = emoji;
+    next[currentIdx] = picture;
     setAnswers(next);
     setJustPicked(true);
-    const label = current.options.find(o => o.emoji === emoji)?.label || emoji;
+    const label = current.options.find(o => o.picture === picture)?.label || picture;
     speak(label);
     setTimeout(() => {
       setJustPicked(false);
@@ -34,6 +36,10 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
   };
 
   const goTo = (idx) => { setCurrentIdx(idx); setJustPicked(false); };
+
+  const handleImageError = (picture) => {
+    setImageErrors(prev => ({ ...prev, [picture]: true }));
+  };
 
   return (
     <div>
@@ -89,9 +95,10 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
       {/* Picture options */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         {current.options.map(opt => {
-          const isSel = picked === opt.emoji;
-          const isCorr = opt.emoji === current.answer;
+          const isSel = picked === opt.picture;
+          const isCorr = opt.picture === current.answer;
           const fb = justPicked && isSel;
+          const hasError = imageErrors[opt.picture];
 
           let borderColor = 'var(--border-color)';
           let bgColor = 'var(--bg-card)';
@@ -103,11 +110,26 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
 
           return (
             <button
-              key={opt.emoji}
-              onClick={() => handlePick(opt.emoji)}
+              key={opt.picture}
+              onClick={() => handlePick(opt.picture)}
               className="flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-2xl border-2 font-bold transition-all duration-200 active:scale-95"
               style={{ borderColor, background: bgColor, color: textColor }}>
-              <span className="text-4xl leading-none select-none">{opt.emoji}</span>
+              {/* Picture display or error fallback */}
+              <div className="w-16 h-16 flex items-center justify-center rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                {hasError ? (
+                  <div className="flex flex-col items-center justify-center gap-1 text-gray-400">
+                    <AlertCircle size={20} />
+                    <span className="text-xs text-center leading-tight">{opt.picture}</span>
+                  </div>
+                ) : (
+                  <img
+                    src={`/images/activities/${opt.picture}`}
+                    alt={opt.label}
+                    className="w-full h-full object-cover"
+                    onError={() => handleImageError(opt.picture)}
+                  />
+                )}
+              </div>
               <div className="flex items-center gap-1">
                 <span className="text-sm leading-tight text-center">{opt.label}</span>
                 <button
