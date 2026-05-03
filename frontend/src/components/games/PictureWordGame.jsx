@@ -11,9 +11,8 @@ import { Volume2, CheckCircle, AlertCircle } from 'lucide-react';
 // ─────────────────────────────────────────────────────────────────────────────
 export function activityImagePath(filename) {
   if (!filename) return null;
-  // Already a full path — return as-is
   if (filename.startsWith('/')) return filename;
-  return `/public/images/activities/${filename}`;
+  return `/images/activities/${filename}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
