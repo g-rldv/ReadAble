@@ -209,7 +209,7 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
                 Image not found: {picFilename}
               </p>
               <p className="text-xs text-rose-400 text-center">
-                Expected at: /public/images/activities/{picFilename}
+                Expected at: /images/activities/{picFilename}
               </p>
             </div>
           ) : imageUrl ? (
