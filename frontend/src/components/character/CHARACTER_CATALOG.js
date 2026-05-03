@@ -40,7 +40,7 @@ export const ALL_CHARACTERS = [
   { id:'char_epic_fsdev',         name:'Full Stack Dev',  file:'char_epic_fsdev.png',         rarity:'epic', cost:450, earnedBy:'level_20', desc:'Frontend, backend — all of it.'              },
   // ── LEGENDARY (achievement-only, cost:0) ──────────────────
   { id:'char_legendary_molecularbiologist', name:'Molecular Biologist', file:'char_legendary_molecularbiologist.png', rarity:'legendary', cost:0, earnedBy:'completionist', desc:'Decoded the very building blocks of life.'        },
-  { id:'char_legendary_susconsultant',      name:'Sus Consultant',      file:'char_legendary_susconsultant.png',      rarity:'legendary', cost:0, earnedBy:'xp_1000',       desc:'Always a little suspicious... but brilliant.'     },
+  { id:'char_legendary_sustainabilityconsultant',      name:'Sustainability Consultant',      file:'char_legendary_sustainabilityconsultant.png',      rarity:'legendary', cost:0, earnedBy:'xp_1000',       desc:'Sustainable and brilliant.'     },
   { id:'char_legendary_urbanplanner',       name:'Urban Planner',       file:'char_legendary_urbanplanner.png',       rarity:'legendary', cost:0, earnedBy:'ten_streak',     desc:'Designing cities one block at a time.'            },
   // ── MYTHIC (achievement-only, cost:0) ─────────────────────
   { id:'char_mythic_shadowmonarch', name:'Shadow Monarch', file:'char_mythic_shadowmonarch.png', rarity:'mythic', cost:0, earnedBy:'completionist', desc:'Mastered all activities. Power beyond measure.' },
