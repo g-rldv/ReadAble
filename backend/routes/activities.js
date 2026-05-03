@@ -51,7 +51,6 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // FIX: was `const { answers: answer } = req.body` which always gave undefined
     const { answer } = req.body;
     const activityId     = parseInt(req.params.id);
     const userId         = req.user.id;
@@ -149,21 +148,6 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
 
     // 9. Auto-unlock characters from new achievements
     if (newAchievements.length > 0) {
-      const ACHIEVEMENT_CHARACTER_UNLOCKS = {
-        first_star:    ['char_common_blue'],
-        complete_5:    ['char_common_dalmatian'],
-        xp_100:        ['char_uncommon_greenglass'],
-        level_3:       ['char_uncommon_student'],
-        five_streak:   ['char_uncommon_hero'],
-        complete_10:   ['char_uncommon_ranger'],
-        xp_500:        ['char_rare_painter'],
-        complete_25:   ['char_rare_baker'],
-        ten_streak:    ['char_rare_bluebonnet'],
-        level_10:      ['char_rare_guitar'],
-        completionist: ['char_mythic_shadowmonarch'],
-        xp_1000:       ['char_mythic_sunarmor'],
-      };
-
       const achKeys = newAchievements.map(a => a.key);
       const currentWardrobe = await client.query(
         'SELECT wardrobe FROM users WHERE id=$1', [userId]
@@ -192,7 +176,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       score,
       feedback,
       isCorrect,
-      details,          // per-answer breakdown for UI
+      details,
       xpAwarded,
       coinsAwarded,
       newAchievements,
@@ -210,7 +194,6 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
 // ── Evaluate Answer ───────────────────────────────────────────
 function evaluateAnswer(activity, answer) {
   let correct = activity.correct_answer;
-  // Parse JSON string if needed
   if (typeof correct === 'string') {
     try { correct = JSON.parse(correct); } catch (_) {}
   }
@@ -323,36 +306,64 @@ async function checkAchievements(client, userId, user) {
   try {
     const unlocked = user.achievements || [];
 
+    // Count completed activities overall
     const countRes = await client.query(
       'SELECT COUNT(*) AS cnt FROM user_progress WHERE user_id=$1 AND completed=TRUE',
       [userId]
     );
     const completedCount = parseInt(countRes.rows[0]?.cnt || 0);
 
+    // Count perfect scores
     const perfectRes = await client.query(
       'SELECT COUNT(*) AS cnt FROM user_progress WHERE user_id=$1 AND score=100',
       [userId]
     );
     const perfectCount = parseInt(perfectRes.rows[0]?.cnt || 0);
 
+    // Count completed picture_word + picture_choice activities
+    // Join with activities table to filter by type
+    const pictureRes = await client.query(
+      `SELECT COUNT(*) AS cnt
+       FROM user_progress up
+       JOIN activities a ON up.activity_id = a.id
+       WHERE up.user_id = $1
+         AND up.completed = TRUE
+         AND a.type IN ('picture_word', 'picture_choice')`,
+      [userId]
+    );
+    const pictureCompletedCount = parseInt(pictureRes.rows[0]?.cnt || 0);
+
+    // Total number of picture_word + picture_choice activities in the DB
+    const pictureTotalRes = await client.query(
+      `SELECT COUNT(*) AS cnt FROM activities WHERE type IN ('picture_word', 'picture_choice')`
+    );
+    const pictureTotalCount = parseInt(pictureTotalRes.rows[0]?.cnt || 0);
+
     const checks = [
-      { key: 'first_star',   cond: () => true,                    title: 'First Star',       icon: '⭐' },
-      { key: 'xp_100',       cond: () => user.xp >= 100,          title: 'Century Club',     icon: '💯' },
-      { key: 'xp_500',       cond: () => user.xp >= 500,          title: 'XP Legend',        icon: '🌟' },
-      { key: 'xp_1000',      cond: () => user.xp >= 1000,         title: 'XP Master',        icon: '🏅' },
-      { key: 'level_3',      cond: () => user.level >= 3,         title: 'Rising Reader',    icon: '📖' },
-      { key: 'level_5',      cond: () => user.level >= 5,         title: 'Word Wizard',      icon: '🧙' },
-      { key: 'level_10',     cond: () => user.level >= 10,        title: 'Reading Champion', icon: '🏆' },
-      { key: 'level_20',     cond: () => user.level >= 20,        title: 'Scholar',          icon: '🎓' },
-      { key: 'streak_3',     cond: () => user.streak >= 3,        title: 'Consistent!',      icon: '📅' },
-      { key: 'five_streak',  cond: () => user.streak >= 5,        title: 'On Fire!',         icon: '🔥' },
-      { key: 'streak_7',     cond: () => user.streak >= 7,        title: 'Weekly Warrior',   icon: '⚡' },
-      { key: 'ten_streak',   cond: () => user.streak >= 10,       title: 'Unstoppable',      icon: '💪' },
-      { key: 'complete_5',   cond: () => completedCount >= 5,     title: 'Getting Started',  icon: '✅' },
-      { key: 'complete_10',  cond: () => completedCount >= 10,    title: 'On a Roll',        icon: '🎯' },
-      { key: 'complete_25',  cond: () => completedCount >= 25,    title: 'Dedicated Learner',icon: '📚' },
-      { key: 'completionist',cond: () => completedCount >= 48,    title: 'Completionist',    icon: '🌈' },
-      { key: 'perfect_3',    cond: () => perfectCount >= 3,       title: 'Perfectionist',    icon: '💎' },
+      { key: 'first_star',          cond: () => true,                                  title: 'First Star',          icon: '⭐' },
+      { key: 'xp_100',              cond: () => user.xp >= 100,                        title: 'Century Club',        icon: '💯' },
+      { key: 'xp_500',              cond: () => user.xp >= 500,                        title: 'XP Legend',           icon: '🌟' },
+      { key: 'xp_1000',             cond: () => user.xp >= 1000,                       title: 'XP Master',           icon: '🏅' },
+      // New: 1,500 XP milestone for Sun Armor (mythic)
+      { key: 'xp_1500',             cond: () => user.xp >= 1500,                       title: 'XP Titan',            icon: '☀️' },
+      { key: 'level_3',             cond: () => user.level >= 3,                       title: 'Rising Reader',       icon: '📖' },
+      { key: 'level_5',             cond: () => user.level >= 5,                       title: 'Word Wizard',         icon: '🧙' },
+      { key: 'level_10',            cond: () => user.level >= 10,                      title: 'Reading Champion',    icon: '🏆' },
+      { key: 'level_20',            cond: () => user.level >= 20,                      title: 'Scholar',             icon: '🎓' },
+      { key: 'streak_3',            cond: () => user.streak >= 3,                      title: 'Consistent!',         icon: '📅' },
+      { key: 'five_streak',         cond: () => user.streak >= 5,                      title: 'On Fire!',            icon: '🔥' },
+      { key: 'streak_7',            cond: () => user.streak >= 7,                      title: 'Weekly Warrior',      icon: '⚡' },
+      { key: 'ten_streak',          cond: () => user.streak >= 10,                     title: 'Unstoppable',         icon: '💪' },
+      { key: 'complete_5',          cond: () => completedCount >= 5,                   title: 'Getting Started',     icon: '✅' },
+      { key: 'complete_10',         cond: () => completedCount >= 10,                  title: 'On a Roll',           icon: '🎯' },
+      { key: 'complete_25',         cond: () => completedCount >= 25,                  title: 'Dedicated Learner',   icon: '📚' },
+      { key: 'completionist',       cond: () => completedCount >= 48,                  title: 'Completionist',       icon: '🌈' },
+      { key: 'perfect_3',           cond: () => perfectCount >= 3,                     title: 'Perfectionist',       icon: '💎' },
+      // New: complete ALL picture_word + picture_choice activities for Molecular Biologist (legendary)
+      { key: 'complete_all_picture',
+        cond: () => pictureTotalCount > 0 && pictureCompletedCount >= pictureTotalCount,
+        title: 'Picture Perfect',
+        icon: '🔬' },
     ];
 
     for (const { key, cond, title, icon } of checks) {
@@ -371,20 +382,24 @@ async function checkAchievements(client, userId, user) {
   return newOnes;
 }
 
-// ── Export ACHIEVEMENT_CHARACTER_UNLOCKS for use by other modules ─
+// ── Achievement → Character unlock map ───────────────────────
+// Keep in sync with CHARACTER_CATALOG.js earnedBy fields
 const ACHIEVEMENT_CHARACTER_UNLOCKS = {
-  first_star:    ['char_common_blue'],
-  complete_5:    ['char_common_dalmatian'],
-  xp_100:        ['char_uncommon_greenglass'],
-  level_3:       ['char_uncommon_student'],
-  five_streak:   ['char_uncommon_hero'],
-  complete_10:   ['char_uncommon_ranger'],
-  xp_500:        ['char_rare_painter'],
-  complete_25:   ['char_rare_baker'],
-  ten_streak:    ['char_rare_bluebonnet'],
-  level_10:      ['char_rare_guitar'],
-  completionist: ['char_mythic_shadowmonarch'],
-  xp_1000:       ['char_mythic_sunarmor'],
+  first_star:           ['char_common_blue'],
+  complete_5:           ['char_common_dalmatian'],
+  xp_100:               ['char_uncommon_greenglass'],
+  level_3:              ['char_uncommon_student'],
+  five_streak:          ['char_uncommon_hero'],
+  complete_10:          ['char_uncommon_ranger'],
+  xp_500:               ['char_rare_painter'],
+  complete_25:          ['char_rare_baker'],
+  ten_streak:           ['char_rare_bluebonnet'],
+  level_10:             ['char_rare_guitar'],
+  // Updated: Molecular Biologist unlocks by completing all picture activities
+  complete_all_picture: ['char_legendary_molecularbiologist'],
+  completionist:        ['char_mythic_shadowmonarch'],
+  // Updated: Sun Armor unlocks at 1,500 XP
+  xp_1500:              ['char_mythic_sunarmor'],
 };
 
 module.exports = router;

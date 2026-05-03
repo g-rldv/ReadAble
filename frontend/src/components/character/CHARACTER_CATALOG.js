@@ -39,12 +39,14 @@ export const ALL_CHARACTERS = [
   { id:'char_epic_devopseng',     name:'DevOps Engineer', file:'char_epic_devopseng.png',     rarity:'epic', cost:400, earnedBy:null,       desc:'Shipping code fast and breaking nothing.'    },
   { id:'char_epic_fsdev',         name:'Full Stack Dev',  file:'char_epic_fsdev.png',         rarity:'epic', cost:450, earnedBy:'level_20', desc:'Frontend, backend — all of it.'              },
   // ── LEGENDARY (achievement-only, cost:0) ──────────────────
-  { id:'char_legendary_molecularbiologist', name:'Molecular Biologist', file:'char_legendary_molecularbiologist.png', rarity:'legendary', cost:0, earnedBy:'completionist', desc:'Decoded the very building blocks of life.'        },
-  { id:'char_legendary_sustainabilityconsultant',      name:'Sustainability Consultant',      file:'char_legendary_sustainabilityconsultant.png',      rarity:'legendary', cost:0, earnedBy:'xp_1000',       desc:'Sustainable and brilliant.'     },
+  // Molecular Biologist: unlock by completing ALL picture_word + picture_choice activities
+  { id:'char_legendary_molecularbiologist', name:'Molecular Biologist', file:'char_legendary_molecularbiologist.png', rarity:'legendary', cost:0, earnedBy:'complete_all_picture', desc:'Decoded the very building blocks of life.'        },
+  { id:'char_legendary_sustainabilityconsultant', name:'Sustainability Consultant', file:'char_legendary_sustainabilityconsultant.png', rarity:'legendary', cost:0, earnedBy:'xp_1000', desc:'Sustainable and brilliant.'     },
   { id:'char_legendary_urbanplanner',       name:'Urban Planner',       file:'char_legendary_urbanplanner.png',       rarity:'legendary', cost:0, earnedBy:'ten_streak',     desc:'Designing cities one block at a time.'            },
   // ── MYTHIC (achievement-only, cost:0) ─────────────────────
   { id:'char_mythic_shadowmonarch', name:'Shadow Monarch', file:'char_mythic_shadowmonarch.png', rarity:'mythic', cost:0, earnedBy:'completionist', desc:'Mastered all activities. Power beyond measure.' },
-  { id:'char_mythic_sunarmor',      name:'Sun Armor',      file:'char_mythic_sunarmor.png',      rarity:'mythic', cost:0, earnedBy:'xp_1000',       desc:'Forged in XP, armored by dedication.'          },
+  // Sun Armor: unlock by earning 1,500 XP
+  { id:'char_mythic_sunarmor',      name:'Sun Armor',      file:'char_mythic_sunarmor.png',      rarity:'mythic', cost:0, earnedBy:'xp_1500',       desc:'Forged in XP, armored by dedication.'          },
 ];
 
 export const characterById = (id) => ALL_CHARACTERS.find(c => c.id === id);

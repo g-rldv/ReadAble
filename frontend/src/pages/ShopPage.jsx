@@ -31,19 +31,21 @@ const RARITY_FILTERS = [
 ];
 
 const ACH_LABELS = {
-  first_star:    'Complete your first activity',
-  complete_5:    'Complete 5 activities',
-  complete_10:   'Complete 10 activities',
-  complete_25:   'Complete 25 activities',
-  completionist: 'Complete ALL 48 activities',
-  xp_100:        'Earn 100 XP',
-  xp_500:        'Earn 500 XP',
-  xp_1000:       'Earn 1,000 XP',
-  level_3:       'Reach Level 3',
-  level_20:      'Reach Level 20',
-  five_streak:   'Reach a 5-day streak',
-  ten_streak:    'Reach a 10-day streak',
-  level_10:      'Reach Level 10',
+  first_star:           'Complete your first activity',
+  complete_5:           'Complete 5 activities',
+  complete_10:          'Complete 10 activities',
+  complete_25:          'Complete 25 activities',
+  completionist:        'Complete ALL 48 activities',
+  xp_100:               'Earn 100 XP',
+  xp_500:               'Earn 500 XP',
+  xp_1000:              'Earn 1,000 XP',
+  xp_1500:              'Earn 1,500 XP',
+  level_3:              'Reach Level 3',
+  level_20:             'Reach Level 20',
+  five_streak:          'Reach a 5-day streak',
+  ten_streak:           'Reach a 10-day streak',
+  level_10:             'Reach Level 10',
+  complete_all_picture: 'Complete all Picture Word & Picture Choice activities',
 };
 
 // ── Achievement Notification Toast ────────────────────────────
@@ -650,7 +652,6 @@ export default function ShopPage() {
         {RARITY_FILTERS.map(f => {
           const isActive = filter === f.key;
           const rc = RARITY_CONFIG[f.key];
-          // For active non-"all" filters, use rarity colour
           const activeBg     = rc ? rc.color    : 'var(--text-primary)';
           const activeBorder = rc ? rc.color    : 'var(--text-primary)';
           const activeColor  = '#ffffff';

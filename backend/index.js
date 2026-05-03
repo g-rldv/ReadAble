@@ -190,6 +190,8 @@ async function setupDatabase() {
       { key:'perfect_3',    title:'Perfectionist',     desc:'3 perfect scores in a row',     icon:'💎', cond:{type:'perfect_streak', threshold:3  }},
       { key:'night_owl',    title:'Night Owl',         desc:'Play 5 sessions after 8 PM',    icon:'🦉', cond:{type:'night_sessions', threshold:5  }},
       { key:'early_bird',   title:'Early Bird',        desc:'Play 5 sessions before 9 AM',   icon:'🌅', cond:{type:'early_sessions', threshold:5  }},
+      { key:'xp_1500', title:'XP Titan', desc:'Earn 1,500 XP', icon:'☀️', cond:{type:'xp', threshold:1500} },
+      { key:'complete_all_picture', title:'Picture Perfect', desc:'Complete all Picture Word & Picture Choice activities', icon:'🔬', cond:{type:'picture_completion', threshold:1} },
     ];
     for (const a of ach) {
       await client.query(
