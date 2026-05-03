@@ -1,25 +1,31 @@
 // ============================================================
 // PictureChoiceGame — read a text question, tap the correct picture
-// - TTS on each question and each option label
-// - No redundant navigation clutter
-// - Clean, focused UI
-// - Uses PNG images following naming convention: {activity_id}_{item_index}_{word}.png
+// Uses the shared ACTIVITY_IMAGES catalogue for PNG resolution
 // ============================================================
 import React, { useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Volume2, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
+import { ACTIVITY_IMAGES, activityImagePath } from './PictureWordGame';
 
 export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
   const { content } = activity;
-  const { speak } = useSettings();
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState(new Array(content.questions.length).fill(''));
-  const [justPicked, setJustPicked] = useState(false);
+  const { speak }   = useSettings();
+
+  const [currentIdx,  setCurrentIdx]  = useState(0);
+  const [answers,     setAnswers]     = useState(new Array(content.questions.length).fill(''));
+  const [justPicked,  setJustPicked]  = useState(false);
   const [imageErrors, setImageErrors] = useState({});
 
-  const current = content.questions[currentIdx];
-  const picked = answers[currentIdx];
-  const allDone = answers.every(a => a !== '');
+  const current  = content.questions[currentIdx];
+  const picked   = answers[currentIdx];
+  const allDone  = answers.every(a => a !== '');
+
+  // Resolve a picture key or raw filename → full URL
+  const resolveImage = (picture) => {
+    if (!picture) return null;
+    const filename = ACTIVITY_IMAGES[picture] ?? picture;
+    return activityImagePath(filename);
+  };
 
   const handlePick = (picture) => {
     if (justPicked) return;
@@ -50,7 +56,8 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
         </p>
         <button
           onClick={() => speak(content.instruction)}
-          className="p-2 rounded-xl text-sky hover:bg-sky/10 flex-shrink-0 transition-colors">
+          className="p-2 rounded-xl text-sky hover:bg-sky/10 flex-shrink-0 transition-colors"
+        >
           <Volume2 size={15} />
         </button>
       </div>
@@ -76,14 +83,16 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
       <div
         key={currentIdx}
         className="rounded-2xl p-5 mb-4 border-2 animate-pop"
-        style={{ borderColor: 'rgba(77,150,255,0.2)', background: 'var(--bg-card)' }}>
+        style={{ borderColor: 'rgba(77,150,255,0.2)', background: 'var(--bg-card)' }}
+      >
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-bold text-sky bg-sky/10 px-2.5 py-1 rounded-full">
             {currentIdx + 1} / {content.questions.length}
           </span>
           <button
             onClick={() => speak(current.text)}
-            className="p-1.5 rounded-lg text-sky hover:bg-sky/10 transition-colors">
+            className="p-1.5 rounded-lg text-sky hover:bg-sky/10 transition-colors"
+          >
             <Volume2 size={14} />
           </button>
         </div>
@@ -95,64 +104,72 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
       {/* Picture options */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         {current.options.map(opt => {
-          const isSel = picked === opt.picture;
-          const isCorr = opt.picture === current.answer;
-          const fb = justPicked && isSel;
+          const isSel    = picked === opt.picture;
+          const isCorr   = opt.picture === current.answer;
+          const fb       = justPicked && isSel;
           const hasError = imageErrors[opt.picture];
 
-          let borderColor = 'var(--border-color)';
-          let bgColor = 'var(--bg-card)';
-          let textColor = 'var(--text-primary)';
+          const resolvedFilename = ACTIVITY_IMAGES[opt.picture] ?? opt.picture;
+          const imgSrc = activityImagePath(resolvedFilename);
 
-          if (fb && isCorr) { borderColor = '#34d399'; bgColor = 'rgba(52,211,153,0.1)'; }
-          else if (fb && !isCorr) { borderColor = '#f87171'; bgColor = 'rgba(248,113,113,0.08)'; }
-          else if (!justPicked && isSel) { borderColor = '#4D96FF'; bgColor = 'rgba(77,150,255,0.08)'; }
+          let borderColor = 'var(--border-color)';
+          let bgColor     = 'var(--bg-card)';
+
+          if      (fb && isCorr)        { borderColor = '#34d399'; bgColor = 'rgba(52,211,153,0.1)'; }
+          else if (fb && !isCorr)       { borderColor = '#f87171'; bgColor = 'rgba(248,113,113,0.08)'; }
+          else if (!justPicked && isSel){ borderColor = '#4D96FF'; bgColor = 'rgba(77,150,255,0.08)'; }
 
           return (
             <button
               key={opt.picture}
               onClick={() => handlePick(opt.picture)}
               className="flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-2xl border-2 font-bold transition-all duration-200 active:scale-95"
-              style={{ borderColor, background: bgColor, color: textColor }}>
-              {/* Picture display or error fallback */}
+              style={{ borderColor, background: bgColor, color: 'var(--text-primary)' }}
+            >
+              {/* Picture */}
               <div className="w-16 h-16 flex items-center justify-center rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
                 {hasError ? (
                   <div className="flex flex-col items-center justify-center gap-1 text-gray-400">
                     <AlertCircle size={20} />
-                    <span className="text-xs text-center leading-tight">{opt.picture}</span>
+                    <span className="text-xs text-center leading-tight">{resolvedFilename}</span>
                   </div>
                 ) : (
                   <img
-                    src={`/images/activities/${opt.picture}`}
+                    src={imgSrc}
                     alt={opt.label}
                     className="w-full h-full object-cover"
                     onError={() => handleImageError(opt.picture)}
                   />
                 )}
               </div>
+
+              {/* Label + TTS */}
               <div className="flex items-center gap-1">
                 <span className="text-sm leading-tight text-center">{opt.label}</span>
                 <button
                   onClick={e => { e.stopPropagation(); speak(opt.label); }}
                   className="p-0.5 rounded hover:opacity-70 transition-opacity flex-shrink-0"
-                  style={{ color: '#9ca3af' }}>
+                  style={{ color: '#9ca3af' }}
+                >
                   <Volume2 size={10} />
                 </button>
               </div>
-              {fb && isCorr && <CheckCircle size={14} className="text-emerald-500" />}
+
+              {fb && isCorr  && <CheckCircle size={14} className="text-emerald-500" />}
               {fb && !isCorr && <span className="text-rose-500 text-sm font-bold">✗</span>}
             </button>
           );
         })}
       </div>
 
-      {/* Minimal nav — prev/next only */}
+      {/* Navigation */}
       <div className="flex items-center justify-between mb-4 gap-2">
         <button
           onClick={() => goTo(Math.max(0, currentIdx - 1))}
           disabled={currentIdx === 0}
           className="flex items-center gap-1 px-4 py-2 rounded-2xl font-bold text-sm disabled:opacity-30 transition-colors hover:bg-sky/10 hover:text-sky"
-          style={{ background: 'var(--bg-primary)', border: '1.5px solid var(--border-color)', color: 'var(--text-muted)' }}>
+          style={{ background: 'var(--bg-primary)', border: '1.5px solid var(--border-color)', color: 'var(--text-muted)' }}
+        >
           <ChevronLeft size={15} /> Prev
         </button>
         <span className="text-xs font-semibold text-gray-400">
@@ -162,7 +179,8 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
           onClick={() => goTo(Math.min(content.questions.length - 1, currentIdx + 1))}
           disabled={currentIdx === content.questions.length - 1}
           className="flex items-center gap-1 px-4 py-2 rounded-2xl font-bold text-sm disabled:opacity-30 transition-colors hover:bg-sky/10 hover:text-sky"
-          style={{ background: 'var(--bg-primary)', border: '1.5px solid var(--border-color)', color: 'var(--text-muted)' }}>
+          style={{ background: 'var(--bg-primary)', border: '1.5px solid var(--border-color)', color: 'var(--text-muted)' }}
+        >
           Next <ChevronRight size={15} />
         </button>
       </div>
@@ -172,7 +190,8 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
         <button
           onClick={() => onSubmit({ answers })}
           disabled={submitting}
-          className="btn-game w-full bg-coral text-white text-base animate-pop">
+          className="btn-game w-full bg-coral text-white text-base animate-pop"
+        >
           {submitting ? 'Checking…' : 'Check Answers'}
         </button>
       )}
