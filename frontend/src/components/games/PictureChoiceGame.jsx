@@ -20,11 +20,10 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
   const picked   = answers[currentIdx];
   const allDone  = answers.every(a => a !== '');
 
-  // Resolve a picture key or raw filename → full URL
+  // picture field is the raw filename e.g. "1_0_elephant.png"
   const resolveImage = (picture) => {
     if (!picture) return null;
-    const filename = ACTIVITY_IMAGES[picture] ?? picture;
-    return activityImagePath(filename);
+    return activityImagePath(picture);
   };
 
   const handlePick = (picture) => {
@@ -109,8 +108,7 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
           const fb       = justPicked && isSel;
           const hasError = imageErrors[opt.picture];
 
-          const resolvedFilename = ACTIVITY_IMAGES[opt.picture] ?? opt.picture;
-          const imgSrc = activityImagePath(resolvedFilename);
+          const imgSrc = activityImagePath(opt.picture);
 
           let borderColor = 'var(--border-color)';
           let bgColor     = 'var(--bg-card)';
@@ -131,7 +129,7 @@ export default function PictureChoiceGame({ activity, onSubmit, submitting }) {
                 {hasError ? (
                   <div className="flex flex-col items-center justify-center gap-1 text-gray-400">
                     <AlertCircle size={20} />
-                    <span className="text-xs text-center leading-tight">{resolvedFilename}</span>
+                    <span className="text-xs text-center leading-tight">{opt.picture}</span>
                   </div>
                 ) : (
                   <img

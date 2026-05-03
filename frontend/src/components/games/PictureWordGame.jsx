@@ -140,10 +140,8 @@ export default function PictureWordGame({ activity, onSubmit, submitting }) {
   const currentItem  = items[currentIdx];
   const currentAnswer = answers[currentIdx];
 
-  // Resolve picture filename: accept a key from ACTIVITY_IMAGES OR a raw filename
-  const picFilename = currentItem.picture
-    ? (ACTIVITY_IMAGES[currentItem.picture] ?? currentItem.picture)
-    : null;
+  // picture field is the raw filename e.g. "1_0_elephant.png"
+  const picFilename = currentItem.picture ?? null;
   const imageUrl    = picFilename ? activityImagePath(picFilename) : null;
   const hasImageError = imageErrors[currentIdx];
 
