@@ -52,8 +52,8 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
     await client.query('BEGIN');
 
     const { answer } = req.body;
-    const activityId     = parseInt(req.params.id);
-    const userId         = req.user.id;
+    const activityId = parseInt(req.params.id);
+    const userId     = req.user.id;
 
     // 1. Fetch activity
     const actResult = await client.query('SELECT * FROM activities WHERE id=$1', [activityId]);
@@ -86,7 +86,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       );
     }
 
-    // 3. Streak — update every time user submits
+    // 3. Streak
     const userRow = await client.query(
       'SELECT xp, level, achievements, streak, last_activity_date, coins FROM users WHERE id=$1',
       [userId]
@@ -112,7 +112,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
     let coinsAwarded = 0;
     if (score > 0) {
       xpAwarded    = Math.round((score / 100) * activity.xp_reward);
-      coinsAwarded = Math.round(xpAwarded * 1.5);  // coins = 1.5× XP
+      coinsAwarded = Math.round(xpAwarded * 1.5);
     }
 
     // 5. Update XP + streak + coins
@@ -169,7 +169,6 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       }
     }
 
-    // ── COMMIT the transaction ────────────────────────────────
     await client.query('COMMIT');
 
     res.json({
@@ -251,11 +250,11 @@ function evaluateAnswer(activity, answer) {
       break;
     }
     case 'picture_word': {
-      const expected     = correct.answers;
-      const given        = answer?.answers || [];
+      const expected      = correct.answers;
+      const given         = answer?.answers || [];
       const parsedContent = typeof activity.content === 'string' ? JSON.parse(activity.content) : activity.content;
-      const items        = parsedContent?.items || [];
-      const correctCount = expected.filter((a, i) => a?.toLowerCase().trim() === given[i]?.toLowerCase().trim()).length;
+      const items         = parsedContent?.items || [];
+      const correctCount  = expected.filter((a, i) => a?.toLowerCase().trim() === given[i]?.toLowerCase().trim()).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
       feedback  = isCorrect
@@ -270,9 +269,12 @@ function evaluateAnswer(activity, answer) {
       break;
     }
     case 'picture_choice': {
+      // Options use { picture: 'filename.png', label: '...' }
+      // answer field and correct.answers are PNG filename strings
       const expected     = correct.answers;
       const given        = answer?.answers || [];
-      const questions    = typeof activity.content === 'string' ? JSON.parse(activity.content)?.questions || [] : activity.content?.questions || [];
+      const parsedContent = typeof activity.content === 'string' ? JSON.parse(activity.content) : activity.content;
+      const questions    = parsedContent?.questions || [];
       const correctCount = expected.filter((a, i) => a?.trim() === given[i]?.trim()).length;
       score     = Math.round((correctCount / expected.length) * 100);
       isCorrect = score === 100;
@@ -282,13 +284,15 @@ function evaluateAnswer(activity, answer) {
         ? `Nice work! ${correctCount}/${expected.length} pictures correct.`
         : `You got ${correctCount}/${expected.length}. Read each question carefully!`;
       details   = expected.map((a, i) => {
-        const q           = questions[i];
-        const correct_opt = q?.options?.find(o => o.emoji === a);
-        const given_opt   = q?.options?.find(o => o.emoji === given[i]);
+        const q         = questions[i];
+        // Find the matching option by picture filename
+        const correctOpt = q?.options?.find(o => o.picture === a);
+        const givenOpt   = q?.options?.find(o => o.picture === given[i]);
         return {
-          label: `Q${i+1}`, correct: `${a} ${correct_opt?.label || ''}`,
-          given: given[i] ? `${given[i]} ${given_opt?.label || ''}` : '',
-          ok: a?.trim() === given[i]?.trim(),
+          label:   `Q${i+1}`,
+          correct: correctOpt ? `${correctOpt.label}` : a,
+          given:   givenOpt  ? `${givenOpt.label}`   : (given[i] || ''),
+          ok:      a?.trim() === given[i]?.trim(),
         };
       });
       break;
@@ -306,22 +310,18 @@ async function checkAchievements(client, userId, user) {
   try {
     const unlocked = user.achievements || [];
 
-    // Count completed activities overall
     const countRes = await client.query(
       'SELECT COUNT(*) AS cnt FROM user_progress WHERE user_id=$1 AND completed=TRUE',
       [userId]
     );
     const completedCount = parseInt(countRes.rows[0]?.cnt || 0);
 
-    // Count perfect scores
     const perfectRes = await client.query(
       'SELECT COUNT(*) AS cnt FROM user_progress WHERE user_id=$1 AND score=100',
       [userId]
     );
     const perfectCount = parseInt(perfectRes.rows[0]?.cnt || 0);
 
-    // Count completed picture_word + picture_choice activities
-    // Join with activities table to filter by type
     const pictureRes = await client.query(
       `SELECT COUNT(*) AS cnt
        FROM user_progress up
@@ -333,7 +333,6 @@ async function checkAchievements(client, userId, user) {
     );
     const pictureCompletedCount = parseInt(pictureRes.rows[0]?.cnt || 0);
 
-    // Total number of picture_word + picture_choice activities in the DB
     const pictureTotalRes = await client.query(
       `SELECT COUNT(*) AS cnt FROM activities WHERE type IN ('picture_word', 'picture_choice')`
     );
@@ -344,7 +343,6 @@ async function checkAchievements(client, userId, user) {
       { key: 'xp_100',              cond: () => user.xp >= 100,                        title: 'Century Club',        icon: '💯' },
       { key: 'xp_500',              cond: () => user.xp >= 500,                        title: 'XP Legend',           icon: '🌟' },
       { key: 'xp_1000',             cond: () => user.xp >= 1000,                       title: 'XP Master',           icon: '🏅' },
-      // New: 1,500 XP milestone for Sun Armor (mythic)
       { key: 'xp_1500',             cond: () => user.xp >= 1500,                       title: 'XP Titan',            icon: '☀️' },
       { key: 'level_3',             cond: () => user.level >= 3,                       title: 'Rising Reader',       icon: '📖' },
       { key: 'level_5',             cond: () => user.level >= 5,                       title: 'Word Wizard',         icon: '🧙' },
@@ -359,7 +357,6 @@ async function checkAchievements(client, userId, user) {
       { key: 'complete_25',         cond: () => completedCount >= 25,                  title: 'Dedicated Learner',   icon: '📚' },
       { key: 'completionist',       cond: () => completedCount >= 48,                  title: 'Completionist',       icon: '🌈' },
       { key: 'perfect_3',           cond: () => perfectCount >= 3,                     title: 'Perfectionist',       icon: '💎' },
-      // New: complete ALL picture_word + picture_choice activities for Molecular Biologist (legendary)
       { key: 'complete_all_picture',
         cond: () => pictureTotalCount > 0 && pictureCompletedCount >= pictureTotalCount,
         title: 'Picture Perfect',
@@ -383,7 +380,6 @@ async function checkAchievements(client, userId, user) {
 }
 
 // ── Achievement → Character unlock map ───────────────────────
-// Keep in sync with CHARACTER_CATALOG.js earnedBy fields
 const ACHIEVEMENT_CHARACTER_UNLOCKS = {
   first_star:           ['char_common_blue'],
   complete_5:           ['char_common_dalmatian'],
@@ -395,10 +391,8 @@ const ACHIEVEMENT_CHARACTER_UNLOCKS = {
   complete_25:          ['char_rare_baker'],
   ten_streak:           ['char_rare_bluebonnet'],
   level_10:             ['char_rare_guitar'],
-  // Updated: Molecular Biologist unlocks by completing all picture activities
   complete_all_picture: ['char_legendary_molecularbiologist'],
   completionist:        ['char_mythic_shadowmonarch'],
-  // Updated: Sun Armor unlocks at 1,500 XP
   xp_1500:              ['char_mythic_sunarmor'],
 };
 
